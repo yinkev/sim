@@ -1,0 +1,56 @@
+{
+  "metadata": { "name": "Support Triage" },
+  "blocks": {
+    "start-1": {
+      "id": "start-1",
+      "type": "start_trigger",
+      "name": "Start",
+      "position": { "x": 0, "y": 0 },
+      "enabled": true,
+      "horizontalHandles": true,
+      "advancedMode": false,
+      "triggerMode": false,
+      "locked": false,
+      "height": 0,
+      "subBlocks": {
+        "inputFormat": { "id": "inputFormat", "type": "input-format", "value": [] }
+      },
+      "outputs": {},
+      "data": {}
+    },
+    "agent-1": {
+      "id": "agent-1",
+      "type": "agent",
+      "name": "Triage Agent",
+      "position": { "x": 420, "y": 0 },
+      "enabled": true,
+      "horizontalHandles": true,
+      "advancedMode": false,
+      "triggerMode": false,
+      "locked": false,
+      "height": 0,
+      "subBlocks": {
+        "messages": {
+          "id": "messages",
+          "type": "messages-input",
+          "value": [
+            {
+              "role": "system",
+              "content": "You are a support triage assistant. Classify the user message as billing, technical, or general. Reply with a short summary and suggested next step."
+            },
+            { "role": "user", "content": "<start-1.input>" }
+          ]
+        },
+        "model": { "id": "model", "type": "model-input", "value": "gpt-4o-mini" },
+        "memoryType": { "id": "memoryType", "type": "dropdown", "value": "none" }
+      },
+      "outputs": {},
+      "data": {}
+    }
+  },
+  "edges": [
+    { "id": "e-start-agent", "source": "start-1", "target": "agent-1", "type": "default" }
+  ],
+  "loops": {},
+  "parallels": {}
+}

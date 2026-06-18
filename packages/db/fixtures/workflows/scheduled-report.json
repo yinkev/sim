@@ -1,0 +1,114 @@
+{
+  "metadata": { "name": "Scheduled Report" },
+  "blocks": {
+    "start-1": {
+      "id": "start-1",
+      "type": "start_trigger",
+      "name": "Start",
+      "position": { "x": 0, "y": 80 },
+      "enabled": true,
+      "horizontalHandles": true,
+      "subBlocks": {
+        "inputFormat": { "id": "inputFormat", "type": "input-format", "value": [] }
+      },
+      "outputs": {},
+      "data": {}
+    },
+    "api-1": {
+      "id": "api-1",
+      "type": "api",
+      "name": "Load metrics",
+      "position": { "x": 360, "y": 80 },
+      "enabled": true,
+      "horizontalHandles": true,
+      "subBlocks": {
+        "url": { "id": "url", "type": "short-input", "value": "https://jsonplaceholder.typicode.com/posts/1" },
+        "method": { "id": "method", "type": "dropdown", "value": "GET" },
+        "params": { "id": "params", "type": "table", "value": [] },
+        "headers": { "id": "headers", "type": "table", "value": [] },
+        "body": { "id": "body", "type": "code", "value": "" }
+      },
+      "outputs": {},
+      "data": {}
+    },
+    "fn-1": {
+      "id": "fn-1",
+      "type": "function",
+      "name": "Format payload",
+      "position": { "x": 720, "y": 80 },
+      "enabled": true,
+      "horizontalHandles": true,
+      "subBlocks": {
+        "code": {
+          "id": "code",
+          "type": "code",
+          "value": "const raw = typeof input === 'string' ? JSON.parse(input) : input;\nreturn { title: raw?.title ?? 'Report', body: raw?.body ?? '' };"
+        }
+      },
+      "outputs": {},
+      "data": {}
+    },
+    "cond-1": {
+      "id": "cond-1",
+      "type": "condition",
+      "name": "Has content?",
+      "position": { "x": 1080, "y": 80 },
+      "enabled": true,
+      "horizontalHandles": true,
+      "subBlocks": {},
+      "outputs": {},
+      "data": {}
+    },
+    "agent-1": {
+      "id": "agent-1",
+      "type": "agent",
+      "name": "Write report",
+      "position": { "x": 1440, "y": 0 },
+      "enabled": true,
+      "horizontalHandles": true,
+      "subBlocks": {
+        "messages": {
+          "id": "messages",
+          "type": "messages-input",
+          "value": [
+            {
+              "role": "system",
+              "content": "Write a brief weekly status report from the structured input."
+            },
+            { "role": "user", "content": "<fn-1.result>" }
+          ]
+        },
+        "model": { "id": "model", "type": "model-input", "value": "gpt-4o-mini" },
+        "memoryType": { "id": "memoryType", "type": "dropdown", "value": "none" }
+      },
+      "outputs": {},
+      "data": {}
+    },
+    "fn-2": {
+      "id": "fn-2",
+      "type": "function",
+      "name": "Fallback note",
+      "position": { "x": 1440, "y": 200 },
+      "enabled": true,
+      "horizontalHandles": true,
+      "subBlocks": {
+        "code": {
+          "id": "code",
+          "type": "code",
+          "value": "return { note: 'No content to report this period.' };"
+        }
+      },
+      "outputs": {},
+      "data": {}
+    }
+  },
+  "edges": [
+    { "id": "e1", "source": "start-1", "target": "api-1", "type": "default" },
+    { "id": "e2", "source": "api-1", "target": "fn-1", "type": "default" },
+    { "id": "e3", "source": "fn-1", "target": "cond-1", "type": "default" },
+    { "id": "e4", "source": "cond-1", "target": "agent-1", "type": "default", "sourceHandle": "true" },
+    { "id": "e5", "source": "cond-1", "target": "fn-2", "type": "default", "sourceHandle": "false" }
+  ],
+  "loops": {},
+  "parallels": {}
+}

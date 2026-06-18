@@ -1,0 +1,66 @@
+{
+  "metadata": { "name": "HTTP Enrichment" },
+  "blocks": {
+    "start-1": {
+      "id": "start-1",
+      "type": "start_trigger",
+      "name": "Start",
+      "position": { "x": 0, "y": 0 },
+      "enabled": true,
+      "horizontalHandles": true,
+      "subBlocks": {
+        "inputFormat": { "id": "inputFormat", "type": "input-format", "value": [] }
+      },
+      "outputs": {},
+      "data": {}
+    },
+    "api-1": {
+      "id": "api-1",
+      "type": "api",
+      "name": "Fetch sample",
+      "position": { "x": 400, "y": 0 },
+      "enabled": true,
+      "horizontalHandles": true,
+      "subBlocks": {
+        "url": { "id": "url", "type": "short-input", "value": "https://jsonplaceholder.typicode.com/todos/1" },
+        "method": { "id": "method", "type": "dropdown", "value": "GET" },
+        "params": { "id": "params", "type": "table", "value": [] },
+        "headers": { "id": "headers", "type": "table", "value": [] },
+        "body": { "id": "body", "type": "code", "value": "" }
+      },
+      "outputs": {},
+      "data": {}
+    },
+    "agent-1": {
+      "id": "agent-1",
+      "type": "agent",
+      "name": "Summarize",
+      "position": { "x": 820, "y": 0 },
+      "enabled": true,
+      "horizontalHandles": true,
+      "subBlocks": {
+        "messages": {
+          "id": "messages",
+          "type": "messages-input",
+          "value": [
+            {
+              "role": "system",
+              "content": "Summarize the API response JSON in two sentences for a non-technical reader."
+            },
+            { "role": "user", "content": "<api-1.body>" }
+          ]
+        },
+        "model": { "id": "model", "type": "model-input", "value": "gpt-4o-mini" },
+        "memoryType": { "id": "memoryType", "type": "dropdown", "value": "none" }
+      },
+      "outputs": {},
+      "data": {}
+    }
+  },
+  "edges": [
+    { "id": "e1", "source": "start-1", "target": "api-1", "type": "default" },
+    { "id": "e2", "source": "api-1", "target": "agent-1", "type": "default" }
+  ],
+  "loops": {},
+  "parallels": {}
+}
