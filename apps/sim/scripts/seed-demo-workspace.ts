@@ -114,7 +114,7 @@ async function main() {
   for (const file of FIXTURE_FILES) {
     const path = join(FIXTURE_DIR, file)
     const raw = readFileSync(path, 'utf8')
-    const parsed = parseWorkflowJson(raw, false)
+    const parsed = parseWorkflowJson(raw, true)
     if (!parsed.data || parsed.errors.length > 0) {
       throw new Error(`Invalid fixture ${file}: ${parsed.errors.join(', ')}`)
     }
