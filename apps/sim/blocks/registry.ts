@@ -292,6 +292,11 @@ import { TtsBlock } from '@/blocks/blocks/tts'
 import { TwilioSMSBlock, TwilioSMSBlockMeta } from '@/blocks/blocks/twilio'
 import { TwilioVoiceBlock, TwilioVoiceBlockMeta } from '@/blocks/blocks/twilio_voice'
 import { TypeformBlock, TypeformBlockMeta } from '@/blocks/blocks/typeform'
+import { UnderstandExtractBlock } from '@/blocks/blocks/understand_extract'
+import { UnderstandGraphBlock } from '@/blocks/blocks/understand_graph'
+import { UnderstandParseBlock } from '@/blocks/blocks/understand_parse'
+import { UnderstandScanBlock } from '@/blocks/blocks/understand_scan'
+import { UnderstandViewBlock } from '@/blocks/blocks/understand_view'
 import { UpstashBlock, UpstashBlockMeta } from '@/blocks/blocks/upstash'
 import { VantaBlock, VantaBlockMeta } from '@/blocks/blocks/vanta'
 import { VariablesBlock } from '@/blocks/blocks/variables'
@@ -596,6 +601,11 @@ const BLOCK_REGISTRY: Record<string, BlockConfig> = {
   twilio_sms: TwilioSMSBlock,
   twilio_voice: TwilioVoiceBlock,
   typeform: TypeformBlock,
+  understand_scan: UnderstandScanBlock,
+  understand_parse: UnderstandParseBlock,
+  understand_extract: UnderstandExtractBlock,
+  understand_graph: UnderstandGraphBlock,
+  understand_view: UnderstandViewBlock,
   upstash: UpstashBlock,
   vanta: VantaBlock,
   variables: VariablesBlock,

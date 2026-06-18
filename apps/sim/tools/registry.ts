@@ -3459,6 +3459,13 @@ import {
 } from '@/tools/typeform'
 import type { ToolConfig } from '@/tools/types'
 import {
+  understandExtractTool,
+  understandGraphTool,
+  understandParseTool,
+  understandScanTool,
+  understandViewTool,
+} from '@/tools/understand'
+import {
   upstashRedisCommandTool,
   upstashRedisDeleteTool,
   upstashRedisExistsTool,
@@ -6039,6 +6046,11 @@ export const tools: Record<string, ToolConfig> = {
   temporal_unpause_schedule: temporalUnpauseScheduleTool,
   temporal_trigger_schedule: temporalTriggerScheduleTool,
   temporal_delete_schedule: temporalDeleteScheduleTool,
+  understand_scan: understandScanTool,
+  understand_parse: understandParseTool,
+  understand_extract: understandExtractTool,
+  understand_graph: understandGraphTool,
+  understand_view: understandViewTool,
   clay_populate: clayPopulateTool,
   clickhouse_query: clickhouseQueryTool,
   clickhouse_insert: clickhouseInsertTool,

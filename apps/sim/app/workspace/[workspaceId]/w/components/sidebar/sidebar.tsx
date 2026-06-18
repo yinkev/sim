@@ -751,6 +751,12 @@ export const Sidebar = memo(function Sidebar() {
           hidden: permissionConfig.hideKnowledgeBaseTab,
         },
         {
+          id: 'understand',
+          label: 'Understand',
+          icon: BookOpen,
+          href: `/workspace/${workspaceId}/understand`,
+        },
+        {
           id: 'scheduled-tasks',
           label: 'Scheduled tasks',
           icon: Calendar,

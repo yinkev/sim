@@ -6,7 +6,7 @@ These local-only Artillery scenarios exercise `POST /api/workflows/[id]/execute`
 
 - The app should be running locally, for example with `bun run dev:full`
 - Each scenario needs valid workflow IDs and API keys
-- All scenarios default to `http://localhost:3000`
+- All scenarios default to `http://localhost:6888`
 
 The default rates are tuned for these local limits:
 

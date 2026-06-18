@@ -124,7 +124,7 @@ const nextConfig: NextConfig = {
             }
           })()
         : []),
-      'localhost:3000',
+      'localhost:6888',
       'localhost:3001',
     ],
   }),
