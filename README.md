@@ -130,6 +130,14 @@ cp packages/db/.env.example packages/db/.env
 cd packages/db && bun run db:migrate
 ```
 
+Optional — seed a playable demo workspace (after you have signed up once):
+
+```bash
+bun run db:seed:demo
+```
+
+See [apps/sim/docs/LOCAL_DEV_PLAYGROUND.md](apps/sim/docs/LOCAL_DEV_PLAYGROUND.md) for local dev tips.
+
 5. Start development servers:
 
 ```bash
