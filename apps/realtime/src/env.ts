@@ -12,7 +12,7 @@ const EnvSchema = z.object({
   INTERNAL_API_SECRET: z.string().min(32),
   NEXT_PUBLIC_APP_URL: z.string().url(),
   ALLOWED_ORIGINS: z.string().optional(),
-  PORT: z.coerce.number().int().positive().default(3002),
+  PORT: z.coerce.number().int().positive().default(6887),
   DISABLE_AUTH: z
     .string()
     .optional()

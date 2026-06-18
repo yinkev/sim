@@ -25,7 +25,7 @@ services:
       - COPILOT_API_KEY=${COPILOT_API_KEY}
       - SIM_AGENT_API_URL=${SIM_AGENT_API_URL}
       - OLLAMA_URL=${OLLAMA_URL:-http://localhost:11434}
-      - SOCKET_SERVER_URL=${SOCKET_SERVER_URL:-http://realtime:3002}
+      - SOCKET_SERVER_URL=${SOCKET_SERVER_URL:-http://realtime:6887}
       # NEXT_PUBLIC_SOCKET_URL is read by the browser. Leaving it unset lets the
       # client default to the page's own origin (assumes the reverse proxy routes
       # /socket.io). Set it explicitly only when the realtime service is on a
@@ -50,7 +50,7 @@ services:
     image: ghcr.io/simstudioai/realtime:latest
     restart: unless-stopped
     ports:
-      - '3002:3002'
+      - '6887:6887'
     deploy:
       resources:
         limits:
@@ -67,7 +67,7 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3002/health']
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:6887/health']
       interval: 90s
       timeout: 5s
       retries: 3

@@ -1,6 +1,9 @@
 # Understand + PRISM Integration Handoff
 
-Last verified locally: 2026-06-16 18:43 PDT.
+Last verified locally: 2026-06-18 02:23 UTC.
+
+Repo moved to `/Users/kyin/Projects/sim` on 2026-06-18.
+Commit `49ac068cc` on branch `feat/prism-understand-integration`.
 
 ## Purpose
 
@@ -352,7 +355,7 @@ lsof -nP -iTCP:3000 -sTCP:LISTEN
 ```bash
 curl -sS -X POST http://localhost:6888/api/understand/analyze \
   -H 'Content-Type: application/json' \
-  -d '{"workspaceId":"test","rootPath":"/Users/kyin/sim/apps/sim/lib/understand","maxFiles":5,"projectName":"sim-plumbing-review"}'
+  -d '{"workspaceId":"test","rootPath":"/Users/kyin/Projects/sim/apps/sim/lib/understand","maxFiles":5,"projectName":"sim-plumbing-review"}'
 # success true, files 1, functions 54, nodes 250, edges 356
 ```
 
@@ -541,7 +544,7 @@ changed incidentally as part of local host plumbing.
 Start Sim:
 
 ```bash
-cd /Users/kyin/sim/apps/sim
+cd /Users/kyin/Projects/sim/apps/sim
 bun run dev
 ```
 
@@ -562,7 +565,7 @@ Run a smoke analysis:
 ```bash
 curl -sS -X POST http://localhost:6888/api/understand/analyze \
   -H 'Content-Type: application/json' \
-  -d '{"workspaceId":"test","rootPath":"/Users/kyin/sim/apps/sim/lib/understand","maxFiles":5,"projectName":"sim-smoke"}' \
+  -d '{"workspaceId":"test","rootPath":"/Users/kyin/Projects/sim/apps/sim/lib/understand","maxFiles":5,"projectName":"sim-smoke"}' \
   | jq '{success, files: .scan.stats.totalFiles, functions: (.parsed.functions|length), nodes: .graph.metadata.stats.nodes, edges: .graph.metadata.stats.edges, outputPath, htmlOutputPath}'
 ```
 
@@ -585,7 +588,7 @@ python3 /Users/kyin/.zcode/cli/plugins/cache/zcode-plugins-official/prism/1.0.0/
 
 ## Resume Checklist
 
-1. Check `git status --short` in `/Users/kyin/sim`.
+1. Check `git status --short` in `/Users/kyin/Projects/sim`.
 2. Check that Sim still listens on `6888`, not `3000`.
 3. Run the Understand page smoke.
 4. Run the API smoke.

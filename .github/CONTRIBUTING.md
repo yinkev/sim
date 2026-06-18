@@ -291,7 +291,7 @@ If you prefer not to use Docker or Dev Containers. **All commands run from the r
    This launches both apps with coloured prefixes:
 
    - `[App]` — Next.js on `http://localhost:3000`
-   - `[Realtime]` — Socket.IO on `http://localhost:3002`
+   - `[Realtime]` — Socket.IO on `http://localhost:6887`
 
    Or run them separately:
 

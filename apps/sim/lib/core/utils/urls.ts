@@ -101,7 +101,7 @@ export function getEmailDomain(): string {
   }
 }
 
-const DEFAULT_SOCKET_URL = 'http://localhost:3002'
+const DEFAULT_SOCKET_URL = 'http://localhost:6887'
 const DEFAULT_OLLAMA_URL = 'http://localhost:11434'
 export const LOCALHOST_HOSTNAMES: ReadonlySet<string> = new Set([
   'localhost',
@@ -184,9 +184,9 @@ export function getSocketServerUrl(): string {
  * 1. `NEXT_PUBLIC_SOCKET_URL` if explicitly set (subdomain, separate host:port)
  * 2. In the browser when the page is served from a non-localhost origin, the
  *    page's own origin — assumes the reverse proxy routes `/socket.io` to the
- *    realtime service. This avoids shipping a hardcoded `localhost:3002` to
+ *    realtime service. This avoids shipping a hardcoded `localhost:6887` to
  *    self-hosters behind nginx/Cloudflare.
- * 3. `http://localhost:3002` for local development and SSR.
+ * 3. `http://localhost:6887` for local development and SSR.
  */
 export function getSocketUrl(): string {
   const explicit = getEnv('NEXT_PUBLIC_SOCKET_URL')?.trim()

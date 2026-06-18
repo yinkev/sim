@@ -45,7 +45,7 @@ vi.mock('@/env', () => ({
     BETTER_AUTH_SECRET: 'test-better-auth-secret-at-least-32-chars',
     INTERNAL_API_SECRET: 'test-internal-api-secret-at-least-32-chars',
     NEXT_PUBLIC_APP_URL: 'http://localhost:3000',
-    PORT: 3002,
+    PORT: 6887,
     DISABLE_AUTH: false,
   },
   isProd: false,

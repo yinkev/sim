@@ -207,7 +207,7 @@ async function main() {
     '--network',
     NETWORK_NAME,
     '-p',
-    '3002:3002',
+    '6887:6887',
     '-e',
     `DATABASE_URL=postgresql://postgres:postgres@${DB_CONTAINER}:5432/simstudio`,
     '-e',

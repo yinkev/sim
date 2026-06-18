@@ -4,7 +4,7 @@
 
 1. Migrate: `cd packages/db && bun run db:migrate`
 2. Seed: `bun run db:seed:demo` (sign up once first)
-3. Run: `bun run dev:full` — UI http://localhost:6888, realtime :3002
+3. Run: `bun run dev:full` — UI http://localhost:6888, realtime :6887
 
 ## Env alignment (sim + realtime)
 

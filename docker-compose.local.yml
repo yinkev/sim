@@ -22,7 +22,7 @@ services:
       - COPILOT_API_KEY=${COPILOT_API_KEY}
       - SIM_AGENT_API_URL=${SIM_AGENT_API_URL}
       - OLLAMA_URL=${OLLAMA_URL:-http://localhost:11434}
-      - SOCKET_SERVER_URL=${SOCKET_SERVER_URL:-http://realtime:3002}
+      - SOCKET_SERVER_URL=${SOCKET_SERVER_URL:-http://realtime:6887}
       - NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL:-}
     depends_on:
       db:
@@ -55,13 +55,13 @@ services:
         condition: service_healthy
     restart: unless-stopped
     ports:
-      - '3002:3002'
+      - '6887:6887'
     deploy:
       resources:
         limits:
           memory: 1G
     healthcheck:
-      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3002/health']
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:6887/health']
       interval: 90s
       timeout: 5s
       retries: 3

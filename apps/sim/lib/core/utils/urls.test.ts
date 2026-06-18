@@ -61,22 +61,22 @@ describe('getSocketUrl', () => {
     expect(getSocketUrl()).toBe('https://10.0.3.36')
   })
 
-  it('falls back to localhost:3002 when served from localhost', () => {
+  it('falls back to localhost:6887 when served from localhost', () => {
     setLocation('http://localhost:3000/')
-    expect(getSocketUrl()).toBe('http://localhost:3002')
+    expect(getSocketUrl()).toBe('http://localhost:6887')
   })
 
-  it('falls back to localhost:3002 when served from 127.0.0.1', () => {
+  it('falls back to localhost:6887 when served from 127.0.0.1', () => {
     setLocation('http://127.0.0.1:3000/')
-    expect(getSocketUrl()).toBe('http://localhost:3002')
+    expect(getSocketUrl()).toBe('http://localhost:6887')
   })
 
   it('explicit env var wins over the localhost fallback', () => {
     mockGetEnv.mockImplementation((key) =>
-      key === 'NEXT_PUBLIC_SOCKET_URL' ? 'http://realtime.local:3002' : undefined
+      key === 'NEXT_PUBLIC_SOCKET_URL' ? 'http://realtime.local:6887' : undefined
     )
     setLocation('http://localhost:3000/')
-    expect(getSocketUrl()).toBe('http://realtime.local:3002')
+    expect(getSocketUrl()).toBe('http://realtime.local:6887')
   })
 
   it('treats whitespace-only env var as unset', () => {

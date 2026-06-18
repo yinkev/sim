@@ -95,7 +95,7 @@ vi.mock('@/lib/core/config/env', () => ({
 
 vi.mock('@/lib/core/utils/urls', () => ({
   getBaseUrl: () => 'http://localhost:3000',
-  getSocketServerUrl: () => 'http://localhost:3002',
+  getSocketServerUrl: () => 'http://localhost:6887',
 }))
 
 vi.mock('@/lib/posthog/server', () => ({
