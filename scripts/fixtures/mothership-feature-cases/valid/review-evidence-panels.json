@@ -1,0 +1,154 @@
+{
+  "id": "task-69-review-evidence-panels",
+  "state": "NEXT_SLICE_SELECTED",
+  "repo": {
+    "workspace": "/Users/kyin/Projects/sim",
+    "root": "/Users/kyin/Projects/sim",
+    "branch": "feat/demo-workspace-local-dev",
+    "head": "00cbeac16088d64a2037e31d36fa4dd126b735ad",
+    "statusShortBranch": "## feat/demo-workspace-local-dev",
+    "dirtyOverlap": false
+  },
+  "charter": {
+    "objective": "Group FeatureCase reviews into source-authority evidence panels (Subagent, Grok CLI, Oracle) in the workspace Mothership control panel, labeled by jurisdiction, without weakening non-claim gates.",
+    "nonObjectives": [
+      "Do not claim real provider or browser E2E.",
+      "Do not claim Docker image build or push proof.",
+      "Do not claim live Kubernetes service or CronJob proof.",
+      "Do not claim workspace authorization beyond session-auth proof.",
+      "Do not touch billing or provider-pricing runtime behavior.",
+      "Do not modify the FeatureCase ledger, contracts, or API routes in the slice."
+    ],
+    "invariants": [
+      "The review panels are a frontend read-side change only.",
+      "The three named families (Subagent, Grok CLI, Oracle) always render in fixed order.",
+      "Empty families show an honest empty-state; an Other panel appears only for unmatched reviewers.",
+      "getReviewFamilyGroups and classifyReviewerFamily must be pure and unit-tested.",
+      "Non-claim gates and the FeatureCase checkers must continue to pass."
+    ],
+    "proofRequired": [
+      "Focused UI and helper tests pass.",
+      "Biome, type-check, API-boundary, and React Query policy checks pass.",
+      "FeatureCase and ledger checkers pass.",
+      "Independent role-separated spec, code, and evidence reviews are documented."
+    ],
+    "stopRules": [
+      "Stop on route-local boundary schemas.",
+      "Stop on raw same-origin client fetch for JSON boundaries.",
+      "Stop on any ledger or contract mutation inside the slice.",
+      "Stop on any claim that external hard gates are complete."
+    ],
+    "expectedNonClaims": [
+      "browser/provider E2E not proven",
+      "Docker build/push not proven",
+      "Kubernetes proof not proven",
+      "workspace authorization beyond session auth not proven",
+      "replacement complete not claimed"
+    ]
+  },
+  "orchestration": {
+    "owner": "claude-main",
+    "workers": ["grok-panelist", "codex-panelist", "mimo-panelist", "codex-synth"],
+    "reviewers": ["oracle-vision-review", "grok-fusion-judge", "typescript-reviewer-subagent"],
+    "grader": "claude-grader",
+    "roleSeparated": true
+  },
+  "evidence": {
+    "commands": [
+      { "cmd": "pwd", "result": "passed", "proves": ["F0 repo-state workspace verified"] },
+      { "cmd": "git status --short --branch", "result": "passed", "proves": ["F0 repo-state branch/status verified"] },
+      { "cmd": "bun run --cwd apps/mothership smoke:strict-e2e-preflight", "result": "blocked", "proves": ["Strict provider/browser hard-gate preflight unavailable because required env/secrets are missing"] },
+      { "cmd": "docker info --format '{{json .ServerVersion}}'", "result": "blocked", "proves": ["Docker image-build proof unavailable because the local Docker socket is missing"] },
+      { "cmd": "kubectl version --client --output=json", "result": "blocked", "proves": ["Kubernetes proof unavailable because kubectl is not installed"] },
+      { "cmd": "bunx biome check apps/sim/app/workspace/[workspaceId]/mothership/mothership-control-panel.tsx apps/sim/app/workspace/[workspaceId]/mothership/mothership-control-panel.test.ts", "result": "passed", "proves": ["Formatting and lint checks pass for the review-panel slice"] },
+      { "cmd": "bun run --cwd apps/sim test mothership-control-panel.test", "result": "passed", "proves": ["Focused UI and helper tests pass (11 tests)"] },
+      { "cmd": "bun run --cwd apps/sim type-check", "result": "passed", "proves": ["App TypeScript check passes after the review-panel slice"] },
+      { "cmd": "bun run check:api-validation:strict", "result": "passed", "proves": ["API boundary policy remains clean for the frontend-only slice"] },
+      { "cmd": "bun run check:react-query", "result": "passed", "proves": ["React Query policy remains clean"] },
+      { "cmd": "bun run mship-case:check", "result": "passed", "proves": ["FeatureCase checker accepts valid cases and rejects invalid over-claim fixtures"] },
+      { "cmd": "bun run mship-case-ledger:check", "result": "passed", "proves": ["FeatureCase ledger checker validates the hash-chained ledger"] },
+      { "cmd": "scripts/fusion.sh /tmp/sim-task69-fusion-spec.md grok+codex+mimo panel then grok judge then codex synth", "result": "passed", "proves": ["Fusion orchestration produced the implementation with 3 of 3 usable panelists and a high-confidence judge analysis"] },
+      { "cmd": "oracle --engine browser --model gpt-5.5-pro --slug mothership-cockpit-vision", "result": "passed", "proves": ["Oracle final-vision review recommended source-authority panels with an honest empty Oracle state"] },
+      { "cmd": "oracle --engine browser --model gpt-5.5-pro --slug mothership-next-move", "result": "passed", "proves": ["Oracle ranked the next slice as verdict-first case detail"] },
+      { "cmd": "git commit feat(mothership): FeatureCase cockpit with source-authority review panels", "result": "passed", "proves": ["Slice committed at 00cbeac16 with cockpit files scoped away from parked pricing work"] }
+    ]
+  },
+  "gateEvidence": {
+    "F0": ["cmd:pwd", "cmd:git status --short --branch"],
+    "F1": ["field:charter"],
+    "F2": ["field:orchestration"],
+    "F3": [
+      "diff:apps/sim/app/workspace/[workspaceId]/mothership/mothership-control-panel.tsx",
+      "diff:apps/sim/app/workspace/[workspaceId]/mothership/mothership-control-panel.test.ts"
+    ],
+    "F4": [
+      "cmd:bun run --cwd apps/sim test mothership-control-panel.test",
+      "cmd:bun run --cwd apps/sim type-check",
+      "cmd:bun run check:api-validation:strict",
+      "cmd:bun run check:react-query"
+    ],
+    "F5": ["review:oracle-vision-review", "review:grok-fusion-judge", "review:typescript-reviewer-subagent"],
+    "F6": ["grade:CLOSE_SAFE_PARTIAL/B"],
+    "F7": ["ledger:coverage-audit+handoff"],
+    "F8": ["grade:claimsAdvanced+nonClaims"]
+  },
+  "blockers": [
+    "Strict provider/browser hard-gate env/secrets unavailable.",
+    "Docker daemon unavailable for image-build proof.",
+    "kubectl unavailable for live Kubernetes proof."
+  ],
+  "reviews": [
+    {
+      "type": "spec",
+      "reviewer": "oracle-vision-review",
+      "status": "pass",
+      "findings": [
+        "GPT-5.5 Pro final-vision review: treat the cockpit as an adjudication surface; ship source-authority review panels (Subagent, Grok CLI, Oracle) with an honest empty Oracle state; jurisdiction labels convert a flat list into a hierarchy of evidence and are the highest-leverage premium move."
+      ]
+    },
+    {
+      "type": "code",
+      "reviewer": "grok-fusion-judge",
+      "status": "pass",
+      "findings": [
+        "Fusion judge (high confidence): all three panel implementations met the exported contract; recommended the flat border-b rhythm, the text-small/text-caption scale, and keeping review.type alongside reviewer; the synthesis adopted these."
+      ]
+    },
+    {
+      "type": "evidence",
+      "reviewer": "typescript-reviewer-subagent",
+      "status": "pass",
+      "findings": [
+        "Independent subagent verdict PASS: classification order, case-insensitivity, fixed ordering, Other-only-when-nonempty, and helper purity confirmed; the 11 focused tests pass.",
+        "Non-blocking notes: REVIEW_FAMILY_EMPTY_LABELS.other is dead because the Other panel only renders when populated (P2); review-row keys use index as a collision-breaker (P3); a pre-existing React.ReactNode style note (P3)."
+      ]
+    }
+  ],
+  "grade": {
+    "decision": "CLOSE_SAFE_PARTIAL",
+    "grade": "B",
+    "capReason": "Safe local control-panel review-evidence panels with focused tests, policy checks, a fusion-built implementation, independent role-separated spec, code, and evidence reviews, and an Oracle advisory review; external provider/browser, Docker, and Kubernetes hard gates remain blocked and the new panels are not yet proven in a running browser.",
+    "claimsAdvanced": [
+      "The workspace Mothership control panel groups case reviews into source-authority panels (Subagent, Grok CLI, Oracle) by reviewer family, each labeled with its jurisdiction.",
+      "The three review families always render in fixed order with an honest empty-state, and an Other panel appears only for unmatched reviewers.",
+      "classifyReviewerFamily and getReviewFamilyGroups are pure, exported, and covered by focused unit tests.",
+      "The slice changes only frontend read-side rendering and adds no API routes, contract changes, or ledger-writing code."
+    ],
+    "nonClaims": [
+      "browser/provider E2E not proven",
+      "Docker build/push not proven",
+      "Kubernetes proof not proven",
+      "workspace authorization beyond session auth not proven",
+      "runtime browser render of the new review panels not yet proven",
+      "autonomous swarm completion not proven",
+      "replacement complete not claimed",
+      "billing/pricing not touched"
+    ]
+  },
+  "ledger": {
+    "coverageAuditUpdated": true,
+    "handoffPath": "/var/folders/mc/qjwd1ld97_bfhl86xpbfrpp00000gn/T/sim-mothership-owned-replacement-handoff-20260622T121514Z.md",
+    "redactionAudit": true
+  },
+  "nextAction": "Build Case Detail v2 (verdict stack): lead the selected case with decision, grade, cap reason, and next action, with raw fields subordinate, per the Oracle next-move ranking."
+}
