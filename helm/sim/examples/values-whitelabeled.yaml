@@ -13,6 +13,8 @@
 #     --set app.env.BETTER_AUTH_SECRET="$BETTER_AUTH_SECRET" \
 #     --set app.env.ENCRYPTION_KEY="$ENCRYPTION_KEY" \
 #     --set app.env.INTERNAL_API_SECRET="$INTERNAL_API_SECRET" \
+#     --set app.env.SIM_TO_MOTHERSHIP_API_KEY="$SIM_TO_MOTHERSHIP_API_KEY" \
+#     --set app.env.MOTHERSHIP_TO_SIM_CALLBACK_KEY="$MOTHERSHIP_TO_SIM_CALLBACK_KEY" \
 #     --set app.env.CRON_SECRET="$CRON_SECRET" \
 #     --set postgresql.auth.password="$POSTGRES_PASSWORD"
 
@@ -39,6 +41,9 @@ app:
     BETTER_AUTH_SECRET: "your-production-auth-secret-here"
     ENCRYPTION_KEY: "your-production-encryption-key-here"
     INTERNAL_API_SECRET: "your-production-internal-api-secret-here"
+    SIM_TO_MOTHERSHIP_API_KEY: "your-production-mothership-runtime-secret-here"
+    MOTHERSHIP_TO_SIM_CALLBACK_KEY: "your-production-mothership-callback-secret-here"
+    MOTHERSHIP_ADMIN_API_KEY: "" # Required when mothership.enabled=true
     CRON_SECRET: "your-production-cron-secret-here"
 
     # Optional: API Key Encryption (RECOMMENDED for production)

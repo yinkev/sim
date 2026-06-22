@@ -4,6 +4,7 @@ import { getErrorMessage } from '@sim/utils/errors'
 import { ORCHESTRATION_TIMEOUT_MS } from '@/lib/copilot/constants'
 import {
   MothershipStreamV1EventType,
+  MothershipStreamV1RunKind,
   MothershipStreamV1SpanLifecycleEvent,
 } from '@/lib/copilot/generated/mothership-stream-v1'
 import { CopilotSseCloseReason } from '@/lib/copilot/generated/trace-attribute-values-v1'
@@ -77,6 +78,23 @@ function parseSubagentSpanData(value: unknown): SubagentSpanData | undefined {
   }
 }
 
+function isCheckpointPauseEvent(event: StreamEvent): boolean {
+  return (
+    event.type === MothershipStreamV1EventType.run &&
+    event.payload.kind === MothershipStreamV1RunKind.checkpoint_pause
+  )
+}
+
+function shouldStopAfterStreamEvent(
+  event: StreamEvent,
+  context: StreamingContext,
+  options: StreamLoopOptions
+): boolean {
+  if (!context.streamComplete) return false
+  if (isCheckpointPauseEvent(event)) return options.allowMultiLegReplay !== true
+  return true
+}
+
 export class CopilotBackendError extends Error {
   status?: number
   body?: string
@@ -100,6 +118,11 @@ export class BillingLimitError extends Error {
  * Options for the shared stream processing loop.
  */
 export interface StreamLoopOptions extends OrchestratorOptions {
+  /**
+   * Fixture/replay batches may include `checkpoint_pause -> resumed -> terminal`
+   * in one response body. Live provider streams stop immediately at pause.
+   */
+  allowMultiLegReplay?: boolean
   /**
    * Called for each normalized event BEFORE standard handler dispatch.
    * Return true to skip the default handler for this event.
@@ -240,7 +263,7 @@ export async function runStreamLoop(
   // it would the raw one — no API changes there.
   const IDLE_GAP_EVENT_THRESHOLD_MS = 10000
   const rawReader = response.body.getReader()
-  const reader: ReadableStreamDefaultReader<Uint8Array> = {
+  const reader = {
     async read() {
       const result = await rawReader.read()
       if (!result.done && result.value) {
@@ -253,7 +276,7 @@ export async function runStreamLoop(
       }
       return result
     },
-    cancel: (reason) => rawReader.cancel(reason),
+    cancel: (reason?: unknown) => rawReader.cancel(reason),
     releaseLock: () => rawReader.releaseLock(),
     get closed() {
       return rawReader.closed
@@ -269,212 +292,217 @@ export async function runStreamLoop(
   }, timeout)
 
   try {
-    await processSSEStream(reader, decoder, abortSignal, async (raw) => {
-      // Track how long THIS handler invocation takes so we can tell
-      // apart "Go was silent" from "we were CPU-bound on a handler".
-      // `longestInboundGapMs` includes handler time (the next reader.read
-      // doesn't run until the previous handler returns), so dispatch
-      // time is the correction needed to isolate upstream silence.
-      const dispatchStart = performance.now()
-      try {
-        if (counters.events === 0) {
-          counters.firstEventMs = Math.round(performance.now() - bodyStart)
-        }
-        counters.events += 1
-        if (abortSignal?.aborted) {
-          context.wasAborted = true
-          return true
-        }
-
-        const parsedEvent = parsePersistedStreamEventEnvelope(raw)
-        if (!parsedEvent.ok) {
-          const detail = [parsedEvent.message, ...(parsedEvent.errors ?? [])]
-            .filter(Boolean)
-            .join('; ')
-          const failureMessage = `Received invalid stream event on shared path: ${detail}`
-          context.errors.push(failureMessage)
-          logger.error('Received invalid stream event on shared path', {
-            reason: parsedEvent.reason,
-            message: parsedEvent.message,
-            errors: parsedEvent.errors,
-          })
-          throw new FatalSseEventError(failureMessage)
-        }
-
-        const envelope = parsedEvent.event
-        const streamEvent = eventToStreamEvent(envelope)
-        if (envelope.trace?.requestId) {
-          const goTraceId = envelope.trace.goTraceId || envelope.trace.requestId
-          context.trace.setGoTraceId(goTraceId)
-          options.onGoTraceId?.(goTraceId)
-        }
-
-        // Per-type counters for the copilot.sse.read_loop span. Bound set
-        // (8 types) so this can never blow up into high cardinality.
-        if (streamEvent.type in counters.eventsByType) {
-          counters.eventsByType[streamEvent.type as MothershipStreamV1EventType] += 1
-        }
-
-        // Surface the full error payload the moment it arrives on the wire. This
-        // is the single chokepoint every error event passes through (main AND
-        // subagent lanes), before subagent routing — which has no `error`
-        // handler — would otherwise swallow it. The client only renders
-        // `message`/`displayMessage`, so log `code`/`provider`/`data` (the raw
-        // upstream provider error) here to explain a client-side "Stream error".
-        if (streamEvent.type === MothershipStreamV1EventType.error) {
-          const errorPayload = streamEvent.payload
-          logger.error('Received error event from Go copilot stream', {
-            path: pathname,
-            lane: streamEvent.scope?.lane ?? 'main',
-            parentToolCallId: streamEvent.scope?.parentToolCallId,
-            agentId: streamEvent.scope?.agentId,
-            code: errorPayload.code,
-            provider: errorPayload.provider,
-            message: errorPayload.message,
-            error: errorPayload.error,
-            displayMessage: errorPayload.displayMessage,
-            data: errorPayload.data,
-            requestId: context.requestId,
-            messageId: context.messageId,
-          })
-        }
-
-        if (shouldSkipToolCallEvent(streamEvent) || shouldSkipToolResultEvent(streamEvent)) {
-          return
-        }
-
-        await processFilePreviewStreamEvent({
-          streamId: envelope.stream.streamId,
-          streamEvent,
-          context,
-          execContext,
-          options,
-          state: filePreviewAdapterState,
-        })
-
-        await prePersistClientExecutableToolCall(streamEvent, context)
-
+    await processSSEStream(
+      reader as ReadableStreamDefaultReader<Uint8Array>,
+      decoder,
+      abortSignal,
+      async (raw) => {
+        // Track how long THIS handler invocation takes so we can tell
+        // apart "Go was silent" from "we were CPU-bound on a handler".
+        // `longestInboundGapMs` includes handler time (the next reader.read
+        // doesn't run until the previous handler returns), so dispatch
+        // time is the correction needed to isolate upstream silence.
+        const dispatchStart = performance.now()
         try {
-          await options.onEvent?.(streamEvent)
-        } catch (error) {
-          logger.warn('Failed to forward stream event', {
-            type: streamEvent.type,
-            error: getErrorMessage(error),
+          if (counters.events === 0) {
+            counters.firstEventMs = Math.round(performance.now() - bodyStart)
+          }
+          counters.events += 1
+          if (abortSignal?.aborted) {
+            context.wasAborted = true
+            return true
+          }
+
+          const parsedEvent = parsePersistedStreamEventEnvelope(raw)
+          if (!parsedEvent.ok) {
+            const detail = [parsedEvent.message, ...(parsedEvent.errors ?? [])]
+              .filter(Boolean)
+              .join('; ')
+            const failureMessage = `Received invalid stream event on shared path: ${detail}`
+            context.errors.push(failureMessage)
+            logger.error('Received invalid stream event on shared path', {
+              reason: parsedEvent.reason,
+              message: parsedEvent.message,
+              errors: parsedEvent.errors,
+            })
+            throw new FatalSseEventError(failureMessage)
+          }
+
+          const envelope = parsedEvent.event
+          const streamEvent = eventToStreamEvent(envelope)
+          if (envelope.trace?.requestId) {
+            const goTraceId = envelope.trace.goTraceId || envelope.trace.requestId
+            context.trace.setGoTraceId(goTraceId)
+            options.onGoTraceId?.(goTraceId)
+          }
+
+          // Per-type counters for the copilot.sse.read_loop span. Bound set
+          // (8 types) so this can never blow up into high cardinality.
+          if (streamEvent.type in counters.eventsByType) {
+            counters.eventsByType[streamEvent.type as MothershipStreamV1EventType] += 1
+          }
+
+          // Surface the full error payload the moment it arrives on the wire. This
+          // is the single chokepoint every error event passes through (main AND
+          // subagent lanes), before subagent routing — which has no `error`
+          // handler — would otherwise swallow it. The client only renders
+          // `message`/`displayMessage`, so log `code`/`provider`/`data` (the raw
+          // upstream provider error) here to explain a client-side "Stream error".
+          if (streamEvent.type === MothershipStreamV1EventType.error) {
+            const errorPayload = streamEvent.payload
+            logger.error('Received error event from Go copilot stream', {
+              path: pathname,
+              lane: streamEvent.scope?.lane ?? 'main',
+              parentToolCallId: streamEvent.scope?.parentToolCallId,
+              agentId: streamEvent.scope?.agentId,
+              code: errorPayload.code,
+              provider: errorPayload.provider,
+              message: errorPayload.message,
+              error: errorPayload.error,
+              displayMessage: errorPayload.displayMessage,
+              data: errorPayload.data,
+              requestId: context.requestId,
+              messageId: context.messageId,
+            })
+          }
+
+          if (shouldSkipToolCallEvent(streamEvent) || shouldSkipToolResultEvent(streamEvent)) {
+            return
+          }
+
+          await processFilePreviewStreamEvent({
+            streamId: envelope.stream.streamId,
+            streamEvent,
+            context,
+            execContext,
+            options,
+            state: filePreviewAdapterState,
           })
-        }
 
-        // Yield a macrotask so Node.js flushes the HTTP response buffer to
-        // the browser. Microtask yields (await Promise.resolve()) are not
-        // enough — the I/O layer needs a full event loop tick to write.
-        await new Promise<void>((resolve) => setImmediate(resolve))
+          await prePersistClientExecutableToolCall(streamEvent, context)
 
-        if (options.onBeforeDispatch?.(streamEvent, context)) {
-          return context.streamComplete || undefined
-        }
+          try {
+            await options.onEvent?.(streamEvent)
+          } catch (error) {
+            logger.warn('Failed to forward stream event', {
+              type: streamEvent.type,
+              error: getErrorMessage(error),
+            })
+          }
 
-        if (isSubagentSpanStreamEvent(streamEvent)) {
-          const spanData = parseSubagentSpanData(streamEvent.payload.data)
-          const toolCallId = streamEvent.scope?.parentToolCallId || spanData?.toolCallId
-          // Deterministic nesting identity. spanId / parentSpanId are the
-          // primary keys; the toolCallId-keyed stack below is the legacy
-          // fallback for streams that predate span identity.
-          const spanId = streamEvent.scope?.spanId
-          const parentSpanId = streamEvent.scope?.parentSpanId
-          const subagentName = streamEvent.payload.agent
-          const spanEvt = streamEvent.payload.event
-          const isPendingPause = spanData?.pending === true
-          // A subagent lifecycle boundary breaks the main thinking stream.
-          // Flush any open thinking block into contentBlocks BEFORE we push
-          // the `subagent` marker, or the persisted order ends up
-          // [subagent, thinking] and the UI renders the subagent group
-          // above a thinking block that actually happened first.
-          flushSubagentThinkingBlock(context)
-          flushThinkingBlock(context)
-          if (spanEvt === MothershipStreamV1SpanLifecycleEvent.start) {
-            if (toolCallId) {
-              if (!context.subAgentParentStack.includes(toolCallId)) {
-                context.subAgentParentStack.push(toolCallId)
+          // Yield a macrotask so Node.js flushes the HTTP response buffer to
+          // the browser. Microtask yields (await Promise.resolve()) are not
+          // enough — the I/O layer needs a full event loop tick to write.
+          await new Promise<void>((resolve) => setImmediate(resolve))
+
+          if (options.onBeforeDispatch?.(streamEvent, context)) {
+            return context.streamComplete || undefined
+          }
+
+          if (isSubagentSpanStreamEvent(streamEvent)) {
+            const spanData = parseSubagentSpanData(streamEvent.payload.data)
+            const toolCallId = streamEvent.scope?.parentToolCallId || spanData?.toolCallId
+            // Deterministic nesting identity. spanId / parentSpanId are the
+            // primary keys; the toolCallId-keyed stack below is the legacy
+            // fallback for streams that predate span identity.
+            const spanId = streamEvent.scope?.spanId
+            const parentSpanId = streamEvent.scope?.parentSpanId
+            const subagentName = streamEvent.payload.agent
+            const spanEvt = streamEvent.payload.event
+            const isPendingPause = spanData?.pending === true
+            // A subagent lifecycle boundary breaks the main thinking stream.
+            // Flush any open thinking block into contentBlocks BEFORE we push
+            // the `subagent` marker, or the persisted order ends up
+            // [subagent, thinking] and the UI renders the subagent group
+            // above a thinking block that actually happened first.
+            flushSubagentThinkingBlock(context)
+            flushThinkingBlock(context)
+            if (spanEvt === MothershipStreamV1SpanLifecycleEvent.start) {
+              if (toolCallId) {
+                if (!context.subAgentParentStack.includes(toolCallId)) {
+                  context.subAgentParentStack.push(toolCallId)
+                }
+                context.subAgentParentToolCallId = toolCallId
+                context.subAgentContent[toolCallId] ??= ''
+                context.subAgentToolCalls[toolCallId] ??= []
               }
-              context.subAgentParentToolCallId = toolCallId
-              context.subAgentContent[toolCallId] ??= ''
-              context.subAgentToolCalls[toolCallId] ??= []
-            }
-            if (toolCallId && subagentName) {
-              const openParents = (context.openSubagentParents ??= new Set<string>())
-              if (!openParents.has(toolCallId)) {
-                openParents.add(toolCallId)
-                context.contentBlocks.push({
-                  type: 'subagent',
-                  content: subagentName,
-                  parentToolCallId: toolCallId,
-                  ...(spanId ? { spanId } : {}),
-                  ...(parentSpanId ? { parentSpanId } : {}),
-                  timestamp: Date.now(),
+              if (toolCallId && subagentName) {
+                const openParents = (context.openSubagentParents ??= new Set<string>())
+                if (!openParents.has(toolCallId)) {
+                  openParents.add(toolCallId)
+                  context.contentBlocks.push({
+                    type: 'subagent',
+                    content: subagentName,
+                    parentToolCallId: toolCallId,
+                    ...(spanId ? { spanId } : {}),
+                    ...(parentSpanId ? { parentSpanId } : {}),
+                    timestamp: Date.now(),
+                  })
+                }
+              } else {
+                logger.warn('subagent start missing toolCallId or agent name', {
+                  hasToolCallId: Boolean(toolCallId),
+                  hasSubagentName: Boolean(subagentName),
                 })
               }
-            } else {
-              logger.warn('subagent start missing toolCallId or agent name', {
-                hasToolCallId: Boolean(toolCallId),
-                hasSubagentName: Boolean(subagentName),
-              })
-            }
-            return
-          }
-          if (spanEvt === MothershipStreamV1SpanLifecycleEvent.end) {
-            if (isPendingPause) {
               return
             }
-            if (toolCallId) {
-              const idx = context.subAgentParentStack.lastIndexOf(toolCallId)
-              if (idx >= 0) {
-                context.subAgentParentStack.splice(idx, 1)
-              } else {
-                logger.warn('subagent end without matching start', { toolCallId })
+            if (spanEvt === MothershipStreamV1SpanLifecycleEvent.end) {
+              if (isPendingPause) {
+                return
               }
-            } else {
-              logger.warn('subagent end missing toolCallId')
-            }
-            context.subAgentParentToolCallId =
-              context.subAgentParentStack.length > 0
-                ? context.subAgentParentStack[context.subAgentParentStack.length - 1]
-                : undefined
-            if (toolCallId) {
-              for (let i = context.contentBlocks.length - 1; i >= 0; i--) {
-                const b = context.contentBlocks[i]
-                if (
-                  b.type === 'subagent' &&
-                  b.endedAt === undefined &&
-                  b.parentToolCallId === toolCallId
-                ) {
-                  b.endedAt = Date.now()
-                  break
+              if (toolCallId) {
+                const idx = context.subAgentParentStack.lastIndexOf(toolCallId)
+                if (idx >= 0) {
+                  context.subAgentParentStack.splice(idx, 1)
+                } else {
+                  logger.warn('subagent end without matching start', { toolCallId })
                 }
+              } else {
+                logger.warn('subagent end missing toolCallId')
               }
-              context.openSubagentParents?.delete(toolCallId)
+              context.subAgentParentToolCallId =
+                context.subAgentParentStack.length > 0
+                  ? context.subAgentParentStack[context.subAgentParentStack.length - 1]
+                  : undefined
+              if (toolCallId) {
+                for (let i = context.contentBlocks.length - 1; i >= 0; i--) {
+                  const b = context.contentBlocks[i]
+                  if (
+                    b.type === 'subagent' &&
+                    b.endedAt === undefined &&
+                    b.parentToolCallId === toolCallId
+                  ) {
+                    b.endedAt = Date.now()
+                    break
+                  }
+                }
+                context.openSubagentParents?.delete(toolCallId)
+              }
+              return
             }
-            return
           }
-        }
 
-        if (handleSubagentRouting(streamEvent, context)) {
-          const handler = subAgentHandlers[streamEvent.type]
+          if (handleSubagentRouting(streamEvent, context)) {
+            const handler = subAgentHandlers[streamEvent.type]
+            if (handler) {
+              await handler(streamEvent, context, execContext, options)
+            }
+            return shouldStopAfterStreamEvent(streamEvent, context, options) || undefined
+          }
+
+          const handler = sseHandlers[streamEvent.type]
           if (handler) {
             await handler(streamEvent, context, execContext, options)
           }
-          return context.streamComplete || undefined
+          return shouldStopAfterStreamEvent(streamEvent, context, options) || undefined
+        } finally {
+          const dispatchMs = performance.now() - dispatchStart
+          counters.totalDispatchMs += dispatchMs
+          if (dispatchMs > counters.longestDispatchMs) counters.longestDispatchMs = dispatchMs
         }
-
-        const handler = sseHandlers[streamEvent.type]
-        if (handler) {
-          await handler(streamEvent, context, execContext, options)
-        }
-        return context.streamComplete || undefined
-      } finally {
-        const dispatchMs = performance.now() - dispatchStart
-        counters.totalDispatchMs += dispatchMs
-        if (dispatchMs > counters.longestDispatchMs) counters.longestDispatchMs = dispatchMs
       }
-    })
+    )
 
     if (!context.streamComplete && !abortSignal?.aborted && !context.wasAborted) {
       let abortRequested = false

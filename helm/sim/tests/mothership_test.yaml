@@ -1,0 +1,325 @@
+suite: mothership - owned service deployment target
+templates:
+  - deployment-mothership.yaml
+  - deployment-app.yaml
+  - secrets-app.yaml
+  - external-secret-app.yaml
+  - cronjob-mothership-billing-processor.yaml
+  - networkpolicy.yaml
+  - secrets-mothership.yaml
+  - external-secret-mothership.yaml
+release:
+  name: t
+  namespace: sim
+defaults: &defaults
+  app.env.BETTER_AUTH_SECRET: better-auth-secret-for-tests
+  app.env.ENCRYPTION_KEY: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  app.env.INTERNAL_API_SECRET: internal-api-secret-for-tests
+  app.env.SIM_TO_MOTHERSHIP_API_KEY: sim-runtime-key-for-tests
+  app.env.MOTHERSHIP_TO_SIM_CALLBACK_KEY: callback-key-for-tests
+  app.env.MOTHERSHIP_ADMIN_API_KEY: admin-key-for-tests
+  app.env.API_ENCRYPTION_KEY: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+  app.env.CRON_SECRET: x
+  postgresql.auth.password: x
+  mothership.enabled: true
+  mothership.server.env.SIM_BASE_URL: https://sim.example.com
+
+tests:
+  - it: renders owned Mothership service
+    template: deployment-mothership.yaml
+    set:
+      <<: *defaults
+    documentIndex: 0
+    asserts:
+      - isKind: { of: Service }
+      - equal: { path: metadata.name, value: t-sim-mothership }
+      - equal:
+          path: spec.ports[0].port
+          value: 6891
+
+  - it: renders owned Mothership deployment with explicit shared boundary and database secret refs
+    template: deployment-mothership.yaml
+    set:
+      <<: *defaults
+    documentIndex: 1
+    asserts:
+      - isKind: { of: Deployment }
+      - equal: { path: metadata.name, value: t-sim-mothership }
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 6891
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SIM_TO_MOTHERSHIP_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: t-sim-app-secrets
+                key: SIM_TO_MOTHERSHIP_API_KEY
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: t-sim-postgresql-secret
+                key: POSTGRES_PASSWORD
+      - notContains:
+          path: spec.template.spec.containers[0].envFrom
+          content:
+            secretRef:
+              name: t-sim-app-secrets
+      - notContains:
+          path: spec.template.spec.containers[0].envFrom
+          content:
+            secretRef:
+              name: t-sim-postgresql-secret
+      - contains:
+          path: spec.template.spec.containers[0].envFrom
+          content:
+            secretRef:
+              name: t-sim-mothership-env
+
+  - it: renders owned Mothership shared keys from existingSecret refs without inlining app env values
+    template: deployment-mothership.yaml
+    set:
+      <<: *defaults
+      app.secrets.existingSecret.enabled: true
+      app.secrets.existingSecret.name: existing-app-secret
+      app.secrets.existingSecret.keys.SIM_TO_MOTHERSHIP_API_KEY: CUSTOM_RUNTIME_KEY
+    documentIndex: 1
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SIM_TO_MOTHERSHIP_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: existing-app-secret
+                key: CUSTOM_RUNTIME_KEY
+
+  - it: lets ESO own the app secret refs when existingSecret is also set
+    template: deployment-mothership.yaml
+    set:
+      externalSecrets.enabled: true
+      externalSecrets.secretStoreRef.name: sim-store
+      externalSecrets.remoteRefs.app.BETTER_AUTH_SECRET: sim/app/auth
+      externalSecrets.remoteRefs.app.ENCRYPTION_KEY: sim/app/encryption
+      externalSecrets.remoteRefs.app.INTERNAL_API_SECRET: sim/app/internal
+      externalSecrets.remoteRefs.app.SIM_TO_MOTHERSHIP_API_KEY: sim/app/runtime
+      externalSecrets.remoteRefs.app.MOTHERSHIP_TO_SIM_CALLBACK_KEY: sim/app/callback
+      externalSecrets.remoteRefs.app.MOTHERSHIP_ADMIN_API_KEY: sim/app/admin
+      externalSecrets.remoteRefs.app.API_ENCRYPTION_KEY: sim/app/api-encryption
+      externalSecrets.remoteRefs.app.CRON_SECRET: sim/app/cron
+      externalSecrets.remoteRefs.postgresql.password: sim/postgres/password
+      externalSecrets.remoteRefs.mothership.SIM_BASE_URL: sim/mothership/base-url
+      app.secrets.existingSecret.enabled: true
+      app.secrets.existingSecret.name: stale-existing-secret
+      mothership.enabled: true
+    documentIndex: 1
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SIM_TO_MOTHERSHIP_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: t-sim-app-secrets
+                key: SIM_TO_MOTHERSHIP_API_KEY
+
+  - it: renders Mothership-only environment secret
+    template: secrets-mothership.yaml
+    set:
+      <<: *defaults
+      mothership.server.env.MOTHERSHIP_ANTHROPIC_API_KEY: anthropic-key
+      mothership.server.env.MOTHERSHIP_OPENAI_API_KEY: openai-key
+    asserts:
+      - isKind: { of: Secret }
+      - equal: { path: metadata.name, value: t-sim-mothership-env }
+      - equal: { path: stringData.SIM_BASE_URL, value: https://sim.example.com }
+      - equal: { path: stringData.MOTHERSHIP_ANTHROPIC_API_KEY, value: anthropic-key }
+      - equal: { path: stringData.MOTHERSHIP_OPENAI_API_KEY, value: openai-key }
+
+  - it: points the app at the internal strict Mothership URL by default
+    template: deployment-app.yaml
+    set:
+      <<: *defaults
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SIM_AGENT_API_URL
+            value: http://t-sim-mothership:6891
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MOTHERSHIP_RUNTIME_HEADER_MODE
+            value: strict
+
+  - it: fails when Mothership callback base URL is missing
+    template: deployment-mothership.yaml
+    set:
+      <<: *defaults
+      mothership.server.env.SIM_BASE_URL: ""
+    asserts:
+      - failedTemplate:
+          errorMessage: "mothership.server.env.SIM_BASE_URL is required when mothership.enabled=true"
+
+  - it: fails when a Mothership-only key is put in the app secret surface
+    template: deployment-mothership.yaml
+    set:
+      <<: *defaults
+      app.env.MOTHERSHIP_OPENAI_API_KEY: wrong-place
+    asserts:
+      - failedTemplate:
+          errorMessage: "app.env.MOTHERSHIP_OPENAI_API_KEY is Mothership-only; move it to mothership.server.env.MOTHERSHIP_OPENAI_API_KEY"
+
+  - it: fails when a Mothership-only key is put in realtime.env
+    template: deployment-mothership.yaml
+    set:
+      <<: *defaults
+      realtime.env.MOTHERSHIP_OPENAI_API_KEY: wrong-place
+    asserts:
+      - failedTemplate:
+          errorMessage: "realtime.env.MOTHERSHIP_OPENAI_API_KEY is Mothership-only; move it to mothership.server.env.MOTHERSHIP_OPENAI_API_KEY"
+
+  - it: fails when a shared boundary key is put in the Mothership-only secret
+    template: deployment-mothership.yaml
+    set:
+      <<: *defaults
+      mothership.server.env.API_ENCRYPTION_KEY: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    asserts:
+      - failedTemplate:
+          errorMessage: "mothership.server.env.API_ENCRYPTION_KEY is a shared boundary secret; keep it in app.env.API_ENCRYPTION_KEY so Sim and Mothership use one value"
+
+  - it: fails when ESO maps a Mothership-only key into the app secret
+    template: deployment-mothership.yaml
+    set:
+      externalSecrets.enabled: true
+      externalSecrets.secretStoreRef.name: sim-store
+      externalSecrets.remoteRefs.app.BETTER_AUTH_SECRET: sim/app/auth
+      externalSecrets.remoteRefs.app.ENCRYPTION_KEY: sim/app/encryption
+      externalSecrets.remoteRefs.app.INTERNAL_API_SECRET: sim/app/internal
+      externalSecrets.remoteRefs.app.SIM_TO_MOTHERSHIP_API_KEY: sim/app/runtime
+      externalSecrets.remoteRefs.app.MOTHERSHIP_TO_SIM_CALLBACK_KEY: sim/app/callback
+      externalSecrets.remoteRefs.app.MOTHERSHIP_ADMIN_API_KEY: sim/app/admin
+      externalSecrets.remoteRefs.app.API_ENCRYPTION_KEY: sim/app/api-encryption
+      externalSecrets.remoteRefs.app.CRON_SECRET: sim/app/cron
+      externalSecrets.remoteRefs.app.MOTHERSHIP_OPENAI_API_KEY: sim/app/provider-leak
+      externalSecrets.remoteRefs.postgresql.password: sim/postgres/password
+      externalSecrets.remoteRefs.mothership.SIM_BASE_URL: sim/mothership/base-url
+      mothership.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "externalSecrets.remoteRefs.app.MOTHERSHIP_OPENAI_API_KEY is Mothership-only; move it to externalSecrets.remoteRefs.mothership.MOTHERSHIP_OPENAI_API_KEY"
+
+  - it: does not inline app auto-targeting when ESO maps routing overrides
+    template: deployment-app.yaml
+    set:
+      externalSecrets.enabled: true
+      externalSecrets.secretStoreRef.name: sim-store
+      externalSecrets.remoteRefs.app.BETTER_AUTH_SECRET: sim/app/auth
+      externalSecrets.remoteRefs.app.ENCRYPTION_KEY: sim/app/encryption
+      externalSecrets.remoteRefs.app.INTERNAL_API_SECRET: sim/app/internal
+      externalSecrets.remoteRefs.app.SIM_TO_MOTHERSHIP_API_KEY: sim/app/runtime
+      externalSecrets.remoteRefs.app.MOTHERSHIP_TO_SIM_CALLBACK_KEY: sim/app/callback
+      externalSecrets.remoteRefs.app.MOTHERSHIP_ADMIN_API_KEY: sim/app/admin
+      externalSecrets.remoteRefs.app.API_ENCRYPTION_KEY: sim/app/api-encryption
+      externalSecrets.remoteRefs.app.CRON_SECRET: sim/app/cron
+      externalSecrets.remoteRefs.app.SIM_AGENT_API_URL: sim/app/agent-url
+      externalSecrets.remoteRefs.app.MOTHERSHIP_RUNTIME_HEADER_MODE: sim/app/runtime-header-mode
+      externalSecrets.remoteRefs.postgresql.password: sim/postgres/password
+      externalSecrets.remoteRefs.mothership.SIM_BASE_URL: sim/mothership/base-url
+      mothership.enabled: true
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SIM_AGENT_API_URL
+            value: http://t-sim-mothership:6891
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MOTHERSHIP_RUNTIME_HEADER_MODE
+            value: strict
+
+  - it: renders the owned billing callback processor CronJob
+    template: cronjob-mothership-billing-processor.yaml
+    set:
+      <<: *defaults
+      mothership.processor.billingCallbacks.enabled: true
+      mothership.processor.billingCallbacks.schedule: "*/2 * * * *"
+      mothership.processor.billingCallbacks.batchSize: 17
+    asserts:
+      - isKind: { of: CronJob }
+      - equal: { path: metadata.name, value: t-sim-mothership-billing-processor }
+      - equal: { path: spec.schedule, value: "*/2 * * * *" }
+      - equal: { path: spec.concurrencyPolicy, value: Forbid }
+      - equal: { path: spec.jobTemplate.spec.backoffLimit, value: 0 }
+      - equal: { path: spec.jobTemplate.spec.template.spec.restartPolicy, value: Never }
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.containers[0].env
+          content:
+            name: MOTHERSHIP_ADMIN_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: t-sim-app-secrets
+                key: MOTHERSHIP_ADMIN_API_KEY
+      - matchRegex:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args[0]
+          pattern: "batchSize.:17"
+      - matchRegex:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args[0]
+          pattern: "failOnNonClean.:true"
+      - matchRegex:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args[0]
+          pattern: "x-mothership-admin-key"
+
+  - it: preserves failOnNonClean false for the billing callback processor
+    template: cronjob-mothership-billing-processor.yaml
+    set:
+      <<: *defaults
+      mothership.processor.billingCallbacks.enabled: true
+      mothership.processor.billingCallbacks.failOnNonClean: false
+    asserts:
+      - matchRegex:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args[0]
+          pattern: "failOnNonClean.:false"
+
+  - it: isolates the owned billing callback processor with an egress NetworkPolicy
+    template: networkpolicy.yaml
+    set:
+      <<: *defaults
+      networkPolicy.enabled: true
+      mothership.processor.billingCallbacks.enabled: true
+    documentIndex: 3
+    asserts:
+      - isKind: { of: NetworkPolicy }
+      - equal: { path: metadata.name, value: t-sim-mothership-billing-processor }
+      - contains:
+          path: spec.policyTypes
+          content: Egress
+      - equal:
+          path: 'spec.podSelector.matchLabels["app.kubernetes.io/component"]'
+          value: mothership-billing-processor
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - podSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: sim
+                    app.kubernetes.io/instance: t
+                    app.kubernetes.io/component: mothership
+            ports:
+              - protocol: TCP
+                port: 6891
+
+  - it: fails when billing processor is enabled without owned Mothership
+    template: deployment-app.yaml
+    set:
+      mothership.enabled: false
+      mothership.processor.billingCallbacks.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "mothership.processor.billingCallbacks.enabled requires mothership.enabled=true"

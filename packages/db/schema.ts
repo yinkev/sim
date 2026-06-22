@@ -2106,6 +2106,7 @@ export const copilotRunCheckpoints = pgTable(
     conversationSnapshot: jsonb('conversation_snapshot').notNull().default('{}'),
     agentState: jsonb('agent_state').notNull().default('{}'),
     providerRequest: jsonb('provider_request').notNull().default('{}'),
+    resumeEventStartSeq: integer('resume_event_start_seq'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
@@ -2151,6 +2152,32 @@ export const copilotAsyncToolCalls = pgTable(
     runStatusIdx: index('copilot_async_tool_calls_run_status_idx').on(table.runId, table.status),
     toolCallUnique: uniqueIndex('copilot_async_tool_calls_tool_call_id_unique').on(
       table.toolCallId
+    ),
+  })
+)
+
+export const copilotRunEvents = pgTable(
+  'copilot_run_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    runId: uuid('run_id')
+      .notNull()
+      .references(() => copilotRuns.id, { onDelete: 'cascade' }),
+    streamId: text('stream_id').notNull(),
+    seq: integer('seq').notNull(),
+    cursor: text('cursor').notNull(),
+    eventType: text('event_type').notNull(),
+    requestId: text('request_id'),
+    envelope: jsonb('envelope').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    runIdIdx: index('copilot_run_events_run_id_idx').on(table.runId),
+    streamSeqIdx: index('copilot_run_events_stream_seq_idx').on(table.streamId, table.seq),
+    eventTypeIdx: index('copilot_run_events_event_type_idx').on(table.eventType),
+    streamSeqUnique: uniqueIndex('copilot_run_events_stream_seq_unique').on(
+      table.streamId,
+      table.seq
     ),
   })
 )

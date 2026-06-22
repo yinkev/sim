@@ -1,10 +1,18 @@
 {{- if .Values.app.enabled }}
 {{- include "sim.validateSecrets" . }}
+{{- $appReloadSecrets := list (include "sim.appSecretName" .) -}}
+{{- if .Values.postgresql.enabled -}}
+{{- $appReloadSecrets = append $appReloadSecrets (include "sim.postgresqlSecretName" .) -}}
+{{- else if .Values.externalDatabase.enabled -}}
+{{- $appReloadSecrets = append $appReloadSecrets (include "sim.externalDbSecretName" .) -}}
+{{- end -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "sim.fullname" . }}-app
   namespace: {{ .Release.Namespace }}
+  annotations:
+    secret.reloader.stakater.com/reload: {{ join "," $appReloadSecrets | quote }}
   labels:
     {{- include "sim.app.labels" . | nindent 4 }}
 spec:
@@ -18,6 +26,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: {{ include (print $.Template.BasePath "/secrets-app.yaml") . | sha256sum }}
+        checksum/external-secret: {{ include (print $.Template.BasePath "/external-secret-app.yaml") . | sha256sum }}
         {{- if .Values.branding.enabled }}
         checksum/config: {{ include (print $.Template.BasePath "/configmap-branding.yaml") . | sha256sum }}
         {{- end }}
@@ -52,6 +61,10 @@ spec:
               cd /app/packages/db
               export DATABASE_URL="{{ include "sim.databaseUrl" . }}"
               bun run db:migrate
+          {{- with include "sim.databaseExistingSecretEnvVars" . }}
+          env:
+            {{- . | nindent 12 }}
+          {{- end }}
           envFrom:
             {{- if .Values.postgresql.enabled }}
             - secretRef:
@@ -78,12 +91,27 @@ spec:
             don't need to be mapped when externalSecrets.enabled=true.
           */}}
           env:
+            {{- $appEnv := .Values.app.env | default dict }}
+            {{- $useExistingSecret := and .Values.app.secrets.existingSecret.enabled (not .Values.externalSecrets.enabled) }}
+            {{- $appRemoteRefs := default (dict) (default (dict) .Values.externalSecrets.remoteRefs).app }}
+            {{- $hasSimAgentApiUrl := or (and (index $appEnv "SIM_AGENT_API_URL") (ne (toString (index $appEnv "SIM_AGENT_API_URL")) "") (ne (toString (index $appEnv "SIM_AGENT_API_URL")) "<nil>")) (and .Values.externalSecrets.enabled (index $appRemoteRefs "SIM_AGENT_API_URL")) }}
+            {{- $hasRuntimeHeaderMode := or (and (index $appEnv "MOTHERSHIP_RUNTIME_HEADER_MODE") (ne (toString (index $appEnv "MOTHERSHIP_RUNTIME_HEADER_MODE")) "") (ne (toString (index $appEnv "MOTHERSHIP_RUNTIME_HEADER_MODE")) "<nil>")) (and .Values.externalSecrets.enabled (index $appRemoteRefs "MOTHERSHIP_RUNTIME_HEADER_MODE")) }}
+            {{- include "sim.databaseExistingSecretEnvVars" . | nindent 12 }}
+            {{- include "sim.appExistingSecretEnvVars" (dict "root" . "keys" (list "BETTER_AUTH_SECRET" "ENCRYPTION_KEY" "INTERNAL_API_SECRET" "SIM_TO_MOTHERSHIP_API_KEY" "MOTHERSHIP_TO_SIM_CALLBACK_KEY" "MOTHERSHIP_ADMIN_API_KEY" "CRON_SECRET" "API_ENCRYPTION_KEY" "REDIS_URL")) | nindent 12 }}
             - name: DATABASE_URL
               value: {{ include "sim.databaseUrl" . | quote }}
             - name: SOCKET_SERVER_URL
               value: {{ include "sim.socketServerUrl" . | quote }}
             - name: OLLAMA_URL
               value: {{ include "sim.ollamaUrl" . | quote }}
+            {{- if and .Values.mothership.enabled (not $hasSimAgentApiUrl) }}
+            - name: SIM_AGENT_API_URL
+              value: {{ include "sim.mothership.internalUrl" . | quote }}
+            {{- end }}
+            {{- if and .Values.mothership.enabled (not $hasRuntimeHeaderMode) }}
+            - name: MOTHERSHIP_RUNTIME_HEADER_MODE
+              value: "strict"
+            {{- end }}
             {{- /*
               Skip envDefaults keys that the user has explicitly overridden in app.env
               with a non-empty value. K8s `env` takes precedence over `envFrom`, so an
@@ -93,8 +121,6 @@ spec:
               silently shadow keys (NEXT_PUBLIC_APP_URL, BETTER_AUTH_URL, etc.) the
               user stored in their Secret but left empty in app.env.
             */}}
-            {{- $appEnv := .Values.app.env | default dict }}
-            {{- $useExistingSecret := and .Values.app.secrets.existingSecret.enabled (not .Values.externalSecrets.enabled) }}
             {{- if not $useExistingSecret }}
             {{- range $key, $value := .Values.app.envDefaults | default dict }}
             {{- $override := index $appEnv $key }}

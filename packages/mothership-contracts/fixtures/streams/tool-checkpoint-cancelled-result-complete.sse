@@ -1,0 +1,13 @@
+data: {"v":1,"type":"session","seq":1,"ts":"2026-06-21T00:00:00.000Z","stream":{"streamId":"msg-tool-cancelled-result-1","chatId":"chat-tool-cancelled-result-1"},"trace":{"requestId":"req-tool-cancelled-result-1"},"payload":{"kind":"chat","chatId":"chat-tool-cancelled-result-1"}}
+
+data: {"v":1,"type":"tool","seq":2,"ts":"2026-06-21T00:00:01.000Z","stream":{"streamId":"msg-tool-cancelled-result-1","chatId":"chat-tool-cancelled-result-1"},"trace":{"requestId":"req-tool-cancelled-result-1"},"payload":{"phase":"call","toolCallId":"call-cancelled-1","toolName":"read_workflow","executor":"sim","mode":"async","status":"executing","arguments":{"workflowId":"workflow-cancelled"}}}
+
+data: {"v":1,"type":"run","seq":3,"ts":"2026-06-21T00:00:02.000Z","stream":{"streamId":"msg-tool-cancelled-result-1","chatId":"chat-tool-cancelled-result-1"},"trace":{"requestId":"req-tool-cancelled-result-1"},"payload":{"kind":"checkpoint_pause","runId":"run-cancelled-result-1","executionId":"exec-cancelled-result-1","checkpointId":"checkpoint-cancelled-result-1","pendingToolCallIds":["call-cancelled-1"]}}
+
+data: {"v":1,"type":"run","seq":4,"ts":"2026-06-21T00:00:03.000Z","stream":{"streamId":"msg-tool-cancelled-result-1","chatId":"chat-tool-cancelled-result-1"},"trace":{"requestId":"req-tool-cancelled-result-1"},"payload":{"kind":"resumed"}}
+
+data: {"v":1,"type":"tool","seq":5,"ts":"2026-06-21T00:00:04.000Z","stream":{"streamId":"msg-tool-cancelled-result-1","chatId":"chat-tool-cancelled-result-1"},"trace":{"requestId":"req-tool-cancelled-result-1"},"payload":{"phase":"result","toolCallId":"call-cancelled-1","toolName":"read_workflow","executor":"sim","mode":"async","status":"cancelled","success":false,"error":"Tool cancelled","output":{"cancelled":true}}}
+
+data: {"v":1,"type":"text","seq":6,"ts":"2026-06-21T00:00:05.000Z","stream":{"streamId":"msg-tool-cancelled-result-1","chatId":"chat-tool-cancelled-result-1"},"trace":{"requestId":"req-tool-cancelled-result-1"},"payload":{"channel":"assistant","text":"The workflow read was cancelled."}}
+
+data: {"v":1,"type":"complete","seq":7,"ts":"2026-06-21T00:00:06.000Z","stream":{"streamId":"msg-tool-cancelled-result-1","chatId":"chat-tool-cancelled-result-1"},"trace":{"requestId":"req-tool-cancelled-result-1"},"payload":{"status":"complete"}}

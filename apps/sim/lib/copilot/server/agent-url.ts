@@ -2,7 +2,7 @@ import { db } from '@sim/db'
 import { settings, user } from '@sim/db/schema'
 import { eq } from 'drizzle-orm'
 import { type MothershipEnvironment, mothershipEnvironmentSchema } from '@/lib/api/contracts'
-import { SIM_AGENT_API_URL, SIM_AGENT_API_URL_DEFAULT } from '@/lib/copilot/constants'
+import { SIM_AGENT_API_URL } from '@/lib/copilot/constants'
 import { env } from '@/lib/core/config/env'
 
 export interface GetMothershipBaseURLOptions {
@@ -37,7 +37,13 @@ function getConfiguredEnvironmentUrl(environment: MothershipEnvironment): string
 
 function getDefaultMothershipBaseURL(fallbackUrl?: string | null): string {
   const fallback = typeof fallbackUrl === 'string' ? fallbackUrl : undefined
-  return normalizeUrl(fallback) ?? normalizeUrl(SIM_AGENT_API_URL) ?? SIM_AGENT_API_URL_DEFAULT
+  const url = normalizeUrl(fallback) ?? normalizeUrl(SIM_AGENT_API_URL)
+  if (!url) {
+    throw new Error(
+      'SIM_AGENT_API_URL must be configured to an owned Mothership/Copilot backend URL'
+    )
+  }
+  return url
 }
 
 export async function getMothershipBaseURL(

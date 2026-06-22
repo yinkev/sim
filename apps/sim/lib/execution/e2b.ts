@@ -1,5 +1,6 @@
 import type { Sandbox as E2BSandbox } from '@e2b/code-interpreter'
 import { createLogger } from '@sim/logger'
+import { getErrorMessage } from '@sim/utils/errors'
 import { env } from '@/lib/core/config/env'
 import { CodeLanguage } from '@/lib/execution/languages'
 
@@ -104,7 +105,7 @@ async function readSandboxOutputFile(
   } catch (error) {
     logger.warn('Failed to read requested sandbox output file', {
       outputSandboxPath,
-      error: error instanceof Error ? error.message : String(error),
+      error: getErrorMessage(error),
     })
     return undefined
   }

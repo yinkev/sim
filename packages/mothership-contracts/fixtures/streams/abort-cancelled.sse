@@ -1,0 +1,5 @@
+data: {"v":1,"type":"session","seq":1,"ts":"2026-06-21T00:00:00.000Z","stream":{"streamId":"msg-abort-1","chatId":"chat-abort-1"},"trace":{"requestId":"req-abort-1"},"payload":{"kind":"chat","chatId":"chat-abort-1"}}
+
+data: {"v":1,"type":"text","seq":2,"ts":"2026-06-21T00:00:01.000Z","stream":{"streamId":"msg-abort-1","chatId":"chat-abort-1"},"trace":{"requestId":"req-abort-1"},"payload":{"channel":"assistant","text":"Stopping now."}}
+
+data: {"v":1,"type":"complete","seq":3,"ts":"2026-06-21T00:00:02.000Z","stream":{"streamId":"msg-abort-1","chatId":"chat-abort-1"},"trace":{"requestId":"req-abort-1"},"payload":{"status":"cancelled","reason":"user_abort"}}

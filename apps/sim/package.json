@@ -101,6 +101,8 @@
     "@react-email/render": "2.0.8",
     "@sim/audit": "workspace:*",
     "@sim/logger": "workspace:*",
+    "@sim/mothership-client": "workspace:*",
+    "@sim/mothership-contracts": "workspace:*",
     "@sim/realtime-protocol": "workspace:*",
     "@sim/security": "workspace:*",
     "@sim/utils": "workspace:*",

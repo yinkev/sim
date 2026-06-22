@@ -42,8 +42,10 @@ import {
   deleteWorkflowGroupContract,
   exportDownloadContract,
   exportTableAsyncContract,
+  type FindTableRowsResponse,
   findTableRowsContract,
   getTableContract,
+  type ImportCsvIntoTableResponse,
   type InsertTableRowBodyInput,
   importIntoTableAsyncContract,
   importTableAsyncContract,
@@ -56,7 +58,6 @@ import {
   renameTableContract,
   restoreTableContract,
   runColumnContract,
-  type TableFindMatch,
   type TableIdParamsInput,
   type TableJobSummary,
   type TableRowParamsInput,
@@ -379,11 +380,6 @@ interface FindTableRowsParams {
   sort?: Sort | null
 }
 
-export interface TableFindResult {
-  matches: TableFindMatch[]
-  truncated: boolean
-}
-
 async function fetchTableRowMatches({
   workspaceId,
   tableId,
@@ -391,7 +387,7 @@ async function fetchTableRowMatches({
   filter,
   sort,
   signal,
-}: FindTableRowsParams & { signal?: AbortSignal }): Promise<TableFindResult> {
+}: FindTableRowsParams & { signal?: AbortSignal }): Promise<FindTableRowsResponse['data']> {
   const response = await requestJson(findTableRowsContract, {
     params: { tableId },
     query: { workspaceId, q, filter: filter ?? undefined, sort: sort ?? undefined },
@@ -1493,20 +1489,6 @@ interface ImportCsvIntoTableParams {
   mapping?: CsvHeaderMapping
   /** CSV headers to auto-create as new columns on the target table. */
   createColumns?: string[]
-}
-
-interface ImportCsvIntoTableResponse {
-  success: boolean
-  data?: {
-    tableId: string
-    mode: CsvImportMode
-    insertedCount?: number
-    deletedCount?: number
-    mappedColumns?: string[]
-    skippedHeaders?: string[]
-    unmappedColumns?: string[]
-    sourceFile?: string
-  }
 }
 
 /**

@@ -86,15 +86,17 @@ async function handleAborted(
     toolCallCount,
     blockCount,
   })
-  if (!publisher.sawComplete) {
-    const partialContent = result.content || undefined
+  if (!publisher.sawTerminal) {
+    const response = {
+      ...(result.content ? { partialContent: result.content } : {}),
+      ...(partialContentLen ? { partialContentLen } : {}),
+      ...(toolCallCount ? { toolCallCount } : {}),
+    }
     await publisher.publish({
       type: MothershipStreamV1EventType.complete,
       payload: {
         status: MothershipStreamV1CompletionStatus.cancelled,
-        ...(partialContent ? { partialContent } : {}),
-        ...(partialContentLen ? { partialContentLen } : {}),
-        ...(toolCallCount ? { toolCallCount } : {}),
+        ...(Object.keys(response).length > 0 ? { response } : {}),
       },
     })
   }
@@ -115,10 +117,6 @@ async function handleError(
     result.errors?.[0] ||
     'An unexpected error occurred while processing the response.'
 
-  // Persist whatever was generated before the failure, exactly like an abort —
-  // a transient provider error (e.g. overloaded) shouldn't discard the partial
-  // assistant output the user already saw streaming.
-  const partialContent = result.content || undefined
   const partialContentLen = result.content?.length ?? 0
   const toolCallCount = result.toolCalls?.length ?? 0
 
@@ -134,23 +132,14 @@ async function handleError(
   // Surface the real error (Go already classifies provider errors like
   // "overloaded" into a friendly displayMessage). Don't clobber it with a
   // generic string.
-  await publisher.publish({
-    type: MothershipStreamV1EventType.error,
-    payload: {
-      message: errorMessage,
-      error: errorMessage,
-      displayMessage: errorMessage,
-      data: { displayMessage: errorMessage },
-    },
-  })
-  if (!publisher.sawComplete) {
+  if (!publisher.sawTerminal) {
     await publisher.publish({
-      type: MothershipStreamV1EventType.complete,
+      type: MothershipStreamV1EventType.error,
       payload: {
-        status: MothershipStreamV1CompletionStatus.error,
-        ...(partialContent ? { partialContent } : {}),
-        ...(partialContentLen ? { partialContentLen } : {}),
-        ...(toolCallCount ? { toolCallCount } : {}),
+        message: errorMessage,
+        error: errorMessage,
+        displayMessage: errorMessage,
+        data: { displayMessage: errorMessage },
       },
     })
   }
@@ -166,7 +155,7 @@ async function handleSuccess(
   runId: string,
   requestId: string
 ): Promise<void> {
-  if (!publisher.sawComplete) {
+  if (!publisher.sawTerminal) {
     await publisher.publish({
       type: MothershipStreamV1EventType.complete,
       payload: { status: MothershipStreamV1CompletionStatus.complete },

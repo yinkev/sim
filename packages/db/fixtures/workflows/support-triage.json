@@ -48,9 +48,7 @@
       "data": {}
     }
   },
-  "edges": [
-    { "id": "e-start-agent", "source": "start-1", "target": "agent-1", "type": "default" }
-  ],
+  "edges": [{ "id": "e-start-agent", "source": "start-1", "target": "agent-1", "type": "default" }],
   "loops": {},
   "parallels": {}
 }

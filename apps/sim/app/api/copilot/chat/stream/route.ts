@@ -1,5 +1,6 @@
 import { type Context, context as otelContext, type Span, trace } from '@opentelemetry/api'
 import { createLogger } from '@sim/logger'
+import { streamReplayBatchContract } from '@sim/mothership-contracts/routes'
 import { getErrorMessage } from '@sim/utils/errors'
 import { sleep } from '@sim/utils/helpers'
 import { type NextRequest, NextResponse } from 'next/server'
@@ -24,12 +25,17 @@ import {
   createEvent,
   encodeSSEComment,
   encodeSSEEnvelope,
+  parsePersistedStreamEventEnvelope,
   readEvents,
   readFilePreviewSessions,
   SSE_RESPONSE_HEADERS,
 } from '@/lib/copilot/request/session'
+import type { StreamBatchEvent } from '@/lib/copilot/request/session/types'
 import { toStreamBatchEvent } from '@/lib/copilot/request/session/types'
+import { getMothershipBaseURL } from '@/lib/copilot/server/agent-url'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { requestMothershipRuntime } from '@/lib/mothership/client'
+import { getMothershipRuntimeHeaderMode } from '@/lib/mothership/service-auth'
 
 export const maxDuration = 3600
 
@@ -37,6 +43,7 @@ const logger = createLogger('CopilotChatStreamAPI')
 const POLL_INTERVAL_MS = 250
 const REPLAY_KEEPALIVE_INTERVAL_MS = 15_000
 const MAX_STREAM_MS = 60 * 60 * 1000
+const OWNED_REPLAY_PAGE_LIMIT = 1000
 
 function extractCanonicalRequestId(value: unknown): string {
   return typeof value === 'string' && value.length > 0 ? value : ''
@@ -112,6 +119,100 @@ function buildResumeTerminalEnvelopes(options: {
   )
 
   return envelopes
+}
+
+function shouldUseOwnedReplay(): boolean {
+  return getMothershipRuntimeHeaderMode() === 'strict'
+}
+
+async function readReplayBatch(options: {
+  streamId: string
+  userId: string
+  afterCursor: string
+  rootContext: Context
+}): Promise<{
+  events: StreamBatchEvent[]
+  status?: string
+  chatId?: string
+  source: 'local' | 'owned'
+}> {
+  const after = options.afterCursor || '0'
+
+  if (!shouldUseOwnedReplay()) {
+    const events = await readEvents(options.streamId, after)
+    return {
+      events: events.map(toStreamBatchEvent),
+      source: 'local',
+    }
+  }
+
+  const mothershipBaseURL = await getMothershipBaseURL({ userId: options.userId })
+  const events: StreamBatchEvent[] = []
+  let cursor = after
+  let replayStatus: string | undefined
+  let replayChatId: string | undefined
+
+  for (;;) {
+    const replay = await requestMothershipRuntime({
+      contract: streamReplayBatchContract,
+      baseUrl: mothershipBaseURL,
+      input: {
+        query: {
+          streamId: options.streamId,
+          userId: options.userId,
+          after: cursor,
+          batch: 'true',
+          limit: OWNED_REPLAY_PAGE_LIMIT,
+        },
+      },
+      spanName: 'sim -> mothership stream replay batch',
+      operation: 'stream_replay_batch',
+      userId: options.userId,
+      otelContext: options.rootContext,
+      attributes: {
+        [TraceAttr.StreamId]: options.streamId,
+        [TraceAttr.CopilotResumeAfterCursor]: cursor,
+      },
+    })
+
+    replayStatus = replay.status
+    replayChatId = replay.chatId
+
+    let sawTerminalEvent = false
+    let lastSeq = Number(cursor || '0')
+    for (const event of replay.events) {
+      const parsed = parsePersistedStreamEventEnvelope(event.event)
+      if (!parsed.ok) {
+        throw new Error(`Owned Mothership replay returned invalid stream event: ${parsed.message}`)
+      }
+      events.push({
+        eventId: event.eventId,
+        streamId: event.streamId,
+        event: parsed.event,
+      })
+      lastSeq = parsed.event.seq
+      if (parsed.event.type === MothershipStreamV1EventType.complete) {
+        sawTerminalEvent = true
+      }
+    }
+
+    if (replay.events.length < OWNED_REPLAY_PAGE_LIMIT || sawTerminalEvent) {
+      break
+    }
+
+    const previousCursor = Number(cursor || '0')
+    if (!Number.isFinite(previousCursor) || lastSeq <= previousCursor) {
+      throw new Error('Owned Mothership replay did not advance its cursor')
+    }
+    cursor = String(lastSeq)
+  }
+
+  return {
+    events,
+    ...(replayStatus ? { status: replayStatus } : {}),
+    ...(replayChatId ? { chatId: replayChatId } : {}),
+    source: 'owned',
+  }
 }
 
 export const GET = withRouteHandler(async (request: NextRequest) => {
@@ -216,12 +317,18 @@ async function handleResumeRequestBody({
     rootSpan.end()
     return NextResponse.json({ error: 'Stream not found' }, { status: 404 })
   }
-  rootSpan.setAttribute(TraceAttr.CopilotRunStatus, run.status)
+  const streamRun = run
+  rootSpan.setAttribute(TraceAttr.CopilotRunStatus, streamRun.status)
 
   if (batchMode) {
     const afterSeq = afterCursor || '0'
-    const [events, previewSessions] = await Promise.all([
-      readEvents(streamId, afterSeq),
+    const [replay, previewSessions] = await Promise.all([
+      readReplayBatch({
+        streamId,
+        userId: authenticatedUserId,
+        afterCursor: afterSeq,
+        rootContext,
+      }),
       readFilePreviewSessions(streamId).catch((error) => {
         logger.warn('Failed to read preview sessions for stream batch', {
           streamId,
@@ -230,13 +337,14 @@ async function handleResumeRequestBody({
         return []
       }),
     ])
-    const batchEvents = events.map(toStreamBatchEvent)
+    const batchEvents = replay.events
     logger.info('[Resume] Batch response', {
       streamId,
       afterCursor: afterSeq,
       eventCount: batchEvents.length,
       previewSessionCount: previewSessions.length,
-      runStatus: run.status,
+      runStatus: replay.status ?? streamRun.status,
+      replaySource: replay.source,
     })
     rootSpan.setAttributes({
       [TraceAttr.CopilotResumeOutcome]: CopilotResumeOutcome.BatchDelivered,
@@ -248,8 +356,8 @@ async function handleResumeRequestBody({
       success: true,
       events: batchEvents,
       previewSessions,
-      status: run.status,
-      ...(run.chatId ? { chatId: run.chatId } : {}),
+      status: replay.status ?? streamRun.status,
+      ...(replay.chatId || streamRun.chatId ? { chatId: replay.chatId ?? streamRun.chatId } : {}),
     })
   }
 
@@ -271,6 +379,7 @@ async function handleResumeRequestBody({
     let controllerClosed = false
     let sawTerminalEvent = false
     let currentRequestId = extractRunRequestId(run)
+    let latestReplayStatus: string | null | undefined = streamRun.status
     let lastWriteTime = Date.now()
     // Stamp the logical request id + chat id on the resume root as soon
     // as we resolve them from the run row, so TraceQL joins work on
@@ -279,8 +388,8 @@ async function handleResumeRequestBody({
       rootSpan.setAttribute(TraceAttr.RequestId, currentRequestId)
       rootSpan.setAttribute(TraceAttr.SimRequestId, currentRequestId)
     }
-    if (run?.chatId) {
-      rootSpan.setAttribute(TraceAttr.ChatId, run.chatId)
+    if (streamRun.chatId) {
+      rootSpan.setAttribute(TraceAttr.ChatId, streamRun.chatId)
     }
 
     const closeController = () => {
@@ -323,12 +432,20 @@ async function handleResumeRequestBody({
     request.signal.addEventListener('abort', abortListener, { once: true })
 
     const flushEvents = async () => {
-      const events = await readEvents(streamId, cursor)
+      const replay = await readReplayBatch({
+        streamId,
+        userId: authenticatedUserId,
+        afterCursor: cursor,
+        rootContext,
+      })
+      const events = replay.events.map((event) => event.event)
+      latestReplayStatus = replay.status ?? latestReplayStatus
       if (events.length > 0) {
         logger.debug('[Resume] Flushing events', {
           streamId,
           afterCursor: cursor,
           eventCount: events.length,
+          replaySource: replay.source,
         })
       }
       for (const envelope of events) {
@@ -373,7 +490,9 @@ async function handleResumeRequestBody({
     try {
       enqueueComment('accepted')
 
-      const gap = await checkForReplayGap(streamId, afterCursor, currentRequestId)
+      const gap = shouldUseOwnedReplay()
+        ? null
+        : await checkForReplayGap(streamId, afterCursor, currentRequestId)
       if (gap) {
         for (const envelope of gap.envelopes) {
           if (!enqueueEvent(envelope)) {
@@ -389,6 +508,9 @@ async function handleResumeRequestBody({
       }
 
       await flushEvents()
+      if (sawTerminalEvent) {
+        return
+      }
 
       while (!controllerClosed && Date.now() - startTime < MAX_STREAM_MS) {
         pollIterations += 1
@@ -417,10 +539,19 @@ async function handleResumeRequestBody({
         if (controllerClosed) {
           break
         }
-        if (isTerminalStatus(currentRun.status)) {
-          emitTerminalIfMissing(currentRun.status, {
+        if (sawTerminalEvent) {
+          break
+        }
+
+        const terminalStatus = isTerminalStatus(latestReplayStatus)
+          ? latestReplayStatus
+          : isTerminalStatus(currentRun.status)
+            ? currentRun.status
+            : null
+        if (terminalStatus) {
+          emitTerminalIfMissing(terminalStatus, {
             message:
-              currentRun.status === MothershipStreamV1CompletionStatus.error
+              terminalStatus === MothershipStreamV1CompletionStatus.error
                 ? typeof currentRun.error === 'string'
                   ? currentRun.error
                   : 'The recovered stream ended with an error.'

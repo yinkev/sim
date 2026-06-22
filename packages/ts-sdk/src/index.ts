@@ -5,6 +5,11 @@ export interface SimStudioConfig {
   baseUrl?: string
 }
 
+interface ErrorResponseBody {
+  error?: string
+  code?: string
+}
+
 export interface LargeValueRef {
   __simLargeValueRef: true
   version: 1
@@ -257,7 +262,7 @@ export class SimStudioClient {
       }
 
       if (!response.ok) {
-        const errorData = (await response.json().catch(() => ({}))) as unknown as any
+        const errorData = (await response.json().catch(() => ({}))) as ErrorResponseBody
         throw new SimStudioError(
           errorData.error || `HTTP ${response.status}: ${response.statusText}`,
           errorData.code,
@@ -295,7 +300,7 @@ export class SimStudioClient {
       })
 
       if (!response.ok) {
-        const errorData = (await response.json().catch(() => ({}))) as unknown as any
+        const errorData = (await response.json().catch(() => ({}))) as ErrorResponseBody
         throw new SimStudioError(
           errorData.error || `HTTP ${response.status}: ${response.statusText}`,
           errorData.code,
@@ -373,7 +378,7 @@ export class SimStudioClient {
       this.updateRateLimitInfo(response)
 
       if (!response.ok) {
-        const errorData = (await response.json().catch(() => ({}))) as unknown as any
+        const errorData = (await response.json().catch(() => ({}))) as ErrorResponseBody
         throw new SimStudioError(
           errorData.error || `HTTP ${response.status}: ${response.statusText}`,
           errorData.code,
@@ -496,7 +501,7 @@ export class SimStudioClient {
       this.updateRateLimitInfo(response)
 
       if (!response.ok) {
-        const errorData = (await response.json().catch(() => ({}))) as unknown as any
+        const errorData = (await response.json().catch(() => ({}))) as ErrorResponseBody
         throw new SimStudioError(
           errorData.error || `HTTP ${response.status}: ${response.statusText}`,
           errorData.code,

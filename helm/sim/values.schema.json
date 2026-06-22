@@ -97,6 +97,7 @@
                 },
                 "keys": {
                   "type": "object",
+                  "additionalProperties": { "type": "string" },
                   "description": "Key name mappings in the existing secret"
                 }
               }
@@ -113,6 +114,31 @@
             "ENCRYPTION_KEY": {
               "type": "string",
               "description": "Encryption key (minimum 32 characters required when not using existingSecret)"
+            },
+            "INTERNAL_API_SECRET": {
+              "type": "string",
+              "description": "Internal service-to-service secret (minimum 32 characters required when not using existingSecret)"
+            },
+            "SIM_TO_MOTHERSHIP_API_KEY": {
+              "type": "string",
+              "description": "Runtime secret for Sim-to-Mothership calls (minimum 32 characters recommended)"
+            },
+            "MOTHERSHIP_RUNTIME_HEADER_MODE": {
+              "type": "string",
+              "enum": ["", "legacy", "strict"],
+              "description": "Runtime auth header mode. Use legacy for pre-strict Copilot backends and strict for owned apps/mothership routes."
+            },
+            "MOTHERSHIP_TO_SIM_CALLBACK_KEY": {
+              "type": "string",
+              "description": "Mothership-to-Sim callback secret (minimum 32 characters recommended)"
+            },
+            "MOTHERSHIP_ADMIN_API_KEY": {
+              "type": "string",
+              "description": "Mothership admin route secret (required when mothership.enabled=true)"
+            },
+            "API_ENCRYPTION_KEY": {
+              "type": "string",
+              "description": "API key encryption secret (required as 64 hex characters when mothership.enabled=true)"
             },
             "NEXT_PUBLIC_APP_URL": {
               "type": "string",
@@ -764,6 +790,253 @@
         }
       }
     },
+    "mothership": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable the owned apps/mothership service"
+        },
+        "server": {
+          "type": "object",
+          "properties": {
+            "replicaCount": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Number of Mothership replicas"
+            },
+            "image": {
+              "type": "object",
+              "properties": {
+                "repository": {
+                  "type": "string",
+                  "description": "Mothership image repository"
+                },
+                "tag": {
+                  "type": "string",
+                  "description": "Mothership image tag"
+                },
+                "digest": {
+                  "type": "string",
+                  "description": "Optional image digest"
+                },
+                "pullPolicy": {
+                  "type": "string",
+                  "enum": ["Always", "IfNotPresent", "Never"],
+                  "description": "Image pull policy"
+                }
+              }
+            },
+            "command": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Optional command override"
+            },
+            "args": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Optional args override"
+            },
+            "resources": {
+              "type": "object",
+              "properties": {
+                "limits": { "type": "object" },
+                "requests": { "type": "object" }
+              }
+            },
+            "nodeSelector": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            },
+            "podSecurityContext": {
+              "type": "object",
+              "description": "Pod security context for Mothership pods"
+            },
+            "securityContext": {
+              "type": "object",
+              "description": "Container security context for Mothership"
+            },
+            "topologySpreadConstraints": {
+              "type": "array",
+              "items": { "type": "object" },
+              "description": "Topology spread constraints for Mothership pods"
+            },
+            "env": {
+              "type": "object",
+              "properties": {
+                "SIM_BASE_URL": {
+                  "type": "string",
+                  "description": "Public Sim app URL used by Mothership callbacks"
+                },
+                "MOTHERSHIP_ANTHROPIC_API_KEY": {
+                  "type": "string",
+                  "description": "Owned Mothership Anthropic provider API key"
+                },
+                "MOTHERSHIP_OPENAI_API_KEY": {
+                  "type": "string",
+                  "description": "Owned Mothership OpenAI provider API key"
+                },
+                "MOTHERSHIP_AVAILABLE_MODELS_JSON": {
+                  "type": "string",
+                  "description": "Optional owned Mothership model catalog JSON override"
+                }
+              },
+              "additionalProperties": { "type": "string" },
+              "description": "Mothership-only environment variables"
+            },
+            "extraEnv": {
+              "type": "array",
+              "items": { "type": "object" },
+              "description": "Additional environment variable definitions"
+            },
+            "extraEnvFrom": {
+              "type": "array",
+              "items": { "type": "object" },
+              "description": "Additional envFrom sources"
+            },
+            "secret": {
+              "type": "object",
+              "properties": {
+                "create": {
+                  "type": "boolean",
+                  "description": "Whether to create a secret from mothership.server.env"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Override name for the Mothership secret"
+                },
+                "annotations": {
+                  "type": "object",
+                  "additionalProperties": { "type": "string" },
+                  "description": "Annotations added to the Mothership secret"
+                }
+              }
+            },
+            "service": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "port": { "type": "integer" },
+                "targetPort": { "type": "integer" }
+              }
+            },
+            "startupProbe": {
+              "type": "object",
+              "description": "Startup probe for the Mothership container"
+            },
+            "readinessProbe": {
+              "type": "object",
+              "description": "Readiness probe for the Mothership container"
+            },
+            "livenessProbe": {
+              "type": "object",
+              "description": "Liveness probe for the Mothership container"
+            },
+            "podDisruptionBudget": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable PodDisruptionBudget for Mothership server"
+                },
+                "minAvailable": {
+                  "type": "integer",
+                  "description": "Minimum number of available pods"
+                },
+                "maxUnavailable": {
+                  "type": "integer",
+                  "description": "Maximum number of unavailable pods"
+                }
+              }
+            }
+          }
+        },
+        "processor": {
+          "type": "object",
+          "properties": {
+            "billingCallbacks": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable the owned Mothership billing callback outbox processor CronJob"
+                },
+                "schedule": {
+                  "type": "string",
+                  "description": "Cron schedule for billing callback outbox processing"
+                },
+                "batchSize": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100,
+                  "description": "Maximum outbox rows to process per request"
+                },
+                "failOnNonClean": {
+                  "type": "boolean",
+                  "description": "Return a non-2xx processor response when the batch has retryable, dead-lettered, lease-lost, or stale-reaped rows"
+                },
+                "concurrencyPolicy": {
+                  "type": "string",
+                  "enum": ["Allow", "Forbid", "Replace"],
+                  "description": "CronJob concurrency policy"
+                },
+                "successfulJobsHistoryLimit": { "type": "integer", "minimum": 0 },
+                "failedJobsHistoryLimit": { "type": "integer", "minimum": 0 },
+                "backoffLimit": { "type": "integer", "minimum": 0 },
+                "activeDeadlineSeconds": { "type": "integer", "minimum": 1 },
+                "startingDeadlineSeconds": { "type": "integer", "minimum": 1 },
+                "ttlSecondsAfterFinished": { "type": "integer", "minimum": 0 },
+                "restartPolicy": {
+                  "type": "string",
+                  "enum": ["Never", "OnFailure"]
+                },
+                "retryAttempts": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "retryDelaySeconds": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "timeoutSeconds": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "image": {
+                  "type": "object",
+                  "properties": {
+                    "repository": { "type": "string" },
+                    "tag": { "type": "string" },
+                    "digest": { "type": "string" },
+                    "pullPolicy": {
+                      "type": "string",
+                      "enum": ["Always", "IfNotPresent", "Never"]
+                    }
+                  }
+                },
+                "resources": {
+                  "type": "object",
+                  "properties": {
+                    "limits": { "type": "object" },
+                    "requests": { "type": "object" }
+                  }
+                },
+                "nodeSelector": {
+                  "type": "object",
+                  "additionalProperties": { "type": "string" }
+                },
+                "podSecurityContext": {
+                  "type": "object"
+                },
+                "securityContext": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "copilot": {
       "type": "object",
       "properties": {
@@ -981,7 +1254,9 @@
           "properties": {
             "app": {
               "type": "object",
-              "additionalProperties": { "type": "string" }
+              "additionalProperties": {
+                "oneOf": [{ "type": "string" }, { "type": "object" }]
+              }
             },
             "postgresql": {
               "type": "object",
@@ -994,6 +1269,31 @@
               "properties": {
                 "password": { "type": "string" }
               }
+            },
+            "mothership": {
+              "type": "object",
+              "properties": {
+                "SIM_BASE_URL": {
+                  "oneOf": [{ "type": "string" }, { "type": "object" }],
+                  "description": "Remote key path for SIM_BASE_URL"
+                },
+                "MOTHERSHIP_ANTHROPIC_API_KEY": {
+                  "oneOf": [{ "type": "string" }, { "type": "object" }],
+                  "description": "Remote key path for the owned Anthropic provider key"
+                },
+                "MOTHERSHIP_OPENAI_API_KEY": {
+                  "oneOf": [{ "type": "string" }, { "type": "object" }],
+                  "description": "Remote key path for the owned OpenAI provider key"
+                },
+                "MOTHERSHIP_AVAILABLE_MODELS_JSON": {
+                  "oneOf": [{ "type": "string" }, { "type": "object" }],
+                  "description": "Remote key path for MOTHERSHIP_AVAILABLE_MODELS_JSON"
+                }
+              },
+              "additionalProperties": {
+                "oneOf": [{ "type": "string" }, { "type": "object" }]
+              },
+              "description": "Remote key paths for owned Mothership-only secrets"
             }
           }
         }

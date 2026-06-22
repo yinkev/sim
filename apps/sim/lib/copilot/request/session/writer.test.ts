@@ -4,6 +4,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  MothershipStreamV1CompletionStatus,
   MothershipStreamV1EventType,
   MothershipStreamV1TextChannel,
 } from '@/lib/copilot/generated/mothership-stream-v1'
@@ -22,6 +23,11 @@ import { StreamWriter } from '@/lib/copilot/request/session/writer'
 function decodeChunk(value: Uint8Array): string {
   return new TextDecoder().decode(value)
 }
+
+const COMPLETE_EVENT = {
+  type: MothershipStreamV1EventType.complete,
+  payload: { status: MothershipStreamV1CompletionStatus.complete },
+} as const
 
 describe('StreamWriter', () => {
   beforeEach(() => {
@@ -60,8 +66,9 @@ describe('StreamWriter', () => {
       type: MothershipStreamV1EventType.text,
       payload: { channel: MothershipStreamV1TextChannel.assistant, text: 'hello' },
     })
+    await writer.publish(COMPLETE_EVENT)
 
-    expect(controller.enqueue).toHaveBeenCalledOnce()
+    expect(controller.enqueue).toHaveBeenCalledTimes(2)
     expect(appendEvents).not.toHaveBeenCalled()
     expect(chunks[0]).toContain('"text":"hello"')
     expect(closeCount).toBe(0)
@@ -113,18 +120,21 @@ describe('StreamWriter', () => {
         payload: { channel: MothershipStreamV1TextChannel.assistant, text: 'two' },
       }),
     ])
+    writer.publish(COMPLETE_EVENT)
     expect(appendEvents).not.toHaveBeenCalled()
 
     await vi.advanceTimersByTimeAsync(15)
     await writer.close()
 
-    expect(persistedSeqs).toEqual([1, 2])
+    expect(persistedSeqs).toEqual([1, 2, 3])
     expect(appendEvents).toHaveBeenCalledWith([
       expect.objectContaining({ seq: 1 }),
       expect.objectContaining({ seq: 2 }),
+      expect.objectContaining({ seq: 3 }),
     ])
     expect(chunks[0]).toContain('"seq":1')
     expect(chunks[1]).toContain('"seq":2')
+    expect(chunks[2]).toContain('"seq":3')
   })
 
   it('flush waits for persistence and surfaces failures', async () => {
@@ -185,5 +195,85 @@ describe('StreamWriter', () => {
         }),
       }),
     ])
+  })
+
+  it('rejects contract events that fail the generated stream schema', () => {
+    appendEvents.mockResolvedValue([])
+
+    const writer = new StreamWriter({
+      streamId: 'stream-1',
+      requestId: 'req-1',
+    })
+
+    const controller = {
+      enqueue: vi.fn(),
+      close: vi.fn(),
+    } as unknown as ReadableStreamDefaultController
+    writer.attach(controller)
+
+    const invalidComplete = {
+      type: MothershipStreamV1EventType.complete,
+      payload: {
+        status: MothershipStreamV1CompletionStatus.cancelled,
+        partialContent: 'partial output',
+      },
+    }
+
+    expect(() => writer.publish(invalidComplete)).toThrow(
+      'failed generated stream schema validation'
+    )
+    expect(controller.enqueue).not.toHaveBeenCalled()
+    expect(appendEvents).not.toHaveBeenCalled()
+  })
+
+  it('rejects a second terminal event', () => {
+    appendEvents.mockResolvedValue([])
+
+    const writer = new StreamWriter({
+      streamId: 'stream-1',
+      requestId: 'req-1',
+    })
+
+    writer.attach({
+      enqueue: vi.fn(),
+      close: vi.fn(),
+    } as unknown as ReadableStreamDefaultController)
+
+    writer.publish({
+      type: MothershipStreamV1EventType.error,
+      payload: {
+        message: 'provider failed',
+      },
+    })
+
+    expect(() =>
+      writer.publish({
+        type: MothershipStreamV1EventType.complete,
+        payload: { status: MothershipStreamV1CompletionStatus.error },
+      })
+    ).toThrow('already published a terminal event')
+  })
+
+  it('closes the controller but rejects when no terminal event was published', async () => {
+    appendEvents.mockResolvedValue([])
+
+    const writer = new StreamWriter({
+      streamId: 'stream-1',
+      requestId: 'req-1',
+    })
+
+    const controller = {
+      enqueue: vi.fn(),
+      close: vi.fn(),
+    } as unknown as ReadableStreamDefaultController
+    writer.attach(controller)
+
+    writer.publish({
+      type: MothershipStreamV1EventType.text,
+      payload: { channel: MothershipStreamV1TextChannel.assistant, text: 'partial' },
+    })
+
+    await expect(writer.close()).rejects.toThrow('closed without a terminal event')
+    expect(controller.close).toHaveBeenCalledOnce()
   })
 })

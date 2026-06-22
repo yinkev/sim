@@ -1,0 +1,1 @@
+data: {"v":1,"type":"session","seq":1,"ts":"2026-06-21T00:00:00.000Z","stream":{"chatId":"chat-missing-envelope-1"},"trace":{"requestId":"req-missing-envelope-1"},"payload":{"kind":"chat","chatId":"chat-missing-envelope-1"}}

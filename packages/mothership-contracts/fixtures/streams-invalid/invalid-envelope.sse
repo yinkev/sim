@@ -1,0 +1,1 @@
+data: {"v":1,"type":"unknown","seq":1,"ts":"2026-06-21T00:00:00.000Z","stream":{"streamId":"msg-invalid-1","chatId":"chat-invalid-1"},"trace":{"requestId":"req-invalid-1"},"payload":{"kind":"chat","chatId":"chat-invalid-1"}}

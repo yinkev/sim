@@ -8,6 +8,8 @@ import type { PanelState, PanelTab } from '@/stores/panel/types'
  */
 const DEFAULT_TAB: PanelTab = 'copilot'
 
+type PersistedPanelState = Pick<PanelState, 'panelWidth' | 'activeTab'>
+
 export const usePanelStore = create<PanelState>()(
   persist(
     (set) => ({
@@ -40,6 +42,22 @@ export const usePanelStore = create<PanelState>()(
     }),
     {
       name: 'panel-state',
+      partialize: (state) => ({
+        panelWidth: state.panelWidth,
+        activeTab: state.activeTab,
+      }),
+      merge: (persistedState, currentState) => {
+        const persisted =
+          typeof persistedState === 'object' && persistedState !== null
+            ? (persistedState as Partial<PersistedPanelState>)
+            : {}
+
+        return {
+          ...currentState,
+          panelWidth: persisted.panelWidth ?? currentState.panelWidth,
+          activeTab: persisted.activeTab ?? currentState.activeTab,
+        }
+      },
       onRehydrateStorage: () => (state) => {
         // Sync CSS variables with stored state after rehydration
         if (state && typeof window !== 'undefined') {

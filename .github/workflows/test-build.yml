@@ -106,6 +106,26 @@ jobs:
       - name: Enforce monorepo boundaries
         run: bun run check:boundaries
 
+      - name: Check Mothership client package
+        run: bun run mship-client:check
+
+      - name: Check Mothership generated contracts
+        run: bun run mship:check
+
+      - name: Check Mothership stream fixtures
+        run: bun run mship-fixtures:check
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.15.4
+
+      - name: Install helm-unittest
+        run: helm plugin install https://github.com/helm-unittest/helm-unittest.git --version v0.8.2
+
+      - name: Run Helm chart unit tests
+        run: helm unittest helm/sim
+
       - name: API contract boundary audit
         run: bun run check:api-validation:strict
 

@@ -1,0 +1,5 @@
+data: {"v":1,"type":"tool","seq":1,"ts":"2026-06-21T00:00:00.000Z","stream":{"streamId":"msg-duplicate-checkpoint-terminal-1","chatId":"chat-duplicate-checkpoint-terminal-1"},"trace":{"requestId":"req-duplicate-checkpoint-terminal-1"},"payload":{"phase":"call","toolCallId":"call-duplicate-terminal-1","toolName":"read_workflow","executor":"sim","mode":"async","status":"executing","arguments":{"workflowId":"workflow-1"}}}
+
+data: {"v":1,"type":"run","seq":2,"ts":"2026-06-21T00:00:01.000Z","stream":{"streamId":"msg-duplicate-checkpoint-terminal-1","chatId":"chat-duplicate-checkpoint-terminal-1"},"trace":{"requestId":"req-duplicate-checkpoint-terminal-1"},"payload":{"kind":"checkpoint_pause","runId":"run-duplicate-terminal-1","executionId":"exec-duplicate-terminal-1","checkpointId":"checkpoint-duplicate-terminal-1","pendingToolCallIds":["call-duplicate-terminal-1"]}}
+
+data: {"v":1,"type":"complete","seq":3,"ts":"2026-06-21T00:00:02.000Z","stream":{"streamId":"msg-duplicate-checkpoint-terminal-1","chatId":"chat-duplicate-checkpoint-terminal-1"},"trace":{"requestId":"req-duplicate-checkpoint-terminal-1"},"payload":{"status":"complete"}}

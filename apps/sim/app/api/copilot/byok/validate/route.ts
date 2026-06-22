@@ -3,8 +3,8 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { validateCopilotByokContract } from '@/lib/api/contracts/copilot'
 import { parseRequest } from '@/lib/api/server'
 import { isWorkspaceOnEnterprisePlan } from '@/lib/billing/core/subscription'
-import { checkInternalApiKey } from '@/lib/copilot/request/http'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { checkSimCallbackAuth } from '@/lib/mothership/service-auth'
 import { verifyEffectiveSuperUser } from '@/lib/permissions/super-user'
 import { getUserEntityPermissions } from '@/lib/workspaces/permissions/utils'
 
@@ -12,8 +12,8 @@ const logger = createLogger('CopilotByokValidate')
 
 /**
  * Authoritative entitlement gate for enterprise BYOK, called server-to-server by
- * the mothership (Go) before it uses a workspace's own provider key. Gated by
- * INTERNAL_API_SECRET — never exposed to the browser.
+ * the mothership before it uses a workspace's own provider key. Gated by the
+ * dedicated Mothership-to-Sim callback key — never exposed to the browser.
  *
  * Returns 200 when EITHER:
  *   - the requesting user is a superuser admin (platform admin with superuser
@@ -26,9 +26,9 @@ const logger = createLogger('CopilotByokValidate')
  * caller fails closed to hosted keys on anything but a 200.
  */
 export const POST = withRouteHandler(async (req: NextRequest) => {
-  const auth = checkInternalApiKey(req)
+  const auth = checkSimCallbackAuth(req.headers)
   if (!auth.success) {
-    return new NextResponse(null, { status: 401 })
+    return new NextResponse(null, { status: auth.status })
   }
 
   const parsed = await parseRequest(validateCopilotByokContract, req, {})

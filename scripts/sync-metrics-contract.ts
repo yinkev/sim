@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url'
 import { formatGeneratedSource } from './format-generated-source'
 
 /**
- * Generate `apps/sim/lib/copilot/generated/metrics-v1.ts` from the Go-side
- * `contracts/metrics-v1.schema.json` contract.
+ * Generate `apps/sim/lib/copilot/generated/metrics-v1.ts` from the owned
+ * `packages/mothership-contracts/contracts/metrics-v1.schema.json` contract.
  *
  * The contract is a single-enum JSON Schema listing every canonical mothership
  * OTel METRIC name. Go and Sim BOTH emit mothership metrics (the agent loop in
@@ -29,7 +29,7 @@ import { formatGeneratedSource } from './format-generated-source'
  */
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(SCRIPT_DIR, '..')
-const DEFAULT_CONTRACT_PATH = resolve(ROOT, '../copilot/copilot/contracts/metrics-v1.schema.json')
+const DEFAULT_CONTRACT_PATH = resolve(ROOT, 'packages/mothership-contracts/contracts/metrics-v1.schema.json')
 const OUTPUT_PATH = resolve(ROOT, 'apps/sim/lib/copilot/generated/metrics-v1.ts')
 
 function extractMetricNames(schema: Record<string, unknown>): string[] {
@@ -83,12 +83,12 @@ function render(metricNames: string[]): string {
 
   return `// AUTO-GENERATED FILE. DO NOT EDIT.
 //
-// Source: copilot/copilot/contracts/metrics-v1.schema.json
+// Source: packages/mothership-contracts/contracts/metrics-v1.schema.json
 // Regenerate with: bun run metrics-contract:generate
 //
 // Canonical mothership OTel metric names. Call sites should reference
 // \`Metric.<Identifier>\` (e.g. \`Metric.CopilotToolDuration\`) rather than raw
-// string literals, so the Go-side contract is the single source of truth and
+// string literals, so the owned contract is the single source of truth and
 // typos become compile errors.
 //
 // NAMES ONLY. Label keys and histogram bucket boundaries are NOT in this

@@ -40,7 +40,11 @@ export const env = createEnv({
     INTERNAL_JWT_SECRET:                   z.string().min(32).optional(),          // Dedicated signing key for internal JWTs (falls back to INTERNAL_API_SECRET); separating limits blast radius if one leaks
 
     // Copilot
-    COPILOT_API_KEY:                       z.string().min(1).optional(),           // Secret for internal sim agent API authentication
+    SIM_TO_MOTHERSHIP_API_KEY:             z.string().min(1).optional(),           // Preferred runtime secret for Sim to Mothership calls
+    MOTHERSHIP_RUNTIME_HEADER_MODE:        z.enum(['legacy', 'strict']).optional(), // Optional override; defaults legacy for hosted copilot.sim.ai and strict for owned Mothership URLs
+    MOTHERSHIP_TO_SIM_CALLBACK_KEY:        z.string().min(1).optional(),           // Callback secret for Mothership to Sim callback routes
+    MOTHERSHIP_ADMIN_API_KEY:              z.string().min(1).optional(),           // Admin secret for owned Mothership admin routes
+    COPILOT_API_KEY:                       z.string().min(1).optional(),           // Legacy runtime-only alias for internal sim agent API authentication
     SIM_AGENT_API_URL:                     z.string().url().optional(),            // URL for internal sim agent API
     COPILOT_SOURCE_ENV:                    z.enum(['dev', 'staging', 'prod']).optional(), // Source Sim environment sent to mothership for callbacks
     COPILOT_DEV_URL:                       z.string().url().optional(),            // Sim agent API URL for the dev mothership environment

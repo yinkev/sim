@@ -26,6 +26,7 @@ export async function processSSEStream(
   onEvent: (event: unknown) => boolean | undefined | Promise<boolean | undefined>
 ): Promise<void> {
   let buffer = ''
+  let stopped = false
 
   try {
     try {
@@ -42,7 +43,6 @@ export async function processSSEStream(
         const lines = buffer.split('\n')
         buffer = lines.pop() || ''
 
-        let stopped = false
         for (const line of lines) {
           const normalizedLine = normalizeSseLine(line)
           if (abortSignal?.aborted) {
@@ -91,7 +91,7 @@ export async function processSSEStream(
       throw error
     }
 
-    const normalizedBuffer = normalizeSseLine(buffer)
+    const normalizedBuffer = stopped ? '' : normalizeSseLine(buffer)
     if (normalizedBuffer.trim() && normalizedBuffer.startsWith('data: ')) {
       const jsonStr = normalizedBuffer.slice(6)
       if (jsonStr === '[DONE]') {

@@ -1,0 +1,5 @@
+data: {"v":1,"type":"run","seq":4,"ts":"2026-06-21T00:00:00.000Z","stream":{"streamId":"msg-openai-tool-truncated-1","cursor":"4"},"trace":{"requestId":"req-openai-tool-truncated-1"},"payload":{"kind":"resumed"}}
+
+data: {"v":1,"type":"tool","seq":5,"ts":"2026-06-21T00:00:01.000Z","stream":{"streamId":"msg-openai-tool-truncated-1","cursor":"5"},"trace":{"requestId":"req-openai-tool-truncated-1"},"payload":{"phase":"result","toolCallId":"call-openai-truncated-1","toolName":"read_workflow","executor":"sim","mode":"async","status":"success","success":true,"output":{"workflowId":"workflow-openai-1"}}}
+
+data: {"v":1,"type":"text","seq":6,"ts":"2026-06-21T00:00:02.000Z","stream":{"streamId":"msg-openai-tool-truncated-1","cursor":"6"},"trace":{"requestId":"req-openai-tool-truncated-1"},"payload":{"channel":"assistant","text":"Continuing after the tool result."}}

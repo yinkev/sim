@@ -1,12 +1,12 @@
 // AUTO-GENERATED FILE. DO NOT EDIT.
 //
-// Source: copilot/copilot/contracts/trace-attributes-v1.schema.json
+// Source: packages/mothership-contracts/contracts/trace-attributes-v1.schema.json
 // Regenerate with: bun run trace-attributes-contract:generate
 //
 // Canonical custom mothership OTel span attribute keys. Call sites
 // should reference `TraceAttr.<Identifier>` (e.g.
 // `TraceAttr.ChatId`, `TraceAttr.ToolCallId`) rather than raw
-// string literals, so the Go-side contract is the single source of
+// string literals, so the owned contract is the single source of
 // truth and typos become compile errors.
 //
 // For OTel semantic-convention keys (`http.*`, `db.*`,

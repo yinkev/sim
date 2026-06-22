@@ -144,4 +144,34 @@ describe('GenericBlockHandler', () => {
       'Block execution of Some Custom Tool failed with no error message'
     )
   })
+
+  it('should preserve primitive tool execution rejections', async () => {
+    const inputs = { param1: 'value' }
+    mockExecuteTool.mockRejectedValue('raw tool failure')
+
+    await expect(handler.execute(mockContext, mockBlock, inputs)).rejects.toThrow(
+      'raw tool failure'
+    )
+
+    try {
+      await handler.execute(mockContext, mockBlock, inputs)
+    } catch (error) {
+      expect(error).toBeInstanceOf(Error)
+      expect((error as Error & { toolId?: string; blockName?: string }).toolId).toBe(
+        'some_custom_tool'
+      )
+      expect((error as Error & { toolId?: string; blockName?: string }).blockName).toBe(
+        'Test Generic Block'
+      )
+    }
+  })
+
+  it('should normalize empty tool execution rejections with block context', async () => {
+    const inputs = { param1: 'value' }
+    mockExecuteTool.mockRejectedValue(null)
+
+    await expect(handler.execute(mockContext, mockBlock, inputs)).rejects.toThrow(
+      'Block execution of Some Custom Tool failed: Test Generic Block'
+    )
+  })
 })

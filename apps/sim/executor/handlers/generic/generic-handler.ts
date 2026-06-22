@@ -2,6 +2,10 @@ import { createLogger } from '@sim/logger'
 import { toError } from '@sim/utils/errors'
 import { getBlock } from '@/blocks/index'
 import { isMcpTool } from '@/executor/constants'
+import {
+  normalizeHandlerError,
+  shouldReplaceHandlerErrorMessage,
+} from '@/executor/handlers/shared/error-normalization'
 import type { BlockHandler, ExecutionContext } from '@/executor/types'
 import type { SerializedBlock } from '@/serializer/types'
 import { executeTool } from '@/tools'
@@ -99,27 +103,28 @@ export class GenericBlockHandler implements BlockHandler {
       }
 
       return result.output
-    } catch (error: any) {
-      if (!error.message || error.message === 'undefined (undefined)') {
+    } catch (error) {
+      const normalizedError = normalizeHandlerError(error)
+
+      if (shouldReplaceHandlerErrorMessage(normalizedError.message)) {
         let errorMessage = `Block execution of ${tool?.name || block.config.tool} failed`
 
         if (block.metadata?.name) {
           errorMessage += `: ${block.metadata.name}`
         }
 
-        if (error.status) {
-          errorMessage += ` (Status: ${error.status})`
+        if (normalizedError.status) {
+          errorMessage += ` (Status: ${normalizedError.status})`
         }
 
-        error.message = errorMessage
+        normalizedError.message = errorMessage
       }
 
-      if (typeof error === 'object' && error !== null) {
-        if (!error.toolId) error.toolId = block.config.tool
-        if (!error.blockName) error.blockName = block.metadata?.name || 'Unnamed Block'
-      }
+      if (!normalizedError.toolId) normalizedError.toolId = block.config.tool
+      if (!normalizedError.blockName)
+        normalizedError.blockName = block.metadata?.name || 'Unnamed Block'
 
-      throw error
+      throw normalizedError
     }
   }
 }

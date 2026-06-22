@@ -113,7 +113,7 @@ export class LoopOrchestrator {
     switch (loopType) {
       case 'for': {
         scope.loopType = 'for'
-        const requestedIterations = loopConfig.iterations || DEFAULTS.DEFAULT_LOOP_ITERATIONS
+        const requestedIterations = loopConfig.iterations ?? DEFAULTS.DEFAULT_LOOP_ITERATIONS
         scope.maxIterations = requestedIterations
         scope.condition = buildLoopIndexCondition(scope.maxIterations)
         break

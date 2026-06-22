@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ExecutionContext, StreamingContext } from '@/lib/copilot/request/types'
 
 const {
+  envMock,
   mockCreateRunSegment,
   mockForceFailHungToolCall,
   mockGetEffectiveDecryptedEnv,
@@ -16,6 +17,11 @@ const {
   mockToolWatchdogTimeoutMs,
   mockUpdateRunStatus,
 } = vi.hoisted(() => ({
+  envMock: {
+    SIM_TO_MOTHERSHIP_API_KEY: 'runtime-key',
+    COPILOT_API_KEY: undefined as string | undefined,
+    MOTHERSHIP_RUNTIME_HEADER_MODE: 'legacy' as 'legacy' | 'strict' | undefined,
+  },
   mockCreateRunSegment: vi.fn(),
   mockForceFailHungToolCall: vi.fn(),
   mockGetEffectiveDecryptedEnv: vi.fn(),
@@ -66,9 +72,7 @@ vi.mock('@/lib/copilot/server/agent-url', () => ({
 }))
 
 vi.mock('@/lib/core/config/env', () => ({
-  env: {
-    COPILOT_API_KEY: undefined,
-  },
+  env: envMock,
   getEnv: vi.fn((key: string) => (key === 'NEXT_PUBLIC_APP_URL' ? 'http://localhost:3000' : '')),
   isTruthy: vi.fn((value: string | undefined) => value === 'true'),
   isFalsy: vi.fn((value: string | undefined) => value === 'false'),
@@ -99,6 +103,9 @@ import { runCopilotLifecycle } from '@/lib/copilot/request/lifecycle/run'
 describe('runCopilotLifecycle', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    envMock.SIM_TO_MOTHERSHIP_API_KEY = 'runtime-key'
+    envMock.COPILOT_API_KEY = undefined
+    envMock.MOTHERSHIP_RUNTIME_HEADER_MODE = 'legacy'
     mockGetMothershipBaseURL.mockResolvedValue('http://mothership.test')
     mockGetMothershipSourceEnvHeaders.mockReturnValue({})
   })
@@ -316,6 +323,79 @@ describe('runCopilotLifecycle', () => {
     )
   })
 
+  it('uses SIM_TO_MOTHERSHIP_API_KEY for legacy stream wire auth', async () => {
+    const executionContext: ExecutionContext = {
+      userId: 'user-1',
+      workflowId: '',
+      workspaceId: 'ws-1',
+      chatId: 'chat-1',
+      decryptedEnvVars: {},
+    }
+
+    await runCopilotLifecycle(
+      { message: 'hello', messageId: 'stream-1' },
+      {
+        userId: 'user-1',
+        workspaceId: 'ws-1',
+        chatId: 'chat-1',
+        executionId: 'exec-1',
+        runId: 'run-1',
+        executionContext,
+      }
+    )
+
+    expect(mockRunStreamLoop).toHaveBeenCalledWith(
+      'http://mothership.test/api/copilot',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'x-api-key': 'runtime-key',
+        }),
+      }),
+      expect.anything(),
+      expect.anything(),
+      expect.anything()
+    )
+    const headers = new Headers(mockRunStreamLoop.mock.calls[0]?.[1]?.headers as HeadersInit)
+    expect(headers.get('x-mothership-runtime-key')).toBeNull()
+  })
+
+  it('uses strict runtime stream wire auth when owned Mothership mode is enabled', async () => {
+    envMock.MOTHERSHIP_RUNTIME_HEADER_MODE = 'strict'
+    const executionContext: ExecutionContext = {
+      userId: 'user-1',
+      workflowId: '',
+      workspaceId: 'ws-1',
+      chatId: 'chat-1',
+      decryptedEnvVars: {},
+    }
+
+    await runCopilotLifecycle(
+      { message: 'hello', messageId: 'stream-1' },
+      {
+        userId: 'user-1',
+        workspaceId: 'ws-1',
+        chatId: 'chat-1',
+        executionId: 'exec-1',
+        runId: 'run-1',
+        executionContext,
+      }
+    )
+
+    expect(mockRunStreamLoop).toHaveBeenCalledWith(
+      'http://mothership.test/api/copilot',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'x-mothership-runtime-key': 'runtime-key',
+        }),
+      }),
+      expect.anything(),
+      expect.anything(),
+      expect.anything()
+    )
+    const headers = new Headers(mockRunStreamLoop.mock.calls[0]?.[1]?.headers as HeadersInit)
+    expect(headers.get('x-api-key')).toBeNull()
+  })
+
   it('propagates payload userPermission into the generated execution context', async () => {
     let capturedExecContext: ExecutionContext | undefined
     mockGetEffectiveDecryptedEnv.mockResolvedValueOnce({})
@@ -370,6 +450,41 @@ describe('runCopilotLifecycle', () => {
     expect(requestBody).toEqual(
       expect.objectContaining({
         workspaceId: 'ws-1',
+      })
+    )
+  })
+
+  it('forwards lifecycle run identity on the initial runtime request', async () => {
+    let requestBody: Record<string, unknown> | undefined
+    const executionContext: ExecutionContext = {
+      userId: 'user-1',
+      workflowId: '',
+      workspaceId: 'ws-1',
+      chatId: 'chat-1',
+      decryptedEnvVars: {},
+    }
+    mockRunStreamLoop.mockImplementationOnce(
+      async (_fetchUrl: string, fetchOptions: RequestInit): Promise<void> => {
+        requestBody = JSON.parse(String(fetchOptions.body))
+      }
+    )
+
+    await runCopilotLifecycle(
+      { message: 'hello', messageId: 'stream-1' },
+      {
+        userId: 'user-1',
+        workspaceId: 'ws-1',
+        chatId: 'chat-1',
+        executionId: 'exec-1',
+        runId: 'run-1',
+        executionContext,
+      }
+    )
+
+    expect(requestBody).toEqual(
+      expect.objectContaining({
+        executionId: 'exec-1',
+        runId: 'run-1',
       })
     )
   })

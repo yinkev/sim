@@ -439,27 +439,40 @@ describe('Database Helpers', () => {
     })
 
     it('should return null when no blocks are found', async () => {
-      mockDb.select.mockReturnValue({
+      let callCount = 0
+      mockDb.select.mockImplementation(() => ({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([]),
+          where: vi.fn().mockImplementation(() => {
+            callCount++
+            if (callCount === 4)
+              return { limit: vi.fn().mockResolvedValue([{ workspaceId: 'test-workspace-id' }]) }
+            return Promise.resolve([])
+          }),
         }),
-      })
+      }))
 
       const result = await dbHelpers.loadWorkflowFromNormalizedTables(mockWorkflowId)
 
       expect(result).toBeNull()
     })
 
-    it('should return null when database query fails', async () => {
-      mockDb.select.mockReturnValue({
+    it('should rethrow database query failures', async () => {
+      let callCount = 0
+      mockDb.select.mockImplementation(() => ({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockRejectedValue(new Error('Database connection failed')),
+          where: vi.fn().mockImplementation(() => {
+            callCount++
+            if (callCount === 1) return Promise.reject(new Error('Database connection failed'))
+            if (callCount === 4)
+              return { limit: vi.fn().mockResolvedValue([{ workspaceId: 'test-workspace-id' }]) }
+            return Promise.resolve([])
+          }),
         }),
-      })
+      }))
 
-      const result = await dbHelpers.loadWorkflowFromNormalizedTables(mockWorkflowId)
-
-      expect(result).toBeNull()
+      await expect(dbHelpers.loadWorkflowFromNormalizedTables(mockWorkflowId)).rejects.toThrow(
+        'Database connection failed'
+      )
     })
 
     it('should handle unknown subflow types gracefully', async () => {
@@ -535,19 +548,26 @@ describe('Database Helpers', () => {
       expect(result?.blocks['block-1'].name).toBeNull()
     })
 
-    it('should handle database connection errors gracefully', async () => {
+    it('should rethrow database connection errors', async () => {
       const connectionError = new Error('Connection refused')
       ;(connectionError as any).code = 'ECONNREFUSED'
 
-      mockDb.select.mockReturnValue({
+      let callCount = 0
+      mockDb.select.mockImplementation(() => ({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockRejectedValue(connectionError),
+          where: vi.fn().mockImplementation(() => {
+            callCount++
+            if (callCount === 1) return Promise.reject(connectionError)
+            if (callCount === 4)
+              return { limit: vi.fn().mockResolvedValue([{ workspaceId: 'test-workspace-id' }]) }
+            return Promise.resolve([])
+          }),
         }),
-      })
+      }))
 
-      const result = await dbHelpers.loadWorkflowFromNormalizedTables(mockWorkflowId)
-
-      expect(result).toBeNull()
+      await expect(dbHelpers.loadWorkflowFromNormalizedTables(mockWorkflowId)).rejects.toThrow(
+        'Connection refused'
+      )
     })
   })
 
@@ -771,17 +791,23 @@ describe('Database Helpers', () => {
       const staleWorkflowState = structuredClone(mockWorkflowState)
       staleWorkflowState.loops = {}
       staleWorkflowState.parallels = {}
+      staleWorkflowState.blocks['loop-1'].data.count = 0
+      staleWorkflowState.blocks['parallel-1'].data.parallelType = 'invalid'
 
       await dbHelpers.saveWorkflowToNormalizedTables(mockWorkflowId, asAppState(staleWorkflowState))
 
       expect(capturedSubflowInserts).toHaveLength(2)
       expect(capturedSubflowInserts).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ id: 'loop-1', type: 'loop' }),
+          expect.objectContaining({
+            id: 'loop-1',
+            type: 'loop',
+            config: expect.objectContaining({ iterations: 0 }),
+          }),
           expect.objectContaining({
             id: 'parallel-1',
             type: 'parallel',
-            config: expect.objectContaining({ batchSize: 1 }),
+            config: expect.objectContaining({ batchSize: 1, parallelType: 'count' }),
           }),
         ])
       )

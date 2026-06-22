@@ -1,0 +1,9 @@
+data: {"v":1,"type":"session","seq":1,"ts":"2026-06-21T00:00:00.000Z","stream":{"streamId":"msg-subagent-1","chatId":"chat-subagent-1"},"trace":{"requestId":"req-subagent-1"},"payload":{"kind":"chat","chatId":"chat-subagent-1"}}
+
+data: {"v":1,"type":"span","seq":2,"ts":"2026-06-21T00:00:01.000Z","stream":{"streamId":"msg-subagent-1","chatId":"chat-subagent-1"},"trace":{"requestId":"req-subagent-1"},"scope":{"lane":"subagent","parentToolCallId":"parent-call-1","spanId":"span-subagent-1"},"payload":{"kind":"subagent","event":"start","agent":"Research","data":{"toolCallId":"parent-call-1"}}}
+
+data: {"v":1,"type":"text","seq":3,"ts":"2026-06-21T00:00:02.000Z","stream":{"streamId":"msg-subagent-1","chatId":"chat-subagent-1"},"trace":{"requestId":"req-subagent-1"},"scope":{"lane":"subagent","parentToolCallId":"parent-call-1","spanId":"span-subagent-1"},"payload":{"channel":"assistant","text":"Found the source."}}
+
+data: {"v":1,"type":"span","seq":4,"ts":"2026-06-21T00:00:03.000Z","stream":{"streamId":"msg-subagent-1","chatId":"chat-subagent-1"},"trace":{"requestId":"req-subagent-1"},"scope":{"lane":"subagent","parentToolCallId":"parent-call-1","spanId":"span-subagent-1"},"payload":{"kind":"subagent","event":"end","agent":"Research","data":{"toolCallId":"parent-call-1"}}}
+
+data: {"v":1,"type":"complete","seq":5,"ts":"2026-06-21T00:00:04.000Z","stream":{"streamId":"msg-subagent-1","chatId":"chat-subagent-1"},"trace":{"requestId":"req-subagent-1"},"payload":{"status":"complete"}}

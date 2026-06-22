@@ -53,10 +53,10 @@ async function mothershipGet(
 }
 
 // Enterprise BYOK does NOT use the cross-env admin proxy. It talks to the
-// workspace's own copilot (SIM_AGENT_API_URL — local in dev, prod copilot in
-// prod) via a dedicated same-origin route that authenticates with the hosted
-// internal key. So it always targets the copilot the mothership actually runs
-// on, never a deployed dev/staging URL.
+// workspace's configured copilot backend (SIM_AGENT_API_URL) via a dedicated
+// same-origin route that authenticates with the internal key. So it always
+// targets the copilot the mothership actually runs on, never a deployed
+// dev/staging URL.
 const BYOK_BASE = '/api/copilot/byok'
 
 async function byokFetch(url: string, init?: RequestInit) {

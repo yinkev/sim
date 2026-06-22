@@ -5,7 +5,7 @@ import {
   MOTHERSHIP_SOURCE_ENV_HEADER,
 } from './agent-url'
 
-const { dbMock, envMock, mockRows } = vi.hoisted(() => {
+const { constantsMock, dbMock, envMock, mockRows } = vi.hoisted(() => {
   const mockRows: any[] = []
   const dbMock = {
     select: vi.fn(() => ({
@@ -24,7 +24,10 @@ const { dbMock, envMock, mockRows } = vi.hoisted(() => {
     COPILOT_PROD_URL: 'https://prod.mothership.test',
     COPILOT_SOURCE_ENV: undefined as string | undefined,
   }
-  return { dbMock, envMock, mockRows }
+  const constantsMock = {
+    SIM_AGENT_API_URL: 'https://default.mothership.test',
+  }
+  return { constantsMock, dbMock, envMock, mockRows }
 })
 
 vi.mock('@sim/db', () => ({ db: dbMock }))
@@ -51,8 +54,9 @@ vi.mock('@/lib/api/contracts', () => ({
   },
 }))
 vi.mock('@/lib/copilot/constants', () => ({
-  SIM_AGENT_API_URL: 'https://default.mothership.test',
-  SIM_AGENT_API_URL_DEFAULT: 'https://fallback.mothership.test',
+  get SIM_AGENT_API_URL() {
+    return constantsMock.SIM_AGENT_API_URL
+  },
 }))
 vi.mock('@/lib/core/config/env', () => ({
   env: envMock,
@@ -62,6 +66,7 @@ describe('getMothershipBaseURL', () => {
   beforeEach(() => {
     mockRows.length = 0
     dbMock.select.mockClear()
+    constantsMock.SIM_AGENT_API_URL = 'https://default.mothership.test'
     envMock.COPILOT_SOURCE_ENV = undefined
   })
 
@@ -106,6 +111,17 @@ describe('getMothershipBaseURL', () => {
     await expect(getMothershipBaseURL({ userId: 'admin-1' })).resolves.toBe(
       'https://default.mothership.test'
     )
+  })
+
+  it('fails closed when no owned backend URL is configured', async () => {
+    constantsMock.SIM_AGENT_API_URL = ''
+
+    await expect(getMothershipBaseURL()).rejects.toThrow(
+      'SIM_AGENT_API_URL must be configured to an owned Mothership/Copilot backend URL'
+    )
+    await expect(
+      getMothershipBaseURL({ fallbackUrl: 'https://owned.mothership.test' })
+    ).resolves.toBe('https://owned.mothership.test')
   })
 
   it('allows effective super admins to use a selected environment', async () => {

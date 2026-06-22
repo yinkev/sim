@@ -126,7 +126,7 @@ function extractChatCompletionsReasoning(
   message: NonNullable<ChatCompletionLike['choices'][number]>['message']
 ): string | undefined {
   if (!message) return undefined
-  const msg = message as unknown as {
+  const msg = message as typeof message & {
     reasoning_content?: string | null
     reasoning?: string | null
     reasoning_details?: Array<{ text?: string | null; summary?: string | null } | null> | null

@@ -1,7 +1,9 @@
+import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+
 /**
  * Health check endpoint for deployment platforms and container probes.
  */
-export async function GET(): Promise<Response> {
+export const GET = withRouteHandler(async () => {
   return Response.json(
     {
       status: 'ok',
@@ -9,4 +11,4 @@ export async function GET(): Promise<Response> {
     },
     { status: 200 }
   )
-}
+})

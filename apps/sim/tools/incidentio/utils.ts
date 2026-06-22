@@ -1,7 +1,8 @@
+import { getErrorMessage } from '@sim/utils/errors'
 import type { Workflow } from '@/tools/incidentio/types'
 
 function getJsonParseErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
+  return getErrorMessage(error)
 }
 
 function toStringValue(value: unknown): string {

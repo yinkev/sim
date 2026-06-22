@@ -1667,6 +1667,20 @@
       "when": 1781554278388,
       "tag": "0238_workspace_scoped_permission_groups",
       "breakpoints": true
+    },
+    {
+      "idx": 239,
+      "version": "7",
+      "when": 1782020817469,
+      "tag": "0239_wet_vin_gonzales",
+      "breakpoints": true
+    },
+    {
+      "idx": 240,
+      "version": "7",
+      "when": 1782021797358,
+      "tag": "0240_new_slyde",
+      "breakpoints": true
     }
   ]
 }

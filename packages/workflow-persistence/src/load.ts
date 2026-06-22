@@ -176,7 +176,7 @@ export async function loadWorkflowFromNormalizedTablesRaw(
     }
   } catch (error) {
     logger.error(`Error loading workflow ${workflowId} from normalized tables:`, error)
-    return null
+    throw error
   }
 }
 

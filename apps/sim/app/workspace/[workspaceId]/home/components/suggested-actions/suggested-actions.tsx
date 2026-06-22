@@ -1,6 +1,7 @@
 'use client'
 
 import { type ComponentType, type CSSProperties, useMemo, useState } from 'react'
+import { randomFloat } from '@sim/utils/random'
 import { stripVersionSuffix } from '@sim/utils/string'
 import { useParams } from 'next/navigation'
 import { usePostHog } from 'posthog-js/react'
@@ -163,7 +164,7 @@ function weightedSample<T>(pool: readonly T[], n: number, weightOf: (item: T) =>
   while (out.length < n && remaining.length > 0) {
     const total = remaining.reduce((sum, entry) => sum + entry.weight, 0)
     if (total <= 0) break
-    let roll = Math.random() * total
+    let roll = randomFloat() * total
     const index = remaining.findIndex((entry) => {
       roll -= entry.weight
       return roll <= 0

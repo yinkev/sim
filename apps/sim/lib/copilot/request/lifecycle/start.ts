@@ -2,6 +2,8 @@ import { type Context, context as otelContextApi } from '@opentelemetry/api'
 import { db } from '@sim/db'
 import { copilotChats } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
+import { MothershipClientError } from '@sim/mothership-client'
+import { generateChatTitleContract } from '@sim/mothership-contracts/routes'
 import { getErrorMessage } from '@sim/utils/errors'
 import { eq } from 'drizzle-orm'
 import { createRunSegment } from '@/lib/copilot/async-runs/repository'
@@ -40,8 +42,8 @@ import {
 } from '@/lib/copilot/request/session'
 import { SSE_RESPONSE_HEADERS } from '@/lib/copilot/request/session/sse'
 import { TraceCollector } from '@/lib/copilot/request/trace'
-import { getMothershipBaseURL, getMothershipSourceEnvHeaders } from '@/lib/copilot/server/agent-url'
-import { env } from '@/lib/core/config/env'
+import { getMothershipBaseURL } from '@/lib/copilot/server/agent-url'
+import { requestMothershipRuntime } from '@/lib/mothership/client'
 
 export { SSE_RESPONSE_HEADERS }
 
@@ -483,27 +485,20 @@ export async function requestChatTitle(params: {
   const { message, model, provider, userId, workspaceId, otelContext } = params
   if (!message || !model) return null
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  }
-  if (env.COPILOT_API_KEY) {
-    headers['x-api-key'] = env.COPILOT_API_KEY
-  }
-  Object.assign(headers, getMothershipSourceEnvHeaders())
-
   try {
-    const { fetchGo } = await import('@/lib/copilot/request/go/fetch')
     const mothershipBaseURL = await getMothershipBaseURL({ userId })
-    const response = await fetchGo(`${mothershipBaseURL}/api/generate-chat-title`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        message,
-        model,
-        ...(provider ? { provider } : {}),
-        ...(workspaceId ? { workspaceId } : {}),
-        ...(userId ? { userId } : {}),
-      }),
+    const payload = await requestMothershipRuntime({
+      contract: generateChatTitleContract,
+      baseUrl: mothershipBaseURL,
+      input: {
+        body: {
+          message,
+          model,
+          ...(provider ? { provider } : {}),
+          ...(workspaceId ? { workspaceId } : {}),
+          ...(userId ? { userId } : {}),
+        },
+      },
       otelContext,
       spanName: 'sim → go /api/generate-chat-title',
       operation: 'generate_chat_title',
@@ -513,18 +508,16 @@ export async function requestChatTitle(params: {
       },
     })
 
-    const payload = await response.json().catch(() => ({}))
-    if (!response.ok) {
-      logger.warn('Failed to generate chat title via copilot backend', {
-        status: response.status,
-        error: payload,
-      })
-      return null
-    }
-
     const title = typeof payload?.title === 'string' ? payload.title.trim() : ''
     return title || null
   } catch (error) {
+    if (error instanceof MothershipClientError && error.status > 0) {
+      logger.warn('Failed to generate chat title via copilot backend', {
+        status: error.status,
+        error: error.body,
+      })
+      return null
+    }
     logger.error('Error generating chat title:', error)
     return null
   }

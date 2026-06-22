@@ -63,12 +63,17 @@ app:
       enabled: false
       # Name of the existing Kubernetes secret containing app credentials
       name: ""
-      # Key mappings - specify the key names in your existing secret
-      # Only needed if your secret uses different key names than the defaults
+      # Key mappings - specify the key names in your existing secret.
+      # Listed keys are materialized as canonical env vars with secretKeyRef in
+      # existingSecret mode. Arbitrary extra keys can still arrive through envFrom
+      # when they already use the runtime's expected env var names.
       keys:
         BETTER_AUTH_SECRET: "BETTER_AUTH_SECRET"
         ENCRYPTION_KEY: "ENCRYPTION_KEY"
         INTERNAL_API_SECRET: "INTERNAL_API_SECRET"
+        SIM_TO_MOTHERSHIP_API_KEY: "SIM_TO_MOTHERSHIP_API_KEY"
+        MOTHERSHIP_TO_SIM_CALLBACK_KEY: "MOTHERSHIP_TO_SIM_CALLBACK_KEY"
+        MOTHERSHIP_ADMIN_API_KEY: "MOTHERSHIP_ADMIN_API_KEY"
         CRON_SECRET: "CRON_SECRET"
         API_ENCRYPTION_KEY: "API_ENCRYPTION_KEY"
         REDIS_URL: "REDIS_URL"
@@ -95,10 +100,14 @@ app:
     TELEMETRY_ENDPOINT: ""                                # OTLP endpoint for traces/logs (e.g., "https://otlp-collector:4318/v1/traces")
 
     # Authentication and encryption secrets (REQUIRED for production)
-    # Generate secure 32-character secrets using: openssl rand -hex 32
+    # Generate secure secrets using: openssl rand -hex 32
     BETTER_AUTH_SECRET: ""  # REQUIRED - set via --set flag or external secret manager
-    ENCRYPTION_KEY: ""      # REQUIRED - set via --set flag or external secret manager
+    ENCRYPTION_KEY: ""      # REQUIRED - set via --set flag or external secret manager; must be 64 hex chars when mothership.enabled=true
     INTERNAL_API_SECRET: "" # REQUIRED - set via --set flag or external secret manager, used for internal service-to-service authentication
+    SIM_TO_MOTHERSHIP_API_KEY: "" # REQUIRED - runtime secret for Sim-to-Mothership calls when Mothership/Copilot is configured
+    MOTHERSHIP_RUNTIME_HEADER_MODE: "" # OPTIONAL - "legacy" for pre-strict Copilot backends, "strict" for owned apps/mothership routes
+    MOTHERSHIP_TO_SIM_CALLBACK_KEY: "" # REQUIRED - distinct callback secret for Mothership-to-Sim callback routes
+    MOTHERSHIP_ADMIN_API_KEY: "" # REQUIRED when mothership.enabled=true - distinct admin secret for owned Mothership admin routes
 
     # Optional: Scheduled Jobs Authentication
     # Generate using: openssl rand -hex 32
@@ -106,7 +115,7 @@ app:
 
     # Optional: API Key Encryption (RECOMMENDED for production)
     # Generate with: openssl rand -hex 32 (produces the required 64-hex-char / 32-byte value).
-    API_ENCRYPTION_KEY: ""  # OPTIONAL - encrypts API keys at rest; if unset, keys are stored in plain text
+    API_ENCRYPTION_KEY: ""  # REQUIRED when mothership.enabled=true; optional otherwise. Encrypts API keys at rest.
     REDIS_URL: ""           # OPTIONAL - Redis connection string for caching/sessions; can also come from app secret or External Secrets
     
     # Email & Communication
@@ -1311,6 +1320,159 @@ telemetry:
     tls:
       enabled: false
 
+# Owned Mothership service configuration (optional replacement for hosted/legacy Copilot)
+mothership:
+  # Enable/disable the owned apps/mothership service.
+  # When enabled, the Sim app defaults SIM_AGENT_API_URL to the internal
+  # mothership service URL and defaults MOTHERSHIP_RUNTIME_HEADER_MODE=strict
+  # unless explicitly overridden in app.env or externalSecrets.remoteRefs.app.
+  enabled: false
+
+  # Server deployment configuration
+  server:
+    # Image configuration
+    image:
+      repository: simstudioai/mothership
+      # tag defaults to Chart.AppVersion. Override with a release tag or pin via image.digest.
+      tag: ""
+      digest: ""
+      pullPolicy: IfNotPresent
+
+    # Optional command/args overrides for custom images.
+    command: []
+    args: []
+
+    # Number of replicas
+    replicaCount: 1
+
+    # Resource limits and requests
+    resources:
+      limits:
+        memory: "2Gi"
+        cpu: "1000m"
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+
+    # Node selector for pod scheduling
+    nodeSelector: {}
+
+    # Topology spread constraints for Mothership pods (HA across zones / nodes).
+    # Each entry must include its own labelSelector.
+    topologySpreadConstraints: []
+
+    # Pod security context
+    podSecurityContext:
+      fsGroup: 1001
+
+    # Container security context
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1001
+
+    # Mothership-only environment variables. Shared boundary secrets
+    # (SIM_TO_MOTHERSHIP_API_KEY, MOTHERSHIP_TO_SIM_CALLBACK_KEY,
+    # MOTHERSHIP_ADMIN_API_KEY, ENCRYPTION_KEY, API_ENCRYPTION_KEY) come from
+    # app.env/app Secret so Sim and Mothership cannot drift.
+    env:
+      SIM_BASE_URL: "" # REQUIRED when mothership.enabled=true; public Sim app URL for callbacks
+      MOTHERSHIP_ANTHROPIC_API_KEY: "" # Optional until owned Anthropic provider runtime is enabled
+      MOTHERSHIP_OPENAI_API_KEY: "" # Optional until owned OpenAI provider runtime is enabled
+      MOTHERSHIP_AVAILABLE_MODELS_JSON: "" # Optional JSON model catalog override
+
+    # Optional: additional static environment variables
+    extraEnv: []
+
+    # Optional: references to existing ConfigMaps/Secrets for non-boundary additions.
+    # Shared boundary keys are pinned from the app Secret with explicit env vars.
+    extraEnvFrom: []
+
+    # Secret generation configuration (set create=false to use an existing secret).
+    # Env-var Secret rotations require pod restarts. The chart emits Helm checksums
+    # for rendered Secret/ExternalSecret specs and a Stakater Reloader annotation;
+    # clusters without a reload controller should run a rollout restart after rotation.
+    secret:
+      create: true
+      name: ""
+      annotations: {}
+
+    # Service configuration
+    service:
+      type: ClusterIP
+      port: 6891
+      targetPort: 6891
+
+    # Health checks
+    startupProbe:
+      httpGet:
+        path: /health
+        port: 6891
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 30
+
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 6891
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 6891
+      initialDelaySeconds: 30
+      periodSeconds: 30
+      timeoutSeconds: 5
+      failureThreshold: 6
+
+    # Pod Disruption Budget for high availability
+    podDisruptionBudget:
+      enabled: false
+      minAvailable: 1
+
+  # Owned Mothership background processors.
+  processor:
+    billingCallbacks:
+      # Enable the CronJob that drains retryable billing callback outbox rows by
+      # POSTing to the owned Mothership admin processor endpoint.
+      enabled: false
+      schedule: "*/5 * * * *"
+      batchSize: 25
+      failOnNonClean: true
+      concurrencyPolicy: Forbid
+      successfulJobsHistoryLimit: 3
+      failedJobsHistoryLimit: 3
+      backoffLimit: 0
+      activeDeadlineSeconds: 300
+      startingDeadlineSeconds: 120
+      ttlSecondsAfterFinished: 600
+      restartPolicy: Never
+      retryAttempts: 3
+      retryDelaySeconds: 10
+      timeoutSeconds: 60
+      image:
+        repository: curlimages/curl
+        tag: 8.5.0
+        pullPolicy: IfNotPresent
+      resources:
+        limits:
+          memory: "128Mi"
+          cpu: "100m"
+        requests:
+          memory: "64Mi"
+          cpu: "50m"
+      nodeSelector: {}
+      podSecurityContext:
+        fsGroup: 1001
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+
 # Copilot service configuration (optional microservice)
 copilot:
   # Enable/disable the copilot service
@@ -1584,6 +1746,12 @@ externalSecrets:
       ENCRYPTION_KEY: ""
       # Path to INTERNAL_API_SECRET in external store
       INTERNAL_API_SECRET: ""
+      # Path to SIM_TO_MOTHERSHIP_API_KEY in external store
+      SIM_TO_MOTHERSHIP_API_KEY: ""
+      # Path to MOTHERSHIP_TO_SIM_CALLBACK_KEY in external store
+      MOTHERSHIP_TO_SIM_CALLBACK_KEY: ""
+      # Path to MOTHERSHIP_ADMIN_API_KEY in external store
+      MOTHERSHIP_ADMIN_API_KEY: ""
       # Path to CRON_SECRET in external store (optional)
       CRON_SECRET: ""
       # Path to API_ENCRYPTION_KEY in external store (optional)
@@ -1600,6 +1768,17 @@ externalSecrets:
     externalDatabase:
       # Path to external database password in external store
       password: ""
+
+    # Mothership-only secrets (owned apps/mothership service)
+    mothership:
+      # Path to SIM_BASE_URL in external store
+      SIM_BASE_URL: ""
+      # Path to MOTHERSHIP_ANTHROPIC_API_KEY in external store
+      MOTHERSHIP_ANTHROPIC_API_KEY: ""
+      # Path to MOTHERSHIP_OPENAI_API_KEY in external store
+      MOTHERSHIP_OPENAI_API_KEY: ""
+      # Path to MOTHERSHIP_AVAILABLE_MODELS_JSON in external store
+      MOTHERSHIP_AVAILABLE_MODELS_JSON: ""
 
 # cert-manager configuration
 # Prerequisites: Install cert-manager in your cluster first

@@ -1,0 +1,26 @@
+{
+  "$defs": {
+    "MetricsV1Name": {
+      "enum": [
+        "copilot.cache.attempted",
+        "copilot.cache.hit",
+        "copilot.cache.write",
+        "copilot.file.read.duration",
+        "copilot.file.read.size",
+        "copilot.messages.serialize.duration",
+        "copilot.request.count",
+        "copilot.request.duration",
+        "copilot.tool.calls",
+        "copilot.tool.duration",
+        "copilot.vfs.materialize.duration",
+        "gen_ai.client.cache.token.usage",
+        "gen_ai.client.token.usage",
+        "llm.client.errors",
+        "llm.client.output_cutoff",
+        "llm.client.stream.duration",
+        "llm.client.time_to_first_token"
+      ],
+      "type": "string"
+    }
+  }
+}

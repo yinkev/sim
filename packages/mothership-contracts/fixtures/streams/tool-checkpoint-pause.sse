@@ -1,0 +1,5 @@
+data: {"v":1,"type":"session","seq":1,"ts":"2026-06-21T00:00:00.000Z","stream":{"streamId":"msg-tool-pause-1","chatId":"chat-tool-pause-1"},"trace":{"requestId":"req-tool-pause-1"},"payload":{"kind":"chat","chatId":"chat-tool-pause-1"}}
+
+data: {"v":1,"type":"tool","seq":2,"ts":"2026-06-21T00:00:01.000Z","stream":{"streamId":"msg-tool-pause-1","chatId":"chat-tool-pause-1"},"trace":{"requestId":"req-tool-pause-1"},"payload":{"phase":"call","toolCallId":"call-pause-1","toolName":"read_workflow","executor":"sim","mode":"async","status":"executing","arguments":{"workflowId":"workflow-1"}}}
+
+data: {"v":1,"type":"run","seq":3,"ts":"2026-06-21T00:00:02.000Z","stream":{"streamId":"msg-tool-pause-1","chatId":"chat-tool-pause-1"},"trace":{"requestId":"req-tool-pause-1"},"payload":{"kind":"checkpoint_pause","runId":"run-pause-1","executionId":"exec-pause-1","checkpointId":"checkpoint-pause-1","pendingToolCallIds":["call-pause-1"]}}

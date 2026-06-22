@@ -15,63 +15,52 @@ import {
 } from '@sim/testing'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-/** Mock execution dependencies for webhook tests */
-function mockExecutionDependencies() {
-  vi.mock('@/lib/core/security/encryption', () => encryptionMock)
+vi.mock('@/lib/core/security/encryption', () => encryptionMock)
 
-  vi.mock('@/lib/logs/execution/trace-spans/trace-spans', () => ({
-    buildTraceSpans: vi.fn().mockReturnValue({ traceSpans: [], totalDuration: 100 }),
-  }))
+vi.mock('@/lib/logs/execution/trace-spans/trace-spans', () => ({
+  buildTraceSpans: vi.fn().mockReturnValue({ traceSpans: [], totalDuration: 100 }),
+}))
 
-  vi.mock('@/lib/workflows/utils', () => workflowsUtilsMock)
+vi.mock('@/lib/workflows/utils', () => workflowsUtilsMock)
 
-  vi.mock('@/serializer', () => ({
-    Serializer: vi.fn().mockImplementation(() => ({
-      serializeWorkflow: vi.fn().mockReturnValue({
-        version: '1.0',
-        blocks: [
-          {
-            id: 'starter-id',
-            metadata: { id: 'starter', name: 'Start' },
-            config: {},
-            inputs: {},
-            outputs: {},
-            position: { x: 100, y: 100 },
-            enabled: true,
-          },
-          {
-            id: 'agent-id',
-            metadata: { id: 'agent', name: 'Agent 1' },
-            config: {},
-            inputs: {},
-            outputs: {},
-            position: { x: 634, y: -167 },
-            enabled: true,
-          },
-        ],
-        edges: [
-          {
-            id: 'edge-1',
-            source: 'starter-id',
-            target: 'agent-id',
-            sourceHandle: 'source',
-            targetHandle: 'target',
-          },
-        ],
-        loops: {},
-        parallels: {},
-      }),
-    })),
-  }))
-}
-
-/** Mock Trigger.dev SDK */
-function mockTriggerDevSdk() {
-  vi.mock('@trigger.dev/sdk', () => ({
-    tasks: { trigger: vi.fn().mockResolvedValue({ id: 'mock-task-id' }) },
-    task: vi.fn().mockReturnValue({}),
-  }))
-}
+vi.mock('@/serializer', () => ({
+  Serializer: vi.fn().mockImplementation(() => ({
+    serializeWorkflow: vi.fn().mockReturnValue({
+      version: '1.0',
+      blocks: [
+        {
+          id: 'starter-id',
+          metadata: { id: 'starter', name: 'Start' },
+          config: {},
+          inputs: {},
+          outputs: {},
+          position: { x: 100, y: 100 },
+          enabled: true,
+        },
+        {
+          id: 'agent-id',
+          metadata: { id: 'agent', name: 'Agent 1' },
+          config: {},
+          inputs: {},
+          outputs: {},
+          position: { x: 634, y: -167 },
+          enabled: true,
+        },
+      ],
+      edges: [
+        {
+          id: 'edge-1',
+          source: 'starter-id',
+          target: 'agent-id',
+          sourceHandle: 'source',
+          targetHandle: 'target',
+        },
+      ],
+      loops: {},
+      parallels: {},
+    }),
+  })),
+}))
 
 /**
  * Test data store - isolated per test via beforeEach reset
@@ -400,9 +389,6 @@ describe('Webhook Trigger API Route', () => {
     })
     workflowsPersistenceUtilsMockFns.mockBlockExistsInDeployment.mockResolvedValue(true)
     isWorkspaceApiExecutionEntitledMock.mockResolvedValue(true)
-
-    mockExecutionDependencies()
-    mockTriggerDevSdk()
 
     // Set up default workflow for tests
     testData.workflows.push({

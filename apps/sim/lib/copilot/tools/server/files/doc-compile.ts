@@ -1,4 +1,5 @@
 import { createLogger } from '@sim/logger'
+import { getErrorMessage } from '@sim/utils/errors'
 import { isFeatureEnabled } from '@/lib/core/config/feature-flags'
 import { executeInE2B, executeShellInE2B, type SandboxFile } from '@/lib/execution/e2b'
 import { CodeLanguage } from '@/lib/execution/languages'
@@ -147,7 +148,7 @@ async function stageReferencedImages(source: string, workspaceId: string): Promi
       logger.warn('Failed to resolve referenced image for doc compile', {
         workspaceId,
         fileId,
-        error: err instanceof Error ? err.message : String(err),
+        error: getErrorMessage(err),
       })
       continue
     }
@@ -172,7 +173,7 @@ async function stageReferencedImages(source: string, workspaceId: string): Promi
       logger.warn('Failed to stage referenced image for doc compile', {
         workspaceId,
         fileId,
-        error: err instanceof Error ? err.message : String(err),
+        error: getErrorMessage(err),
       })
       continue
     }

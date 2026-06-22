@@ -1,0 +1,11 @@
+data: {"v":1,"type":"session","seq":1,"ts":"2026-06-21T00:00:00.000Z","stream":{"streamId":"msg-resource-1","chatId":"chat-resource-1"},"trace":{"requestId":"req-resource-1"},"payload":{"kind":"start","data":{"responseId":"resp-resource-1"}}}
+
+data: {"v":1,"type":"session","seq":2,"ts":"2026-06-21T00:00:01.000Z","stream":{"streamId":"msg-resource-1","chatId":"chat-resource-1"},"trace":{"requestId":"req-resource-1"},"payload":{"kind":"trace","requestId":"req-resource-1"}}
+
+data: {"v":1,"type":"session","seq":3,"ts":"2026-06-21T00:00:02.000Z","stream":{"streamId":"msg-resource-1","chatId":"chat-resource-1"},"trace":{"requestId":"req-resource-1"},"payload":{"kind":"title","title":"Resource update"}}
+
+data: {"v":1,"type":"resource","seq":4,"ts":"2026-06-21T00:00:03.000Z","stream":{"streamId":"msg-resource-1","chatId":"chat-resource-1"},"trace":{"requestId":"req-resource-1"},"payload":{"op":"upsert","resource":{"id":"file-1","type":"file","title":"analysis.md"}}}
+
+data: {"v":1,"type":"resource","seq":5,"ts":"2026-06-21T00:00:04.000Z","stream":{"streamId":"msg-resource-1","chatId":"chat-resource-1"},"trace":{"requestId":"req-resource-1"},"payload":{"op":"remove","resource":{"id":"file-1","type":"file","title":"analysis.md"}}}
+
+data: {"v":1,"type":"complete","seq":6,"ts":"2026-06-21T00:00:05.000Z","stream":{"streamId":"msg-resource-1","chatId":"chat-resource-1"},"trace":{"requestId":"req-resource-1"},"payload":{"status":"complete"}}

@@ -1,3 +1,7 @@
+import {
+  workflowSubagentExecuteBodySchema,
+  workflowSubagentExecuteResponseSchema,
+} from '@sim/mothership-contracts/routes'
 import { z } from 'zod'
 import { type ContractJsonResponse, defineRouteContract } from '@/lib/api/contracts/types'
 import { cleanedWorkflowStateSchema } from '@/lib/api/contracts/workflows'
@@ -475,6 +479,8 @@ export const validateCopilotByokBodySchema = z.object({
   userId: z.string().min(1, 'userId is required'),
 })
 export type ValidateCopilotByokBody = z.input<typeof validateCopilotByokBodySchema>
+export type WorkflowSubagentExecuteBody = z.input<typeof workflowSubagentExecuteBodySchema>
+export type WorkflowSubagentExecuteResponse = z.output<typeof workflowSubagentExecuteResponseSchema>
 
 /**
  * Server-to-server entitlement gate called by the mothership (Go) before it
@@ -486,6 +492,17 @@ export const validateCopilotByokContract = defineRouteContract({
   path: '/api/copilot/byok/validate',
   body: validateCopilotByokBodySchema,
   response: { mode: 'empty' },
+})
+
+export const workflowSubagentExecuteContract = defineRouteContract({
+  method: 'POST',
+  path: '/api/copilot/subagents/workflow/execute',
+  body: workflowSubagentExecuteBodySchema,
+  response: {
+    mode: 'json',
+    status: [200, 501],
+    schema: workflowSubagentExecuteResponseSchema,
+  },
 })
 
 export const listCopilotByokKeysQuerySchema = z.object({

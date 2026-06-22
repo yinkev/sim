@@ -1,0 +1,1 @@
+data: {"v":1,"type":"text","seq":1,"ts":"2026-06-21T00:00:00.000Z","stream":{"streamId":"msg-schema-extra-1","chatId":"chat-schema-extra-1"},"trace":{"requestId":"req-schema-extra-1"},"payload":{"channel":"assistant","text":"Parser accepts this, schema rejects it.","delta":"extra"}}

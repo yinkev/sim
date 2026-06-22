@@ -16,6 +16,8 @@ Deploy [Sim](https://sim.ai) — the open-source AI workspace where teams build,
 export BETTER_AUTH_SECRET=$(openssl rand -hex 32)
 export ENCRYPTION_KEY=$(openssl rand -hex 32)
 export INTERNAL_API_SECRET=$(openssl rand -hex 32)
+export SIM_TO_MOTHERSHIP_API_KEY=$(openssl rand -hex 32)
+export MOTHERSHIP_TO_SIM_CALLBACK_KEY=$(openssl rand -hex 32)
 export CRON_SECRET=$(openssl rand -hex 32)
 export POSTGRES_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=')
 
@@ -25,6 +27,8 @@ helm install sim ./helm/sim \
   --set app.env.BETTER_AUTH_SECRET="$BETTER_AUTH_SECRET" \
   --set app.env.ENCRYPTION_KEY="$ENCRYPTION_KEY" \
   --set app.env.INTERNAL_API_SECRET="$INTERNAL_API_SECRET" \
+  --set app.env.SIM_TO_MOTHERSHIP_API_KEY="$SIM_TO_MOTHERSHIP_API_KEY" \
+  --set app.env.MOTHERSHIP_TO_SIM_CALLBACK_KEY="$MOTHERSHIP_TO_SIM_CALLBACK_KEY" \
   --set app.env.CRON_SECRET="$CRON_SECRET" \
   --set postgresql.auth.password="$POSTGRES_PASSWORD"
 ```
@@ -46,6 +50,7 @@ This chart deploys the Sim platform on a Kubernetes cluster using the Helm packa
 
 Optional components (off by default):
 
+* **`mothership`** — owned `apps/mothership` runtime/admin/callback service, using the shared Sim database and strict service-auth headers.
 * **`copilot`** — the Sim Copilot service plus its own Postgres StatefulSet.
 * **`ollama`** — local LLM inference, with optional NVIDIA GPU support.
 * **`telemetry`** — OpenTelemetry Collector wired to Jaeger / Prometheus / OTLP backends.
@@ -82,14 +87,17 @@ Sim will not start without these. Generate them once and feed them via `--set`, 
 openssl rand -hex 32   # BETTER_AUTH_SECRET    - signs auth JWTs
 openssl rand -hex 32   # ENCRYPTION_KEY        - encrypts sensitive env vars
 openssl rand -hex 32   # INTERNAL_API_SECRET   - service-to-service auth
+openssl rand -hex 32   # SIM_TO_MOTHERSHIP_API_KEY - Sim-to-Mothership runtime auth
+openssl rand -hex 32   # MOTHERSHIP_TO_SIM_CALLBACK_KEY - Mothership-to-Sim callback auth
 openssl rand -hex 32   # CRON_SECRET           - required if cronjobs.enabled (default true)
-openssl rand -hex 32   # API_ENCRYPTION_KEY    - optional; encrypts user API keys at rest
+openssl rand -hex 32   # MOTHERSHIP_ADMIN_API_KEY - required when mothership.enabled=true
+openssl rand -hex 32   # API_ENCRYPTION_KEY    - required when mothership.enabled=true; otherwise optional
 
 # Postgres password
 openssl rand -base64 24 | tr -d '/+='
 ```
 
-If you set `app.secrets.existingSecret.enabled=true` and point at a pre-created Secret, you do **not** also pass these via `--set` — pick one path.
+If you set `app.secrets.existingSecret.enabled=true` and point at a pre-created Secret, key mappings under `app.secrets.existingSecret.keys` are materialized as canonical env vars with `secretKeyRef`. Extra keys in that Secret still work when they already use the runtime's expected env var names.
 
 ---
 
@@ -103,6 +111,8 @@ helm install sim ./helm/sim \
   --set app.env.BETTER_AUTH_SECRET="$BETTER_AUTH_SECRET" \
   --set app.env.ENCRYPTION_KEY="$ENCRYPTION_KEY" \
   --set app.env.INTERNAL_API_SECRET="$INTERNAL_API_SECRET" \
+  --set app.env.SIM_TO_MOTHERSHIP_API_KEY="$SIM_TO_MOTHERSHIP_API_KEY" \
+  --set app.env.MOTHERSHIP_TO_SIM_CALLBACK_KEY="$MOTHERSHIP_TO_SIM_CALLBACK_KEY" \
   --set app.env.CRON_SECRET="$CRON_SECRET" \
   --set postgresql.auth.password="$POSTGRES_PASSWORD"
 ```
@@ -125,6 +135,8 @@ helm install sim ./helm/sim --dry-run --debug \
   --set app.env.BETTER_AUTH_SECRET=$(openssl rand -hex 16) \
   --set app.env.ENCRYPTION_KEY=$(openssl rand -hex 16) \
   --set app.env.INTERNAL_API_SECRET=$(openssl rand -hex 16) \
+  --set app.env.SIM_TO_MOTHERSHIP_API_KEY=$(openssl rand -hex 16) \
+  --set app.env.MOTHERSHIP_TO_SIM_CALLBACK_KEY=$(openssl rand -hex 16) \
   --set app.env.CRON_SECRET=$(openssl rand -hex 16) \
   --set postgresql.auth.password=$(openssl rand -base64 12 | tr -d '/+=')
 ```
@@ -176,6 +188,7 @@ Pre-built values files for common scenarios live in `helm/sim/examples/`. Each f
 | `values-external-db.yaml` | Production with a managed Postgres (RDS, Cloud SQL, Azure DB). |
 | `values-external-secrets.yaml` | Sync secrets from Vault / AWS SM / Azure KV / GCP SM via External Secrets Operator. |
 | `values-existing-secret.yaml` | GitOps / Sealed Secrets / SOPS — reference pre-created Kubernetes Secrets. |
+| `values-mothership.yaml` | Enables the owned `apps/mothership` service and points Sim at its internal strict-auth URL. |
 | `values-copilot.yaml` | Enables the Copilot service + its Postgres StatefulSet. |
 | `values-whitelabeled.yaml` | Custom branding (logo, name, support links). |
 
@@ -188,6 +201,8 @@ helm install sim ./helm/sim \
   --set app.env.BETTER_AUTH_SECRET="$BETTER_AUTH_SECRET" \
   --set app.env.ENCRYPTION_KEY="$ENCRYPTION_KEY" \
   --set app.env.INTERNAL_API_SECRET="$INTERNAL_API_SECRET" \
+  --set app.env.SIM_TO_MOTHERSHIP_API_KEY="$SIM_TO_MOTHERSHIP_API_KEY" \
+  --set app.env.MOTHERSHIP_TO_SIM_CALLBACK_KEY="$MOTHERSHIP_TO_SIM_CALLBACK_KEY" \
   --set postgresql.auth.password="$POSTGRES_PASSWORD"
 ```
 
@@ -245,6 +260,8 @@ kubectl create secret generic sim-app-secrets --namespace sim \
   --from-literal=BETTER_AUTH_SECRET=$(openssl rand -hex 32) \
   --from-literal=ENCRYPTION_KEY=$(openssl rand -hex 32) \
   --from-literal=INTERNAL_API_SECRET=$(openssl rand -hex 32) \
+  --from-literal=SIM_TO_MOTHERSHIP_API_KEY=$(openssl rand -hex 32) \
+  --from-literal=MOTHERSHIP_TO_SIM_CALLBACK_KEY=$(openssl rand -hex 32) \
   --from-literal=CRON_SECRET=$(openssl rand -hex 32)
 
 kubectl create secret generic sim-postgres-secret --namespace sim \
@@ -284,11 +301,37 @@ externalSecrets:
       BETTER_AUTH_SECRET: sim/app/better-auth-secret
       ENCRYPTION_KEY: sim/app/encryption-key
       INTERNAL_API_SECRET: sim/app/internal-api-secret
+      SIM_TO_MOTHERSHIP_API_KEY: sim/app/sim-to-mothership-api-key
+      MOTHERSHIP_TO_SIM_CALLBACK_KEY: sim/app/mothership-to-sim-callback-key
+      MOTHERSHIP_ADMIN_API_KEY: sim/app/mothership-admin-api-key
+      API_ENCRYPTION_KEY: sim/app/api-encryption-key
+    mothership:
+      SIM_BASE_URL: sim/mothership/sim-base-url
+      MOTHERSHIP_ANTHROPIC_API_KEY: sim/mothership/anthropic-api-key
     postgresql:
       password: sim/postgresql/password
 ```
 
 See `examples/values-external-secrets.yaml`.
+
+Env vars sourced from Kubernetes Secrets are read at pod start. The chart adds Helm checksum annotations for rendered Secret/ExternalSecret spec changes and a `secret.reloader.stakater.com/reload` annotation for clusters that run Stakater Reloader. Without a reload controller, rotate synced Secret values with an explicit `kubectl rollout restart`.
+
+The owned Mothership billing callback processor is separate from the app CronJobs. Enable it only with the owned service:
+
+```yaml
+mothership:
+  enabled: true
+  processor:
+    billingCallbacks:
+      enabled: true
+      schedule: "*/5 * * * *"
+      batchSize: 25
+      failOnNonClean: true
+      restartPolicy: Never
+      backoffLimit: 0
+```
+
+With `failOnNonClean: true`, the admin processor route returns a non-2xx response when a batch reports retryable, dead-lettered, lease-lost, or stale-reaped rows. The default retry authority is the shell loop inside the Job; Kubernetes records a single failed Job result instead of multiplying retries with `backoffLimit`.
 
 ---
 
@@ -365,6 +408,8 @@ helm install sim ./helm/sim \
   --set app.env.BETTER_AUTH_SECRET=$(openssl rand -hex 32) \
   --set app.env.ENCRYPTION_KEY=$(openssl rand -hex 32) \
   --set app.env.INTERNAL_API_SECRET=$(openssl rand -hex 32) \
+  --set app.env.SIM_TO_MOTHERSHIP_API_KEY=$(openssl rand -hex 32) \
+  --set app.env.MOTHERSHIP_TO_SIM_CALLBACK_KEY=$(openssl rand -hex 32) \
   --set postgresql.auth.password=$(openssl rand -base64 24 | tr -d '/+=')
 ```
 

@@ -1,6 +1,10 @@
 import { createLogger } from '@sim/logger'
 import { validateUrlWithDNS } from '@/lib/core/security/input-validation.server'
 import { BlockType, HTTP } from '@/executor/constants'
+import {
+  normalizeHandlerError,
+  shouldReplaceHandlerErrorMessage,
+} from '@/executor/handlers/shared/error-normalization'
 import type { BlockHandler, ExecutionContext } from '@/executor/types'
 import type { SerializedBlock } from '@/serializer/types'
 import { executeTool } from '@/tools'
@@ -133,34 +137,35 @@ export class ApiBlockHandler implements BlockHandler {
       }
 
       return result.output
-    } catch (error: any) {
-      if (!error.message || error.message === 'undefined (undefined)') {
+    } catch (error) {
+      const normalizedError = normalizeHandlerError(error)
+
+      if (shouldReplaceHandlerErrorMessage(normalizedError.message)) {
         let errorMessage = `API request to ${tool.name || block.config.tool} failed`
 
         if (inputs.url) errorMessage += `: ${inputs.url}`
-        if (error.status) errorMessage += ` (Status: ${error.status})`
-        if (error.statusText) errorMessage += ` - ${error.statusText}`
+        if (normalizedError.status) errorMessage += ` (Status: ${normalizedError.status})`
+        if (normalizedError.statusText) errorMessage += ` - ${normalizedError.statusText}`
 
         if (errorMessage === `API request to ${tool.name || block.config.tool} failed`) {
           errorMessage += ` - ${block.metadata?.name || 'Unknown error'}`
         }
 
-        error.message = errorMessage
+        normalizedError.message = errorMessage
       }
 
-      if (typeof error === 'object' && error !== null) {
-        if (!error.toolId) error.toolId = block.config.tool
-        if (!error.blockName) error.blockName = block.metadata?.name || 'Unnamed Block'
+      if (!normalizedError.toolId) normalizedError.toolId = block.config.tool
+      if (!normalizedError.blockName)
+        normalizedError.blockName = block.metadata?.name || 'Unnamed Block'
 
-        if (inputs && !error.request) {
-          error.request = {
-            url: inputs.url,
-            method: inputs.method || 'GET',
-          }
+      if (inputs && !normalizedError.request) {
+        normalizedError.request = {
+          url: inputs.url,
+          method: inputs.method || 'GET',
         }
       }
 
-      throw error
+      throw normalizedError
     }
   }
 }

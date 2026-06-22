@@ -1,6 +1,8 @@
 import { db } from '@sim/db'
 import { copilotChats } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
+import { MothershipClientError } from '@sim/mothership-client'
+import { forkChatContract } from '@sim/mothership-contracts/routes'
 import { generateId } from '@sim/utils/id'
 import { eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
@@ -9,7 +11,6 @@ import { parseRequest } from '@/lib/api/server'
 import { loadCopilotChatMessages } from '@/lib/copilot/chat/lifecycle'
 import { appendCopilotChatMessages } from '@/lib/copilot/chat/messages-store'
 import { chatPubSub } from '@/lib/copilot/chat-status'
-import { fetchGo } from '@/lib/copilot/request/go/fetch'
 import {
   authenticateCopilotRequestSessionOnly,
   createBadRequestResponse,
@@ -19,9 +20,9 @@ import {
   createUnauthorizedResponse,
 } from '@/lib/copilot/request/http'
 import type { MothershipResource } from '@/lib/copilot/resources/types'
-import { getMothershipBaseURL, getMothershipSourceEnvHeaders } from '@/lib/copilot/server/agent-url'
-import { env } from '@/lib/core/config/env'
+import { getMothershipBaseURL } from '@/lib/copilot/server/agent-url'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { requestMothershipRuntime } from '@/lib/mothership/client'
 import { captureServerEvent } from '@/lib/posthog/server'
 import {
   assertActiveWorkspaceAccess,
@@ -125,32 +126,30 @@ export const POST = withRouteHandler(
       // Clone copilot-service conversation state (messages, active_messages, memory files).
       // Best-effort: if the copilot service doesn't have a row for the source chat yet, skip.
       try {
-        const copilotHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
-        if (env.COPILOT_API_KEY) {
-          copilotHeaders['x-api-key'] = env.COPILOT_API_KEY
-        }
-        Object.assign(copilotHeaders, getMothershipSourceEnvHeaders())
         const mothershipBaseURL = await getMothershipBaseURL({ userId })
-        const copilotRes = await fetchGo(`${mothershipBaseURL}/api/chats/fork`, {
-          method: 'POST',
-          headers: copilotHeaders,
-          body: JSON.stringify({
-            sourceChatId: chatId,
-            newChatId: newId,
-            upToMessageId,
-            userId,
-          }),
+        await requestMothershipRuntime({
+          contract: forkChatContract,
+          baseUrl: mothershipBaseURL,
+          input: {
+            body: {
+              sourceChatId: chatId,
+              newChatId: newId,
+              upToMessageId,
+              userId,
+            },
+          },
           spanName: 'sim → go /api/chats/fork',
           operation: 'fork_chat',
+          userId,
         })
-        if (!copilotRes.ok) {
-          const text = await copilotRes.text().catch(() => '')
-          logger.warn('Copilot fork returned non-OK', { status: copilotRes.status, body: text })
-        }
       } catch (err) {
-        // The copilot service may not have a row for this chat if no messages
-        // have been sent yet, or if it's unreachable. Log and continue.
-        logger.warn('Failed to fork copilot-service conversation, skipping', { err })
+        if (err instanceof MothershipClientError && err.status >= 400) {
+          logger.warn('Copilot fork returned non-OK', { status: err.status, body: err.body })
+        } else {
+          // The copilot service may not have a row for this chat if no messages
+          // have been sent yet, or if it's unreachable. Log and continue.
+          logger.warn('Failed to fork copilot-service conversation, skipping', { err })
+        }
       }
 
       if (newChat.workspaceId) {

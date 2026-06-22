@@ -184,6 +184,27 @@ describe('LoopOrchestrator', () => {
     expect(scope.maxIterations).toBe(1)
   })
 
+  it('preserves explicitly configured zero iterations for for loops', async () => {
+    const { orchestrator } = createOrchestrator(
+      new Map([
+        [
+          'loop-1',
+          {
+            id: 'loop-1',
+            nodes: ['task-1'],
+            loopType: 'for',
+            iterations: 0,
+          },
+        ],
+      ])
+    )
+    const ctx = createContext()
+
+    const scope = await orchestrator.initializeLoopScope(ctx, 'loop-1')
+
+    expect(scope.maxIterations).toBe(0)
+  })
+
   it('exits immediately when a loop was skipped at start', async () => {
     const loopId = 'loop-1'
     const state = createState()

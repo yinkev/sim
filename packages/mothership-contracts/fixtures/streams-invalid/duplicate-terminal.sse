@@ -1,0 +1,5 @@
+data: {"v":1,"type":"session","seq":1,"ts":"2026-06-21T00:00:00.000Z","stream":{"streamId":"msg-duplicate-terminal-1","chatId":"chat-duplicate-terminal-1"},"trace":{"requestId":"req-duplicate-terminal-1"},"payload":{"kind":"chat","chatId":"chat-duplicate-terminal-1"}}
+
+data: {"v":1,"type":"error","seq":2,"ts":"2026-06-21T00:00:01.000Z","stream":{"streamId":"msg-duplicate-terminal-1","chatId":"chat-duplicate-terminal-1"},"trace":{"requestId":"req-duplicate-terminal-1"},"payload":{"code":"provider_error","message":"Provider failed","displayMessage":"The model provider failed.","provider":"openai"}}
+
+data: {"v":1,"type":"complete","seq":3,"ts":"2026-06-21T00:00:02.000Z","stream":{"streamId":"msg-duplicate-terminal-1","chatId":"chat-duplicate-terminal-1"},"trace":{"requestId":"req-duplicate-terminal-1"},"payload":{"status":"error","reason":"provider_error"}}

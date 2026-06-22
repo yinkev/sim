@@ -1,0 +1,55 @@
+# values-mothership.yaml
+# Example configuration for the owned apps/mothership service.
+#
+# Usage:
+#   helm upgrade --install sim ./helm/sim \
+#     --values ./helm/sim/examples/values-production.yaml \
+#     --values ./helm/sim/examples/values-mothership.yaml \
+#     --set app.env.ENCRYPTION_KEY="$ENCRYPTION_KEY" \
+#     --set app.env.SIM_TO_MOTHERSHIP_API_KEY="$SIM_TO_MOTHERSHIP_API_KEY" \
+#     --set app.env.MOTHERSHIP_TO_SIM_CALLBACK_KEY="$MOTHERSHIP_TO_SIM_CALLBACK_KEY" \
+#     --set app.env.MOTHERSHIP_ADMIN_API_KEY="$MOTHERSHIP_ADMIN_API_KEY" \
+#     --set app.env.API_ENCRYPTION_KEY="$API_ENCRYPTION_KEY" \
+#     --set mothership.server.env.SIM_BASE_URL="https://sim.example.com"
+#
+# Shared boundary secrets live in app.env/app Secret so Sim and Mothership use
+# the same runtime/admin/callback keys. Mothership-only provider settings live
+# under mothership.server.env and are mounted only into the Mothership pod.
+
+app:
+  env:
+    ENCRYPTION_KEY: ""
+    SIM_TO_MOTHERSHIP_API_KEY: ""
+    MOTHERSHIP_TO_SIM_CALLBACK_KEY: ""
+    MOTHERSHIP_ADMIN_API_KEY: ""
+    API_ENCRYPTION_KEY: ""
+
+mothership:
+  enabled: true
+  server:
+    image:
+      repository: simstudioai/mothership
+      tag: ""
+      pullPolicy: IfNotPresent
+    replicaCount: 1
+    env:
+      SIM_BASE_URL: ""
+      MOTHERSHIP_ANTHROPIC_API_KEY: ""
+      MOTHERSHIP_OPENAI_API_KEY: ""
+      MOTHERSHIP_AVAILABLE_MODELS_JSON: ""
+    resources:
+      limits:
+        memory: "2Gi"
+        cpu: "1000m"
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+  processor:
+    billingCallbacks:
+      # Enable after the owned Mothership service is deployed and admin auth is configured.
+      enabled: false
+      schedule: "*/5 * * * *"
+      batchSize: 25
+      failOnNonClean: true
+      restartPolicy: Never
+      backoffLimit: 0

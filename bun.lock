@@ -10,6 +10,7 @@
       "devDependencies": {
         "@biomejs/biome": "2.0.0-beta.5",
         "@octokit/rest": "^21.0.0",
+        "ajv": "8.18.0",
         "glob": "13.0.0",
         "husky": "9.1.7",
         "json-schema-to-typescript": "15.0.4",
@@ -54,6 +55,28 @@
         "postcss": "^8.5.3",
         "tailwindcss": "^4.0.12",
         "typescript": "^5.8.2",
+      },
+    },
+    "apps/mothership": {
+      "name": "@sim/mothership",
+      "version": "0.1.0",
+      "dependencies": {
+        "@sim/db": "workspace:*",
+        "@sim/logger": "workspace:*",
+        "@sim/mothership-client": "workspace:*",
+        "@sim/mothership-contracts": "workspace:*",
+        "@sim/security": "workspace:*",
+        "@sim/utils": "workspace:*",
+        "drizzle-orm": "^0.45.2",
+        "postgres": "^3.4.5",
+        "zod": "4.3.6",
+      },
+      "devDependencies": {
+        "@sim/testing": "workspace:*",
+        "@sim/tsconfig": "workspace:*",
+        "@types/node": "24.2.1",
+        "typescript": "^5.7.3",
+        "vitest": "^4.1.0",
       },
     },
     "apps/realtime": {
@@ -159,6 +182,8 @@
         "@react-email/render": "2.0.8",
         "@sim/audit": "workspace:*",
         "@sim/logger": "workspace:*",
+        "@sim/mothership-client": "workspace:*",
+        "@sim/mothership-contracts": "workspace:*",
         "@sim/realtime-protocol": "workspace:*",
         "@sim/security": "workspace:*",
         "@sim/utils": "workspace:*",
@@ -374,6 +399,31 @@
         "@sim/tsconfig": "workspace:*",
         "typescript": "^5.7.3",
         "vitest": "^4.1.0",
+      },
+    },
+    "packages/mothership-client": {
+      "name": "@sim/mothership-client",
+      "version": "0.1.0",
+      "dependencies": {
+        "@sim/mothership-contracts": "workspace:*",
+        "zod": "4.3.6",
+      },
+      "devDependencies": {
+        "@sim/tsconfig": "workspace:*",
+        "@types/node": "24.2.1",
+        "typescript": "^5.7.3",
+        "vitest": "^4.1.0",
+      },
+    },
+    "packages/mothership-contracts": {
+      "name": "@sim/mothership-contracts",
+      "version": "0.1.0",
+      "dependencies": {
+        "zod": "4.3.6",
+      },
+      "devDependencies": {
+        "@sim/tsconfig": "workspace:*",
+        "typescript": "^5.7.3",
       },
     },
     "packages/realtime-protocol": {
@@ -1433,6 +1483,12 @@
     "@sim/db": ["@sim/db@workspace:packages/db"],
 
     "@sim/logger": ["@sim/logger@workspace:packages/logger"],
+
+    "@sim/mothership": ["@sim/mothership@workspace:apps/mothership"],
+
+    "@sim/mothership-client": ["@sim/mothership-client@workspace:packages/mothership-client"],
+
+    "@sim/mothership-contracts": ["@sim/mothership-contracts@workspace:packages/mothership-contracts"],
 
     "@sim/realtime": ["@sim/realtime@workspace:apps/realtime"],
 
@@ -4018,6 +4074,10 @@
 
     "@shuding/opentype.js/fflate": ["fflate@0.7.4", "", {}, "sha512-5u2V/CDW15QM1XbbgS+0DfPxVB+jUKhWEKuuFuHncbk3tEEqzmoXL+2KyOFuKGqOnmdIy0/davWF1CkuwtibCw=="],
 
+    "@sim/mothership/@types/node": ["@types/node@24.2.1", "", { "dependencies": { "undici-types": "~7.10.0" } }, "sha512-DRh5K+ka5eJic8CjH7td8QpYEV6Zo10gfRkjHCO3weqZHWDtAaSTFtl4+VMqOJ4N5jcuhZ9/l+yy8rVgw7BQeQ=="],
+
+    "@sim/mothership-client/@types/node": ["@types/node@24.2.1", "", { "dependencies": { "undici-types": "~7.10.0" } }, "sha512-DRh5K+ka5eJic8CjH7td8QpYEV6Zo10gfRkjHCO3weqZHWDtAaSTFtl4+VMqOJ4N5jcuhZ9/l+yy8rVgw7BQeQ=="],
+
     "@sim/realtime/@types/node": ["@types/node@24.2.1", "", { "dependencies": { "undici-types": "~7.10.0" } }, "sha512-DRh5K+ka5eJic8CjH7td8QpYEV6Zo10gfRkjHCO3weqZHWDtAaSTFtl4+VMqOJ4N5jcuhZ9/l+yy8rVgw7BQeQ=="],
 
     "@sim/security/@types/node": ["@types/node@24.2.1", "", { "dependencies": { "undici-types": "~7.10.0" } }, "sha512-DRh5K+ka5eJic8CjH7td8QpYEV6Zo10gfRkjHCO3weqZHWDtAaSTFtl4+VMqOJ4N5jcuhZ9/l+yy8rVgw7BQeQ=="],
@@ -4477,6 +4537,10 @@
     "@radix-ui/react-avatar/@radix-ui/react-primitive/@radix-ui/react-slot": ["@radix-ui/react-slot@1.2.3", "", { "dependencies": { "@radix-ui/react-compose-refs": "1.1.2" }, "peerDependencies": { "@types/react": "*", "react": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react"] }, "sha512-aeNmHnBxbi2St0au6VBVC7JXFlhLlOnvIIlePNniyUNAClzmtAUEY8/pBiK3iHjufOlwA+c20/8jngo7xcrg8A=="],
 
     "@radix-ui/react-visually-hidden/@radix-ui/react-primitive/@radix-ui/react-slot": ["@radix-ui/react-slot@1.2.4", "", { "dependencies": { "@radix-ui/react-compose-refs": "1.1.2" }, "peerDependencies": { "@types/react": "*", "react": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react"] }, "sha512-Jl+bCv8HxKnlTLVrcDE8zTMJ09R9/ukw4qBs/oZClOfoQk/cOTbDn+NceXfV7j09YPVQUryJPHurafcSg6EVKA=="],
+
+    "@sim/mothership-client/@types/node/undici-types": ["undici-types@7.10.0", "", {}, "sha512-t5Fy/nfn+14LuOc2KNYg75vZqClpAiqscVvMygNnlsHBFpSXdJaYtXMcdNLpl/Qvc3P2cB3s6lOV51nqsFq4ag=="],
+
+    "@sim/mothership/@types/node/undici-types": ["undici-types@7.10.0", "", {}, "sha512-t5Fy/nfn+14LuOc2KNYg75vZqClpAiqscVvMygNnlsHBFpSXdJaYtXMcdNLpl/Qvc3P2cB3s6lOV51nqsFq4ag=="],
 
     "@sim/realtime/@types/node/undici-types": ["undici-types@7.10.0", "", {}, "sha512-t5Fy/nfn+14LuOc2KNYg75vZqClpAiqscVvMygNnlsHBFpSXdJaYtXMcdNLpl/Qvc3P2cB3s6lOV51nqsFq4ag=="],
 

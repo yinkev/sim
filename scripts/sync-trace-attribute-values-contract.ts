@@ -5,7 +5,7 @@ import { formatGeneratedSource } from './format-generated-source'
 
 /**
  * Generate `apps/sim/lib/copilot/generated/trace-attribute-values-v1.ts`
- * from the Go-side `contracts/trace-attribute-values-v1.schema.json`
+ * from the owned `packages/mothership-contracts/contracts/trace-attribute-values-v1.schema.json`
  * contract.
  *
  * Unlike span-names / attribute-keys / event-names (each of which is a
@@ -28,7 +28,7 @@ const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(SCRIPT_DIR, '..')
 const DEFAULT_CONTRACT_PATH = resolve(
   ROOT,
-  '../copilot/copilot/contracts/trace-attribute-values-v1.schema.json'
+  'packages/mothership-contracts/contracts/trace-attribute-values-v1.schema.json'
 )
 const OUTPUT_PATH = resolve(ROOT, 'apps/sim/lib/copilot/generated/trace-attribute-values-v1.ts')
 
@@ -97,7 +97,7 @@ function render(enums: ExtractedEnum[]): string {
   const body = enums.map(renderEnum).join('\n\n')
   return `// AUTO-GENERATED FILE. DO NOT EDIT.
 //
-// Source: copilot/copilot/contracts/trace-attribute-values-v1.schema.json
+// Source: packages/mothership-contracts/contracts/trace-attribute-values-v1.schema.json
 // Regenerate with: bun run trace-attribute-values-contract:generate
 //
 // Canonical closed-set value vocabularies for mothership OTel

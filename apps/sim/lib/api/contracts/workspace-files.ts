@@ -227,6 +227,11 @@ const registeredWorkspaceFileSchema = z.object({
   context: z.string().optional(),
 })
 
+export const uploadWorkspaceFileResponseSchema = z.object({
+  success: z.literal(true),
+  file: registeredWorkspaceFileSchema,
+})
+
 const registerWorkspaceFileResponseSchema = z.object({
   success: z.boolean(),
   file: registeredWorkspaceFileSchema.optional(),
@@ -234,6 +239,7 @@ const registerWorkspaceFileResponseSchema = z.object({
   isDuplicate: z.boolean().optional(),
 })
 
+export type UploadWorkspaceFileResponse = z.output<typeof uploadWorkspaceFileResponseSchema>
 export type RegisterWorkspaceFileResponse = z.output<typeof registerWorkspaceFileResponseSchema>
 
 export const registerWorkspaceFileContract = defineRouteContract({

@@ -18,7 +18,7 @@ export const GET = withRouteHandler((request: NextRequest) => {
   )
   if (!validation.success) return validationErrorResponse(validation.error)
 
-  return copilotChatGet(request)
+  return copilotChatGet(request, {})
 })
 
 export const POST = withRouteHandler(async (request: NextRequest) => {

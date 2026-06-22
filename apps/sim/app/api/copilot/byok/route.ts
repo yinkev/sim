@@ -10,22 +10,20 @@ import {
 } from '@/lib/api/contracts/copilot'
 import { parseRequest } from '@/lib/api/server'
 import { getSession } from '@/lib/auth'
-import { SIM_AGENT_API_URL } from '@/lib/copilot/constants'
+import { getRequiredSimAgentApiUrl } from '@/lib/copilot/constants'
 import { getMothershipSourceEnvHeaders } from '@/lib/copilot/server/agent-url'
-import { env } from '@/lib/core/config/env'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { createMothershipAdminAuthHeaders } from '@/lib/mothership/service-auth'
 
 /**
  * Enterprise BYOK key management for the current workspace's mothership.
  *
  * Unlike the cross-environment admin inspector (`/api/admin/mothership`), this
- * talks to the SAME copilot the workspace's mothership actually runs on —
- * `SIM_AGENT_API_URL` (local in dev, prod copilot in prod) — and authenticates
- * with the hosted internal key (`COPILOT_API_KEY`), the exact credential
- * mothership chat uses. Copilot requires that key (`SIM_AGENT_API_KEY`) and
- * rejects self-hosted callers, so BYOK can only ever be written through our
- * hosted Sim. The route is superuser-gated; the workspace id rides in the
- * request and is resolved by the caller from the route.
+ * talks to the SAME copilot the workspace's mothership actually runs on:
+ * `SIM_AGENT_API_URL`. Until the owned Mothership admin route family exists,
+ * this is a pre-strict legacy backend call authenticated with the runtime key.
+ * The route is superuser-gated; the workspace id rides in the request and is
+ * resolved by the caller from the route.
  */
 async function getAuthorizedSuperUserId(): Promise<string | null> {
   const session = await getSession()
@@ -47,21 +45,35 @@ async function forwardToCopilot(
   query: URLSearchParams,
   body?: string
 ) {
-  const headers: Record<string, string> = { ...getMothershipSourceEnvHeaders() }
-  if (env.COPILOT_API_KEY) headers['x-api-key'] = env.COPILOT_API_KEY
+  let simAgentApiUrl: string
+  let authHeaders: Record<string, string>
+  try {
+    simAgentApiUrl = getRequiredSimAgentApiUrl()
+    authHeaders = createMothershipAdminAuthHeaders(simAgentApiUrl)
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: `Mothership admin authentication not configured: ${getErrorMessage(error, 'Unknown error')}`,
+      },
+      { status: 500 }
+    )
+  }
+
+  const headers: Record<string, string> = {
+    ...authHeaders,
+    ...getMothershipSourceEnvHeaders(),
+  }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
 
-  const qs = query.toString()
-  const targetUrl = `${SIM_AGENT_API_URL}/api/admin/byok${qs ? `?${qs}` : ''}`
-
   try {
+    const qs = query.toString()
+    const targetUrl = `${simAgentApiUrl}/api/admin/byok${qs ? `?${qs}` : ''}`
     const upstream = await fetch(targetUrl, {
       method,
       headers,
       ...(body !== undefined ? { body } : {}),
     })
     const text = await upstream.text()
-    // boundary-raw-fetch: copilot returns JSON; tolerate an empty body.
     const data = text ? JSON.parse(text) : {}
     return NextResponse.json(data, { status: upstream.status })
   } catch (error) {
@@ -96,8 +108,6 @@ export const POST = withRouteHandler(async (req: NextRequest) => {
   const parsed = await parseRequest(upsertCopilotByokKeyContract, req, {})
   if (!parsed.success) return parsed.response
 
-  // Bind the audit field to the authenticated superuser, ignoring any
-  // client-supplied createdBy so provisioning is always attributable.
   const body = JSON.stringify({ ...parsed.data.body, createdBy: userId })
   return forwardToCopilot('POST', new URLSearchParams(), body)
 })

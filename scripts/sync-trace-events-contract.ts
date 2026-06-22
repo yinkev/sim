@@ -5,7 +5,7 @@ import { formatGeneratedSource } from './format-generated-source'
 
 /**
  * Generate `apps/sim/lib/copilot/generated/trace-events-v1.ts` from
- * the Go-side `contracts/trace-events-v1.schema.json` contract.
+ * the owned `packages/mothership-contracts/contracts/trace-events-v1.schema.json` contract.
  *
  * Mirrors the span-names + attribute-keys sync scripts exactly — the
  * only difference is the $defs key (`TraceEventsV1Name`), the output
@@ -18,7 +18,7 @@ const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(SCRIPT_DIR, '..')
 const DEFAULT_CONTRACT_PATH = resolve(
   ROOT,
-  '../copilot/copilot/contracts/trace-events-v1.schema.json'
+  'packages/mothership-contracts/contracts/trace-events-v1.schema.json'
 )
 const OUTPUT_PATH = resolve(ROOT, 'apps/sim/lib/copilot/generated/trace-events-v1.ts')
 
@@ -68,13 +68,13 @@ function render(eventNames: string[]): string {
 
   return `// AUTO-GENERATED FILE. DO NOT EDIT.
 //
-// Source: copilot/copilot/contracts/trace-events-v1.schema.json
+// Source: packages/mothership-contracts/contracts/trace-events-v1.schema.json
 // Regenerate with: bun run trace-events-contract:generate
 //
 // Canonical mothership OTel span event names. Call sites should
 // reference \`TraceEvent.<Identifier>\` (e.g.
 // \`TraceEvent.RequestCancelled\`) rather than raw string literals,
-// so the Go-side contract is the single source of truth and typos
+// so the owned contract is the single source of truth and typos
 // become compile errors.
 
 export const TraceEvent = {

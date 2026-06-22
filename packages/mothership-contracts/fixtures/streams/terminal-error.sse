@@ -1,0 +1,4 @@
+data: {"v":1,"type":"session","seq":1,"ts":"2026-06-21T00:00:00.000Z","stream":{"streamId":"msg-error-1","chatId":"chat-error-1"},"trace":{"requestId":"req-error-1"},"payload":{"kind":"chat","chatId":"chat-error-1"}}
+
+data: {"v":1,"type":"error","seq":2,"ts":"2026-06-21T00:00:01.000Z","stream":{"streamId":"msg-error-1","chatId":"chat-error-1"},"trace":{"requestId":"req-error-1"},"payload":{"code":"provider_error","message":"Provider failed","displayMessage":"The model provider failed."}}
+

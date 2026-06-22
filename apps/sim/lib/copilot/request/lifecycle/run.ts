@@ -40,8 +40,8 @@ import type {
 } from '@/lib/copilot/request/types'
 import { getMothershipBaseURL, getMothershipSourceEnvHeaders } from '@/lib/copilot/server/agent-url'
 import { prepareExecutionContext } from '@/lib/copilot/tools/handlers/context'
-import { env } from '@/lib/core/config/env'
 import { getEffectiveDecryptedEnv } from '@/lib/environment/utils'
+import { createMothershipRuntimeAuthHeaders } from '@/lib/mothership/service-auth'
 
 const logger = createLogger('CopilotLifecycle')
 
@@ -248,6 +248,16 @@ async function runCheckpointLoop(
   const callerOnEvent = options.onEvent
   const mothershipBaseURL = await getMothershipBaseURL({ userId: options.userId })
   const lifecycleWorkspaceId = nonBlankString(options.workspaceId)
+  const lifecycleExecutionId = nonBlankString(options.executionId)
+  const lifecycleRunId = nonBlankString(options.runId)
+
+  if (lifecycleExecutionId && !nonBlankString(payload.executionId)) {
+    payload = { ...payload, executionId: lifecycleExecutionId }
+  }
+
+  if (lifecycleRunId && !nonBlankString(payload.runId)) {
+    payload = { ...payload, runId: lifecycleRunId }
+  }
 
   // Go's auth middleware re-validates every Sim -> Go request by reading
   // workspaceId from the JSON body and forwarding it to Sim's validate route,
@@ -341,7 +351,7 @@ async function runCheckpointLoop(
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(env.COPILOT_API_KEY ? { 'x-api-key': env.COPILOT_API_KEY } : {}),
+            ...createMothershipRuntimeAuthHeaders(),
             ...getMothershipSourceEnvHeaders(),
             'X-Client-Version': SIM_AGENT_VERSION,
           },

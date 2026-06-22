@@ -8,7 +8,7 @@ import { useSubscriptionData } from '@/hooks/queries/subscription'
  * Result of {@link usePlanView}. `creditBalance` and `hasData` are surfaced so
  * credit-display surfaces don't need a second `useSubscriptionData` call.
  */
-export interface UsePlanViewResult {
+interface PlanViewQueryState {
   planView: PlanView
   creditBalance: number
   isLoading: boolean
@@ -21,7 +21,7 @@ export interface UsePlanViewResult {
  * page, home credits chip, sidebar, settings billing page) consumes for
  * plan-derived UI decisions.
  */
-export function usePlanView(options?: { includeOrg?: boolean }): UsePlanViewResult {
+export function usePlanView(options?: { includeOrg?: boolean }): PlanViewQueryState {
   const { data, isLoading } = useSubscriptionData(options)
   const plan = data?.data?.plan
   const planView = useMemo(() => derivePlanView(plan), [plan])

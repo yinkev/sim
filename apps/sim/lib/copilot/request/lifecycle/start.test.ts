@@ -5,6 +5,7 @@
 import { propagation, trace } from '@opentelemetry/api'
 import { W3CTraceContextPropagator } from '@opentelemetry/core'
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base'
+import { createEnvMock } from '@sim/testing'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   MothershipStreamV1CompletionStatus,
@@ -24,6 +25,7 @@ const {
   cleanupAbortMarker,
   hasAbortMarker,
   releasePendingChatStream,
+  mockGetMothershipBaseURL,
 } = vi.hoisted(() => ({
   runCopilotLifecycle: vi.fn(),
   createRunSegment: vi.fn(),
@@ -37,6 +39,7 @@ const {
   cleanupAbortMarker: vi.fn(),
   hasAbortMarker: vi.fn(),
   releasePendingChatStream: vi.fn(),
+  mockGetMothershipBaseURL: vi.fn(),
 }))
 
 vi.mock('@/lib/copilot/request/lifecycle/run', () => ({
@@ -67,6 +70,8 @@ vi.mock('@/lib/copilot/request/session', () => ({
   SSE_RESPONSE_HEADERS: {},
   StreamWriter: vi.fn().mockImplementation(
     class {
+      private sawTerminalEvent = false
+      private sawCompleteEvent = false
       attach = vi.fn().mockImplementation((ctrl: ReadableStreamDefaultController) => {
         mockPublisherController = ctrl
       })
@@ -82,13 +87,22 @@ vi.mock('@/lib/copilot/request/session', () => ({
       })
       markDisconnected = vi.fn()
       publish = vi.fn().mockImplementation(async (event: Record<string, unknown>) => {
+        if (event.type === 'complete' || event.type === 'error') {
+          this.sawTerminalEvent = true
+        }
+        if (event.type === 'complete') {
+          this.sawCompleteEvent = true
+        }
         appendEvent(event)
       })
       get clientDisconnected() {
         return false
       }
       get sawComplete() {
-        return false
+        return this.sawCompleteEvent
+      }
+      get sawTerminal() {
+        return this.sawTerminalEvent
       }
     }
   ),
@@ -107,11 +121,23 @@ vi.mock('@sim/db', () => ({
   },
 }))
 
+vi.mock('@/lib/core/config/env', () =>
+  createEnvMock({
+    COPILOT_API_KEY: 'legacy-runtime-key',
+    SIM_TO_MOTHERSHIP_API_KEY: undefined,
+    COPILOT_SOURCE_ENV: 'staging',
+  })
+)
+
+vi.mock('@/lib/copilot/server/agent-url', () => ({
+  getMothershipBaseURL: mockGetMothershipBaseURL,
+}))
+
 vi.mock('@/lib/copilot/chat-status', () => ({
   chatPubSub: null,
 }))
 
-import { createSSEStream } from './start'
+import { createSSEStream, requestChatTitle } from './start'
 
 async function drainStream(stream: ReadableStream) {
   const reader = stream.getReader()
@@ -151,6 +177,7 @@ describe('createSSEStream terminal error handling', () => {
     releasePendingChatStream.mockResolvedValue(undefined)
     createRunSegment.mockResolvedValue(null)
     updateRunStatus.mockResolvedValue(null)
+    mockGetMothershipBaseURL.mockResolvedValue('https://agent.sim.example.com')
   })
 
   afterEach(() => {
@@ -187,6 +214,14 @@ describe('createSSEStream terminal error handling', () => {
         type: MothershipStreamV1EventType.error,
       })
     )
+    expect(appendEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: MothershipStreamV1EventType.complete,
+        payload: expect.objectContaining({
+          status: MothershipStreamV1CompletionStatus.error,
+        }),
+      })
+    )
     expect(scheduleBufferCleanup).toHaveBeenCalledWith('stream-1')
   })
 
@@ -212,6 +247,14 @@ describe('createSSEStream terminal error handling', () => {
     expect(appendEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         type: MothershipStreamV1EventType.error,
+      })
+    )
+    expect(appendEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: MothershipStreamV1EventType.complete,
+        payload: expect.objectContaining({
+          status: MothershipStreamV1CompletionStatus.error,
+        }),
       })
     )
     expect(scheduleBufferCleanup).toHaveBeenCalledWith('stream-1')
@@ -290,5 +333,35 @@ describe('createSSEStream terminal error handling', () => {
     await drainStream(stream)
 
     expect(lifecycleTraceparent).toMatch(/^00-[0-9a-f]{32}-[0-9a-f]{16}-0[0-9a-f]$/)
+  })
+
+  it('generates chat titles through the typed Mothership runtime client', async () => {
+    const title = await requestChatTitle({
+      message: 'Build a parser',
+      model: 'gpt-5.4',
+      provider: 'openai',
+      userId: 'user-1',
+      workspaceId: 'ws-1',
+    })
+
+    expect(title).toBe('Test title')
+    expect(fetch).toHaveBeenCalledWith(
+      'https://agent.sim.example.com/api/generate-chat-title',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'content-type': 'application/json',
+          'x-api-key': 'legacy-runtime-key',
+          'x-sim-source-env': 'staging',
+        }),
+        body: JSON.stringify({
+          message: 'Build a parser',
+          model: 'gpt-5.4',
+          provider: 'openai',
+          workspaceId: 'ws-1',
+          userId: 'user-1',
+        }),
+      })
+    )
   })
 })

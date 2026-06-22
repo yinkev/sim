@@ -1,0 +1,119 @@
+{{- if .Values.mothership.enabled }}
+{{- include "sim.validateSecrets" . }}
+{{- include "sim.mothership.validate" . }}
+{{- $mothershipReloadSecrets := list (include "sim.appSecretName" .) (include "sim.mothership.envSecretName" .) -}}
+{{- if .Values.postgresql.enabled -}}
+{{- $mothershipReloadSecrets = append $mothershipReloadSecrets (include "sim.postgresqlSecretName" .) -}}
+{{- else if .Values.externalDatabase.enabled -}}
+{{- $mothershipReloadSecrets = append $mothershipReloadSecrets (include "sim.externalDbSecretName" .) -}}
+{{- end -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "sim.fullname" . }}-mothership
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "sim.mothership.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.mothership.server.service.type }}
+  ports:
+    - port: {{ .Values.mothership.server.service.port }}
+      targetPort: {{ .Values.mothership.server.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "sim.mothership.selectorLabels" . | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sim.fullname" . }}-mothership
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    secret.reloader.stakater.com/reload: {{ join "," $mothershipReloadSecrets | quote }}
+  labels:
+    {{- include "sim.mothership.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.mothership.server.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "sim.mothership.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/app-secret: {{ include (print $.Template.BasePath "/secrets-app.yaml") . | sha256sum }}
+        checksum/app-external-secret: {{ include (print $.Template.BasePath "/external-secret-app.yaml") . | sha256sum }}
+        checksum/mothership-secret: {{ include (print $.Template.BasePath "/secrets-mothership.yaml") . | sha256sum }}
+        checksum/mothership-external-secret: {{ include (print $.Template.BasePath "/external-secret-mothership.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "sim.mothership.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "sim.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      {{- include "sim.podSecurityContext" .Values.mothership.server | nindent 6 }}
+      {{- include "sim.nodeSelector" .Values.mothership.server | nindent 6 }}
+      {{- include "sim.tolerations" .Values | nindent 6 }}
+      {{- include "sim.affinity" .Values | nindent 6 }}
+      {{- include "sim.topologySpreadConstraints" .Values.mothership.server | nindent 6 }}
+      containers:
+        - name: mothership
+          image: {{ include "sim.image" (dict "imageRoot" .Values.mothership.server.image "global" .Values.global "chartAppVersion" .Chart.AppVersion) }}
+          imagePullPolicy: {{ .Values.mothership.server.image.pullPolicy }}
+          {{- with .Values.mothership.server.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.mothership.server.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.mothership.server.service.targetPort }}
+              protocol: TCP
+          env:
+            {{- $sharedBoundaryKeys := list "SIM_TO_MOTHERSHIP_API_KEY" "MOTHERSHIP_TO_SIM_CALLBACK_KEY" "MOTHERSHIP_ADMIN_API_KEY" "ENCRYPTION_KEY" "API_ENCRYPTION_KEY" }}
+            {{- include "sim.databaseSecretEnvVars" . | nindent 12 }}
+            {{- include "sim.appSecretEnvVars" (dict "root" . "keys" $sharedBoundaryKeys) | nindent 12 }}
+            - name: DATABASE_URL
+              value: {{ include "sim.databaseUrl" . | quote }}
+            - name: NODE_ENV
+              value: "production"
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: {{ .Values.mothership.server.service.targetPort | quote }}
+            {{- with .Values.mothership.server.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          envFrom:
+            {{- with .Values.mothership.server.extraEnvFrom }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+            - secretRef:
+                name: {{ include "sim.mothership.envSecretName" . }}
+          {{- if .Values.mothership.server.startupProbe }}
+          startupProbe:
+            {{- toYaml .Values.mothership.server.startupProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.mothership.server.livenessProbe }}
+          livenessProbe:
+            {{- toYaml .Values.mothership.server.livenessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.mothership.server.readinessProbe }}
+          readinessProbe:
+            {{- toYaml .Values.mothership.server.readinessProbe | nindent 12 }}
+          {{- end }}
+          {{- include "sim.resources" .Values.mothership.server | nindent 10 }}
+          {{- include "sim.containerSecurityContext" .Values.mothership.server | nindent 10 }}
+{{- end }}

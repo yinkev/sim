@@ -260,4 +260,31 @@ describe('ApiBlockHandler', () => {
       /Network error, check if the URL is accessible and if you have internet connectivity/
     )
   })
+
+  it('should preserve primitive tool execution rejections', async () => {
+    const inputs = { url: 'https://example.com/api', method: 'POST' }
+    mockExecuteTool.mockRejectedValue('network down')
+
+    await expect(handler.execute(mockContext, mockBlock, inputs)).rejects.toThrow('network down')
+
+    try {
+      await handler.execute(mockContext, mockBlock, inputs)
+    } catch (error) {
+      expect(error).toBeInstanceOf(Error)
+      expect((error as Error & { toolId?: string; blockName?: string }).toolId).toBe('http_request')
+      expect((error as Error & { request?: { url?: string; method?: string } }).request).toEqual({
+        url: 'https://example.com/api',
+        method: 'POST',
+      })
+    }
+  })
+
+  it('should normalize object tool execution rejections with status metadata', async () => {
+    const inputs = { url: 'https://example.com/api', method: 'GET' }
+    mockExecuteTool.mockRejectedValue({ status: 503, statusText: 'Service Unavailable' })
+
+    await expect(handler.execute(mockContext, mockBlock, inputs)).rejects.toThrow(
+      'API request to HTTP Request Tool failed: https://example.com/api (Status: 503) - Service Unavailable'
+    )
+  })
 })

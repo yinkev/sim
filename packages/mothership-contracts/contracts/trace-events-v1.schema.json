@@ -1,0 +1,25 @@
+{
+  "$defs": {
+    "TraceEventsV1Name": {
+      "enum": [
+        "context.transform",
+        "copilot.output_file.error",
+        "copilot.sse.first_event",
+        "copilot.sse.idle_gap_exceeded",
+        "copilot.sse.terminal_event_received",
+        "copilot.table.error",
+        "copilot.vfs.parse_failed",
+        "copilot.vfs.resize_attempt",
+        "copilot.vfs.resize_attempt_failed",
+        "gen_ai.prompt_cache.breakpoint",
+        "llm.invoke.sent",
+        "llm.stream.first_chunk",
+        "llm.stream.opened",
+        "pg_notify_failed",
+        "redis.subscribed",
+        "request.cancelled"
+      ],
+      "type": "string"
+    }
+  }
+}

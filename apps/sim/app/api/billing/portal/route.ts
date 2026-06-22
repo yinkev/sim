@@ -3,7 +3,8 @@ import { user } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
 import { eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
-import { billingPortalBodySchema } from '@/lib/api/contracts/subscription'
+import { createBillingPortalContract } from '@/lib/api/contracts/subscription'
+import { parseRequest } from '@/lib/api/server'
 import { getSession } from '@/lib/auth'
 import { getOrganizationSubscription } from '@/lib/billing/core/billing'
 import { isOrganizationOwnerOrAdmin } from '@/lib/billing/core/organization'
@@ -21,14 +22,11 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json().catch(() => ({}))
-    const parsedBody = billingPortalBodySchema.safeParse(body)
-    if (!parsedBody.success) {
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
-    }
-    const context = parsedBody.data.context
-    const organizationId = parsedBody.data.organizationId
-    const returnUrl = parsedBody.data.returnUrl || `${getBaseUrl()}/workspace?billing=updated`
+    const parsedBody = await parseRequest(createBillingPortalContract, request, {})
+    if (!parsedBody.success) return parsedBody.response
+    const context = parsedBody.data.body.context
+    const organizationId = parsedBody.data.body.organizationId
+    const returnUrl = parsedBody.data.body.returnUrl || `${getBaseUrl()}/workspace?billing=updated`
 
     const stripe = requireStripeClient()
 

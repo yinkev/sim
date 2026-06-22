@@ -1,5 +1,5 @@
 // AUTO-GENERATED FILE. DO NOT EDIT.
-// Generated from copilot/contracts/mothership-stream-v1.schema.json
+// Generated from packages/mothership-contracts/contracts/mothership-stream-v1.schema.json
 //
 
 export type JsonSchema = unknown

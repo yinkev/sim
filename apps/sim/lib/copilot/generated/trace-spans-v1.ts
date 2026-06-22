@@ -1,11 +1,11 @@
 // AUTO-GENERATED FILE. DO NOT EDIT.
 //
-// Source: copilot/copilot/contracts/trace-spans-v1.schema.json
+// Source: packages/mothership-contracts/contracts/trace-spans-v1.schema.json
 // Regenerate with: bun run trace-spans-contract:generate
 //
 // Canonical mothership OTel span names. Call sites should reference
 // `TraceSpan.<Identifier>` (e.g. `TraceSpan.CopilotVfsReadFile`)
-// rather than raw string literals, so the Go-side contract is the
+// rather than raw string literals, so the owned contract is the
 // single source of truth and typos become compile errors.
 
 export const TraceSpan = {

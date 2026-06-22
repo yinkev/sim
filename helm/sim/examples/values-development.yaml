@@ -13,6 +13,8 @@
 #     --set app.env.BETTER_AUTH_SECRET=$(openssl rand -hex 32) \
 #     --set app.env.ENCRYPTION_KEY=$(openssl rand -hex 32) \
 #     --set app.env.INTERNAL_API_SECRET=$(openssl rand -hex 32) \
+#     --set app.env.SIM_TO_MOTHERSHIP_API_KEY=$(openssl rand -hex 32) \
+#     --set app.env.MOTHERSHIP_TO_SIM_CALLBACK_KEY=$(openssl rand -hex 32) \
 #     --set app.env.CRON_SECRET=$(openssl rand -hex 32) \
 #     --set postgresql.auth.password=$(openssl rand -base64 24 | tr -d '/+=')
 
@@ -45,11 +47,14 @@ app:
     BETTER_AUTH_SECRET: "dev-32-char-auth-secret-not-secure-dev"
     ENCRYPTION_KEY: "dev-32-char-encryption-key-not-secure"
     INTERNAL_API_SECRET: "dev-32-char-internal-secret-not-secure"
+    SIM_TO_MOTHERSHIP_API_KEY: "dev-32-char-mothership-runtime-secret"
+    MOTHERSHIP_TO_SIM_CALLBACK_KEY: "dev-32-char-mothership-callback-secret"
+    MOTHERSHIP_ADMIN_API_KEY: "" # Required when mothership.enabled=true
     CRON_SECRET: "dev-32-char-cron-secret-not-for-prod"
 
     # Optional: API Key Encryption (leave empty for dev, encrypts API keys at rest)
     # For production, generate 64-char hex using: openssl rand -hex 32
-    API_ENCRYPTION_KEY: ""  # Optional - if not set, API keys stored in plain text
+    API_ENCRYPTION_KEY: ""  # Required when mothership.enabled=true; optional otherwise
 
 # Realtime service
 realtime:

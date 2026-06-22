@@ -594,6 +594,10 @@ const resumeWorkflowExecutionContextResponseSchema = z
   })
   .passthrough()
 
+export type ResumeWorkflowExecutionContextResponse = z.output<
+  typeof resumeWorkflowExecutionContextResponseSchema
+>
+
 export const listWorkflowsContract = defineRouteContract({
   method: 'GET',
   path: '/api/workflows',

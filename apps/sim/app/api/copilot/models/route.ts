@@ -1,13 +1,14 @@
 import { createLogger } from '@sim/logger'
+import { MothershipClientError } from '@sim/mothership-client'
+import { getAvailableModelsContract } from '@sim/mothership-contracts/routes'
 import { toError } from '@sim/utils/errors'
 import { type NextRequest, NextResponse } from 'next/server'
 import { copilotModelsContract } from '@/lib/api/contracts/copilot'
 import { parseRequest } from '@/lib/api/server'
-import { fetchGo } from '@/lib/copilot/request/go/fetch'
 import { authenticateCopilotRequestSessionOnly } from '@/lib/copilot/request/http'
 import { getMothershipBaseURL } from '@/lib/copilot/server/agent-url'
-import { env } from '@/lib/core/config/env'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { requestMothershipRuntime } from '@/lib/mothership/client'
 
 interface AvailableModel {
   id: string
@@ -24,6 +25,14 @@ interface RawAvailableModel {
   provider?: string
 }
 
+function isInvalidMothershipResponse(error: unknown): boolean {
+  return (
+    (error instanceof MothershipClientError &&
+      error.message === 'Mothership response failed contract validation') ||
+    error instanceof SyntaxError
+  )
+}
+
 function isRawAvailableModel(item: unknown): item is RawAvailableModel {
   return (
     typeof item === 'object' &&
@@ -31,6 +40,14 @@ function isRawAvailableModel(item: unknown): item is RawAvailableModel {
     'id' in item &&
     typeof (item as { id: unknown }).id === 'string'
   )
+}
+
+function getMothershipErrorMessage(body: unknown, fallback: string): string {
+  if (body && typeof body === 'object' && 'error' in body) {
+    const error = (body as { error?: unknown }).error
+    if (typeof error === 'string' && error.length > 0) return error
+  }
+  return fallback
 }
 
 export const GET = withRouteHandler(async (req: NextRequest) => {
@@ -42,37 +59,14 @@ export const GET = withRouteHandler(async (req: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  }
-  if (env.COPILOT_API_KEY) {
-    headers['x-api-key'] = env.COPILOT_API_KEY
-  }
-
   try {
     const mothershipBaseURL = await getMothershipBaseURL({ userId })
-    const response = await fetchGo(`${mothershipBaseURL}/api/get-available-models`, {
-      method: 'GET',
-      headers,
-      cache: 'no-store',
+    const payload = await requestMothershipRuntime({
+      contract: getAvailableModelsContract,
+      baseUrl: mothershipBaseURL,
       spanName: 'sim → go /api/get-available-models',
       operation: 'get_available_models',
     })
-
-    const payload = await response.json().catch(() => ({}))
-    if (!response.ok) {
-      logger.warn('Failed to fetch available models from copilot backend', {
-        status: response.status,
-      })
-      return NextResponse.json(
-        {
-          success: false,
-          error: payload?.error || 'Failed to fetch available models',
-          models: [],
-        },
-        { status: response.status }
-      )
-    }
 
     const rawModels = Array.isArray(payload?.models) ? payload.models : []
     const models: AvailableModel[] = rawModels
@@ -85,6 +79,33 @@ export const GET = withRouteHandler(async (req: NextRequest) => {
 
     return NextResponse.json({ success: true, models })
   } catch (error) {
+    if (isInvalidMothershipResponse(error)) {
+      logger.warn('Invalid models response from copilot backend')
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid response from Sim Agent',
+          models: [],
+        },
+        { status: 500 }
+      )
+    }
+
+    if (error instanceof MothershipClientError) {
+      logger.warn('Failed to fetch available models from copilot backend', {
+        status: error.status,
+      })
+      const body = error.body && typeof error.body === 'object' ? error.body : {}
+      return NextResponse.json(
+        {
+          success: false,
+          error: getMothershipErrorMessage(body, 'Failed to fetch available models'),
+          models: [],
+        },
+        { status: error.status || 500 }
+      )
+    }
+
     logger.error('Error fetching available models', {
       error: toError(error).message,
     })

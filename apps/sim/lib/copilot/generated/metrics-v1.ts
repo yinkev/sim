@@ -1,11 +1,11 @@
 // AUTO-GENERATED FILE. DO NOT EDIT.
 //
-// Source: copilot/copilot/contracts/metrics-v1.schema.json
+// Source: packages/mothership-contracts/contracts/metrics-v1.schema.json
 // Regenerate with: bun run metrics-contract:generate
 //
 // Canonical mothership OTel metric names. Call sites should reference
 // `Metric.<Identifier>` (e.g. `Metric.CopilotToolDuration`) rather than raw
-// string literals, so the Go-side contract is the single source of truth and
+// string literals, so the owned contract is the single source of truth and
 // typos become compile errors.
 //
 // NAMES ONLY. Label keys and histogram bucket boundaries are NOT in this

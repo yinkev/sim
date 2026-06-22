@@ -1,14 +1,21 @@
 import { env } from '@/lib/core/config/env'
 
-export const SIM_AGENT_API_URL_DEFAULT = 'https://www.copilot.sim.ai'
+export const SIM_AGENT_API_URL_DEFAULT = ''
 export const SIM_AGENT_VERSION = '3.0.0'
 
-/** Resolved copilot backend URL — reads from env with fallback to default. */
-const rawAgentUrl = env.SIM_AGENT_API_URL || SIM_AGENT_API_URL_DEFAULT
+function normalizeAgentUrl(url: string | undefined): string | null {
+  if (!url) return null
+  return url.startsWith('http://') || url.startsWith('https://') ? url : null
+}
+
+/** Resolved owned copilot backend URL. Empty means no backend is configured. */
 export const SIM_AGENT_API_URL =
-  rawAgentUrl.startsWith('http://') || rawAgentUrl.startsWith('https://')
-    ? rawAgentUrl
-    : SIM_AGENT_API_URL_DEFAULT
+  normalizeAgentUrl(env.SIM_AGENT_API_URL) ?? SIM_AGENT_API_URL_DEFAULT
+
+export function getRequiredSimAgentApiUrl(): string {
+  if (SIM_AGENT_API_URL) return SIM_AGENT_API_URL
+  throw new Error('SIM_AGENT_API_URL must be configured to an owned Mothership/Copilot backend URL')
+}
 
 /** Default timeout for the copilot orchestration stream loop (60 min). */
 export const ORCHESTRATION_TIMEOUT_MS = 3_600_000

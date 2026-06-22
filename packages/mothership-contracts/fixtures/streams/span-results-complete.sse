@@ -1,0 +1,7 @@
+data: {"v":1,"type":"session","seq":1,"ts":"2026-06-21T00:00:00.000Z","stream":{"streamId":"msg-span-results-1","chatId":"chat-span-results-1"},"trace":{"requestId":"req-span-results-1"},"payload":{"kind":"chat","chatId":"chat-span-results-1"}}
+
+data: {"v":1,"type":"span","seq":2,"ts":"2026-06-21T00:00:01.000Z","stream":{"streamId":"msg-span-results-1","chatId":"chat-span-results-1"},"trace":{"requestId":"req-span-results-1"},"scope":{"lane":"subagent","agentId":"agent-research-1","spanId":"span-research-1"},"payload":{"kind":"structured_result","agent":"Research","data":{"confidence":0.91,"sources":2}}}
+
+data: {"v":1,"type":"span","seq":3,"ts":"2026-06-21T00:00:02.000Z","stream":{"streamId":"msg-span-results-1","chatId":"chat-span-results-1"},"trace":{"requestId":"req-span-results-1"},"scope":{"lane":"subagent","agentId":"agent-research-1","spanId":"span-research-1"},"payload":{"kind":"subagent_result","agent":"Research","data":{"summary":"Found two sources."}}}
+
+data: {"v":1,"type":"complete","seq":4,"ts":"2026-06-21T00:00:03.000Z","stream":{"streamId":"msg-span-results-1","chatId":"chat-span-results-1"},"trace":{"requestId":"req-span-results-1"},"payload":{"status":"complete"}}

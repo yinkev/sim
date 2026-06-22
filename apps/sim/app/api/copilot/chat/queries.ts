@@ -19,6 +19,7 @@ import {
 import { readFilePreviewSessions } from '@/lib/copilot/request/session'
 import { readEvents } from '@/lib/copilot/request/session/buffer'
 import { toStreamBatchEvent } from '@/lib/copilot/request/session/types'
+import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import {
   assertActiveWorkspaceAccess,
   isWorkspaceAccessDeniedError,
@@ -70,7 +71,7 @@ function transformChatListItem(chat: CopilotChatListRow) {
   }
 }
 
-export async function GET(req: NextRequest) {
+export const GET = withRouteHandler(async (req: NextRequest) => {
   try {
     const { searchParams } = new URL(req.url)
     const workflowId = searchParams.get('workflowId')
@@ -206,4 +207,4 @@ export async function GET(req: NextRequest) {
     logger.error('Error fetching copilot chats:', error)
     return createInternalServerErrorResponse('Failed to fetch chats')
   }
-}
+})

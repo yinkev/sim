@@ -17,6 +17,8 @@
 #     --set app.env.BETTER_AUTH_SECRET="$BETTER_AUTH_SECRET" \
 #     --set app.env.ENCRYPTION_KEY="$ENCRYPTION_KEY" \
 #     --set app.env.INTERNAL_API_SECRET="$INTERNAL_API_SECRET" \
+#     --set app.env.SIM_TO_MOTHERSHIP_API_KEY="$SIM_TO_MOTHERSHIP_API_KEY" \
+#     --set app.env.MOTHERSHIP_TO_SIM_CALLBACK_KEY="$MOTHERSHIP_TO_SIM_CALLBACK_KEY" \
 #     --set app.env.CRON_SECRET="$CRON_SECRET" \
 #     --set postgresql.auth.password="$POSTGRES_PASSWORD"
 #
@@ -32,7 +34,9 @@
 #      reference it via app.secrets.existingSecret.name. You are
 #      responsible for ensuring the Secret contains every key your app
 #      needs (BETTER_AUTH_SECRET, ENCRYPTION_KEY, INTERNAL_API_SECRET,
-#      OPENAI_API_KEY, ...). The chart-managed Secret is not rendered in
+#      SIM_TO_MOTHERSHIP_API_KEY, MOTHERSHIP_TO_SIM_CALLBACK_KEY, OPENAI_API_KEY, ...).
+#      Add MOTHERSHIP_ADMIN_API_KEY only when owned Mothership admin routes are
+#      enabled. The chart-managed Secret is not rendered in
 #      this mode, so anything missing from your Secret will be empty at
 #      runtime.
 #
@@ -77,6 +81,9 @@ app:
     BETTER_AUTH_SECRET: "your-secure-production-auth-secret-here"
     ENCRYPTION_KEY: "your-secure-production-encryption-key-here"
     INTERNAL_API_SECRET: "your-secure-production-internal-api-secret-here"
+    SIM_TO_MOTHERSHIP_API_KEY: "your-secure-production-mothership-runtime-secret-here"
+    MOTHERSHIP_TO_SIM_CALLBACK_KEY: "your-secure-production-mothership-callback-secret-here"
+    MOTHERSHIP_ADMIN_API_KEY: "" # Required when mothership.enabled=true
     CRON_SECRET: "your-secure-production-cron-secret-here"
 
     # Optional: API Key Encryption (RECOMMENDED for production)
@@ -321,6 +328,9 @@ extraVolumeMounts:
 #       BETTER_AUTH_SECRET:  "sim-better-auth-secret"
 #       ENCRYPTION_KEY:      "sim-encryption-key"
 #       INTERNAL_API_SECRET: "sim-internal-api-secret"
+#       SIM_TO_MOTHERSHIP_API_KEY: "sim-mothership-runtime-secret"
+#       MOTHERSHIP_TO_SIM_CALLBACK_KEY: "sim-mothership-callback-secret"
+#       MOTHERSHIP_ADMIN_API_KEY: "sim-mothership-admin-secret"
 #       CRON_SECRET:         "sim-cron-secret"
 #       API_ENCRYPTION_KEY:  "sim-api-encryption-key"
 #       # Provider keys typical for a GCP deployment. Vertex AI auth is

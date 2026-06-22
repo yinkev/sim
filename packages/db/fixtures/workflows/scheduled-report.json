@@ -22,7 +22,11 @@
       "enabled": true,
       "horizontalHandles": true,
       "subBlocks": {
-        "url": { "id": "url", "type": "short-input", "value": "https://jsonplaceholder.typicode.com/posts/1" },
+        "url": {
+          "id": "url",
+          "type": "short-input",
+          "value": "https://jsonplaceholder.typicode.com/posts/1"
+        },
         "method": { "id": "method", "type": "dropdown", "value": "GET" },
         "params": { "id": "params", "type": "table", "value": [] },
         "headers": { "id": "headers", "type": "table", "value": [] },
@@ -106,7 +110,13 @@
     { "id": "e1", "source": "start-1", "target": "api-1", "type": "default" },
     { "id": "e2", "source": "api-1", "target": "fn-1", "type": "default" },
     { "id": "e3", "source": "fn-1", "target": "cond-1", "type": "default" },
-    { "id": "e4", "source": "cond-1", "target": "agent-1", "type": "default", "sourceHandle": "true" },
+    {
+      "id": "e4",
+      "source": "cond-1",
+      "target": "agent-1",
+      "type": "default",
+      "sourceHandle": "true"
+    },
     { "id": "e5", "source": "cond-1", "target": "fn-2", "type": "default", "sourceHandle": "false" }
   ],
   "loops": {},

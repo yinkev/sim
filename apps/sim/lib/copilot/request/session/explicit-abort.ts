@@ -1,9 +1,10 @@
 import type { Context } from '@opentelemetry/api'
+import { MothershipClientError } from '@sim/mothership-client'
+import { explicitAbortContract } from '@sim/mothership-contracts/routes'
 import { TraceAttr } from '@/lib/copilot/generated/trace-attributes-v1'
-import { fetchGo } from '@/lib/copilot/request/go/fetch'
 import { AbortReason } from '@/lib/copilot/request/session/abort'
-import { getMothershipBaseURL, getMothershipSourceEnvHeaders } from '@/lib/copilot/server/agent-url'
-import { env } from '@/lib/core/config/env'
+import { getMothershipBaseURL } from '@/lib/copilot/server/agent-url'
+import { requestMothershipRuntime } from '@/lib/mothership/client'
 
 export const DEFAULT_EXPLICIT_ABORT_TIMEOUT_MS = 3000
 
@@ -24,14 +25,6 @@ export async function requestExplicitStreamAbort(params: {
     otelContext,
   } = params
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  }
-  if (env.COPILOT_API_KEY) {
-    headers['x-api-key'] = env.COPILOT_API_KEY
-  }
-  Object.assign(headers, getMothershipSourceEnvHeaders())
-
   const controller = new AbortController()
   const timeout = setTimeout(
     () => controller.abort(AbortReason.ExplicitAbortFetchTimeout),
@@ -40,16 +33,18 @@ export async function requestExplicitStreamAbort(params: {
 
   try {
     const mothershipBaseURL = await getMothershipBaseURL({ userId })
-    const response = await fetchGo(`${mothershipBaseURL}/api/streams/explicit-abort`, {
-      method: 'POST',
-      headers,
-      signal: controller.signal,
-      body: JSON.stringify({
-        messageId: streamId,
-        userId,
-        ...(chatId ? { chatId } : {}),
-        ...(workspaceId ? { workspaceId } : {}),
-      }),
+    await requestMothershipRuntime({
+      contract: explicitAbortContract,
+      baseUrl: mothershipBaseURL,
+      input: {
+        signal: controller.signal,
+        body: {
+          messageId: streamId,
+          userId,
+          ...(chatId ? { chatId } : {}),
+          ...(workspaceId ? { workspaceId } : {}),
+        },
+      },
       otelContext,
       spanName: 'sim → go /api/streams/explicit-abort',
       operation: 'explicit_abort',
@@ -58,10 +53,11 @@ export async function requestExplicitStreamAbort(params: {
         ...(chatId ? { [TraceAttr.ChatId]: chatId } : {}),
       },
     })
-
-    if (!response.ok) {
-      throw new Error(`Explicit abort marker request failed: ${response.status}`)
+  } catch (error) {
+    if (error instanceof MothershipClientError && error.status > 0) {
+      throw new Error(`Explicit abort marker request failed: ${error.status}`)
     }
+    throw error
   } finally {
     clearTimeout(timeout)
   }

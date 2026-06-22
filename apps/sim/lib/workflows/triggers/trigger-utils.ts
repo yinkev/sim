@@ -6,8 +6,8 @@ import {
   StartBlockPath,
   TRIGGER_TYPES,
 } from '@/lib/workflows/triggers/triggers'
-import { getAllBlocks, getBlock } from '@/blocks'
 import type { BlockConfig } from '@/blocks/types'
+import { resolveAllBlocks, resolveBlock } from '@/stores/workflows/block-accessor'
 import type { BlockState, WorkflowState } from '@/stores/workflows/workflow/types'
 import { getTrigger } from '@/triggers'
 
@@ -161,7 +161,7 @@ interface TriggerInfo {
  * This includes both dedicated trigger blocks and tools with trigger capabilities
  */
 export function getAllTriggerBlocks(): TriggerInfo[] {
-  const allBlocks = getAllBlocks()
+  const allBlocks = resolveAllBlocks()
   const triggers: TriggerInfo[] = []
 
   for (const block of allBlocks) {
@@ -224,7 +224,7 @@ export function hasTriggerCapability(block: BlockConfig): boolean {
  * This includes all trigger blocks and tools with trigger mode
  */
 export function getTriggersForSidebar(): BlockConfig[] {
-  const allBlocks = getAllBlocks()
+  const allBlocks = resolveAllBlocks()
   return allBlocks.filter((block) => {
     if (block.hideFromToolbar) return false
     // Include blocks with triggers category or trigger-config subblock
@@ -236,7 +236,7 @@ export function getTriggersForSidebar(): BlockConfig[] {
  * Get the proper display name for a trigger block in the UI
  */
 export function getTriggerDisplayName(blockType: string): string {
-  const block = getBlock(blockType)
+  const block = resolveBlock(blockType)
   if (!block) return blockType
 
   if (blockType === TRIGGER_TYPES.GENERIC_WEBHOOK) {
@@ -403,7 +403,7 @@ export function extractTriggerMockPayload<
     triggerId = subBlocks.selectedTriggerId.value
   } else {
     // For single-trigger blocks, get from block config
-    const blockConfig = getBlock(trigger.block.type)
+    const blockConfig = resolveBlock(trigger.block.type)
 
     if (blockConfig?.triggers?.available?.length === 1) {
       triggerId = blockConfig.triggers.available[0]

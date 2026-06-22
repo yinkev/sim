@@ -8,7 +8,7 @@ const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(SCRIPT_DIR, '..')
 const DEFAULT_CONTRACT_PATH = resolve(
   ROOT,
-  '../copilot/copilot/contracts/mothership-stream-v1.schema.json'
+  'packages/mothership-contracts/contracts/mothership-stream-v1.schema.json'
 )
 const OUTPUT_PATH = resolve(ROOT, 'apps/sim/lib/copilot/generated/mothership-stream-v1.ts')
 const RUNTIME_SCHEMA_OUTPUT_PATH = resolve(
@@ -45,7 +45,7 @@ function generateRuntimeConstants(schema: Record<string, unknown>, existingTypes
 function renderRuntimeSchemaModule(schema: unknown): string {
   return [
     '// AUTO-GENERATED FILE. DO NOT EDIT.',
-    '// Generated from copilot/contracts/mothership-stream-v1.schema.json',
+    '// Generated from packages/mothership-contracts/contracts/mothership-stream-v1.schema.json',
     '//',
     '',
     'export type JsonSchema = unknown',

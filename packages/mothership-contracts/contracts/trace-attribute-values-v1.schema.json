@@ -1,0 +1,252 @@
+{
+  "$defs": {
+    "AbortBackend": {
+      "enum": ["in_process", "redis"],
+      "type": "string"
+    },
+    "AbortRedisResult": {
+      "enum": ["error", "ok", "slow"],
+      "type": "string"
+    },
+    "AuthKeyMatch": {
+      "enum": ["none", "user"],
+      "type": "string"
+    },
+    "BillingAnalyticsOutcome": {
+      "enum": ["duplicate", "retries_exhausted", "success", "unknown"],
+      "type": "string"
+    },
+    "BillingFlushOutcome": {
+      "enum": [
+        "checkpoint_already_claimed",
+        "checkpoint_load_failed",
+        "flushed",
+        "no_checkpoint",
+        "no_snapshot",
+        "skipped_unconfigured"
+      ],
+      "type": "string"
+    },
+    "BillingRouteOutcome": {
+      "enum": [
+        "auth_failed",
+        "billed",
+        "billing_disabled",
+        "duplicate_idempotency_key",
+        "internal_error",
+        "invalid_body"
+      ],
+      "type": "string"
+    },
+    "CopilotAbortOutcome": {
+      "enum": [
+        "bad_request",
+        "fallback_persist_failed",
+        "force_released",
+        "missing_message_id",
+        "missing_stream_id",
+        "no_chat_id",
+        "ok",
+        "settle_timeout",
+        "settled",
+        "unauthorized"
+      ],
+      "type": "string"
+    },
+    "CopilotBranchKind": {
+      "enum": ["workflow", "workspace"],
+      "type": "string"
+    },
+    "CopilotChatFinalizeOutcome": {
+      "enum": [
+        "appended_assistant",
+        "assistant_already_persisted",
+        "cleared_stream_marker_only",
+        "stale_user_message"
+      ],
+      "type": "string"
+    },
+    "CopilotChatPersistOutcome": {
+      "enum": ["appended", "chat_not_found"],
+      "type": "string"
+    },
+    "CopilotConfirmOutcome": {
+      "enum": [
+        "delivered",
+        "forbidden",
+        "internal_error",
+        "run_not_found",
+        "tool_call_not_found",
+        "unauthorized",
+        "update_failed",
+        "validation_error"
+      ],
+      "type": "string"
+    },
+    "CopilotFinalizeOutcome": {
+      "enum": ["aborted", "error", "success"],
+      "type": "string"
+    },
+    "CopilotLeg": {
+      "enum": ["sim_to_go"],
+      "type": "string"
+    },
+    "CopilotOutputFileOutcome": {
+      "enum": ["failed", "uploaded"],
+      "type": "string"
+    },
+    "CopilotRecoveryOutcome": {
+      "enum": ["gap_detected", "in_range"],
+      "type": "string"
+    },
+    "CopilotRequestCancelReason": {
+      "enum": ["client_disconnect", "explicit_stop", "timeout", "unknown"],
+      "type": "string"
+    },
+    "CopilotResourcesOp": {
+      "enum": ["delete", "none", "upsert"],
+      "type": "string"
+    },
+    "CopilotResumeOutcome": {
+      "enum": [
+        "batch_delivered",
+        "client_disconnected",
+        "ended_without_terminal",
+        "stream_not_found",
+        "terminal_delivered"
+      ],
+      "type": "string"
+    },
+    "CopilotSseCloseReason": {
+      "enum": [
+        "aborted",
+        "backend_error",
+        "billing_limit",
+        "closed_no_terminal",
+        "error",
+        "terminal",
+        "timeout"
+      ],
+      "type": "string"
+    },
+    "CopilotStopOutcome": {
+      "enum": [
+        "chat_not_found",
+        "internal_error",
+        "no_matching_row",
+        "persisted",
+        "unauthorized",
+        "validation_error"
+      ],
+      "type": "string"
+    },
+    "CopilotSurface": {
+      "enum": ["copilot", "mothership"],
+      "type": "string"
+    },
+    "CopilotTableOutcome": {
+      "enum": [
+        "empty_content",
+        "empty_rows",
+        "failed",
+        "imported",
+        "invalid_json_shape",
+        "invalid_shape",
+        "row_limit_exceeded",
+        "table_not_found",
+        "wrote"
+      ],
+      "type": "string"
+    },
+    "CopilotTableSourceFormat": {
+      "enum": ["csv", "json"],
+      "type": "string"
+    },
+    "CopilotTransport": {
+      "enum": ["batch", "headless", "stream"],
+      "type": "string"
+    },
+    "CopilotValidateOutcome": {
+      "enum": [
+        "internal_auth_failed",
+        "internal_error",
+        "invalid_body",
+        "ok",
+        "usage_exceeded",
+        "user_not_found"
+      ],
+      "type": "string"
+    },
+    "CopilotVfsOutcome": {
+      "enum": [
+        "passthrough_fits_budget",
+        "passthrough_no_metadata",
+        "passthrough_no_sharp",
+        "rejected_no_metadata",
+        "rejected_no_sharp",
+        "rejected_too_large_after_resize",
+        "resized"
+      ],
+      "type": "string"
+    },
+    "CopilotVfsReadOutcome": {
+      "enum": [
+        "binary_placeholder",
+        "document_parsed",
+        "document_too_large",
+        "image_prepared",
+        "image_too_large",
+        "parse_failed",
+        "read_failed",
+        "text_read",
+        "text_too_large"
+      ],
+      "type": "string"
+    },
+    "CopilotVfsReadPath": {
+      "enum": ["binary", "image", "parseable_document", "text"],
+      "type": "string"
+    },
+    "LlmErrorStage": {
+      "enum": [
+        "build_request",
+        "decode",
+        "http_build",
+        "http_status",
+        "invoke",
+        "marshal_request",
+        "stream_close"
+      ],
+      "type": "string"
+    },
+    "RateLimitOutcome": {
+      "enum": ["allowed", "incr_error", "limited"],
+      "type": "string"
+    },
+    "ToolAsyncWaiterResolution": {
+      "enum": [
+        "context_cancelled",
+        "poll",
+        "pubsub",
+        "stored_after_close",
+        "stored_before_subscribe",
+        "stored_post_subscribe",
+        "subscription_closed",
+        "unknown"
+      ],
+      "type": "string"
+    },
+    "ToolErrorKind": {
+      "enum": ["dispatch", "not_found"],
+      "type": "string"
+    },
+    "ToolExecutor": {
+      "enum": ["client", "go", "sim"],
+      "type": "string"
+    },
+    "ToolStoreStatus": {
+      "enum": ["cancelled", "completed", "failed", "pending"],
+      "type": "string"
+    }
+  }
+}

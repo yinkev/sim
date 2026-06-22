@@ -5,7 +5,7 @@ import { formatGeneratedSource } from './format-generated-source'
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(SCRIPT_DIR, '..')
-const DEFAULT_CATALOG_PATH = resolve(ROOT, '../copilot/copilot/contracts/tool-catalog-v1.json')
+const DEFAULT_CATALOG_PATH = resolve(ROOT, 'packages/mothership-contracts/contracts/tool-catalog-v1.json')
 const OUTPUT_PATH = resolve(ROOT, 'apps/sim/lib/copilot/generated/tool-catalog-v1.ts')
 const RUNTIME_SCHEMA_OUTPUT_PATH = resolve(
   ROOT,
@@ -32,6 +32,10 @@ function toCamelIdentifier(value: string): string {
     .join('')
 
   return /^[0-9]/.test(camel) ? `v${camel}` : camel
+}
+
+function renderObjectKey(value: string): string {
+  return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(value) ? value : `[${JSON.stringify(value)}]`
 }
 
 function getTopLevelOperationEnum(tool: Record<string, unknown>): string[] | undefined {
@@ -72,7 +76,7 @@ function inferTSType(values: unknown[]): string {
 function renderRuntimeSchemaModule(catalog: { tools: Record<string, unknown>[] }): string {
   const lines: string[] = [
     '// AUTO-GENERATED FILE. DO NOT EDIT.',
-    '// Generated from copilot/contracts/tool-catalog-v1.json',
+    '// Generated from packages/mothership-contracts/contracts/tool-catalog-v1.json',
     '//',
     '',
     'export type JsonSchema = unknown',
@@ -86,12 +90,13 @@ function renderRuntimeSchemaModule(catalog: { tools: Record<string, unknown>[] }
   ]
 
   for (const tool of catalog.tools) {
-    const id = JSON.stringify(tool.id)
+    const id = String(tool.id)
+    const key = renderObjectKey(id)
     const parameters =
       'parameters' in tool ? JSON.stringify(tool.parameters ?? null, null, 2) : 'undefined'
     const resultSchema =
       'resultSchema' in tool ? JSON.stringify(tool.resultSchema ?? null, null, 2) : 'undefined'
-    lines.push(`  [${id}]: {`)
+    lines.push(`  ${key}: {`)
     lines.push(
       `    parameters: ${parameters === 'null' ? 'undefined' : parameters.replace(/\n/g, '\n    ')},`
     )
@@ -148,7 +153,7 @@ async function main() {
 
   const lines: string[] = [
     '// AUTO-GENERATED FILE. DO NOT EDIT.',
-    '// Generated from copilot/contracts/tool-catalog-v1.json',
+    '// Generated from packages/mothership-contracts/contracts/tool-catalog-v1.json',
     '//',
     '',
     iface,

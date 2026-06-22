@@ -699,6 +699,20 @@ export const importIntoTableAsyncContract = defineRouteContract({
   },
 })
 
+export const importIntoTableResponseSchema = successResponseSchema(
+  z.object({
+    tableId: z.string(),
+    mode: csvImportModeSchema,
+    insertedCount: z.number().optional(),
+    deletedCount: z.number().optional(),
+    mappedColumns: z.array(z.string()).optional(),
+    skippedHeaders: z.array(z.string()).optional(),
+    unmappedColumns: z.array(z.string()).optional(),
+    sourceFile: z.string().optional(),
+  })
+)
+export type ImportCsvIntoTableResponse = z.output<typeof importIntoTableResponseSchema>
+
 /**
  * `createColumns` form field — a JSON-encoded array of CSV header names that
  * the import should auto-create as new columns on the target table.

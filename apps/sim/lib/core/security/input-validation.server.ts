@@ -422,15 +422,28 @@ export function createPinnedLookup(resolvedIP: string): LookupFunction {
 export function createPinnedFetch(resolvedIP: string): typeof fetch {
   const dispatcher = new Agent({ connect: { lookup: createPinnedLookup(resolvedIP) } })
 
-  const pinned = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    // double-cast-allowed: DOM RequestInfo/URL and undici fetch input types differ but are structurally compatible at runtime (Node's global fetch IS undici)
-    const undiciInput = input as unknown as Parameters<typeof undiciFetch>[0]
-    // double-cast-allowed: DOM RequestInit and undici RequestInit are structurally compatible at runtime but the TS types differ
-    const undiciInit: UndiciRequestInit = { ...(init as unknown as UndiciRequestInit), dispatcher }
-    const response = await undiciFetch(undiciInput, undiciInit)
-    // double-cast-allowed: undici Response and DOM Response are structurally compatible at runtime
-    return response as unknown as Response
-  }
+  const fetchPreconnect =
+    typeof fetch.preconnect === 'function' ? fetch.preconnect.bind(fetch) : () => {}
+  const pinned = Object.assign(
+    async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      const undiciInput = input as Parameters<typeof undiciFetch>[0]
+      const undiciInit: UndiciRequestInit = {
+        ...(init as UndiciRequestInit),
+        dispatcher,
+      }
+      const response = await undiciFetch(undiciInput, undiciInit)
+      const responseHeaders = new Headers()
+      response.headers.forEach((value, key) => {
+        responseHeaders.append(key, value)
+      })
+      return new Response(response.body as BodyInit | null, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: responseHeaders,
+      })
+    },
+    { preconnect: fetchPreconnect }
+  )
 
   return pinned
 }

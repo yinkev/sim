@@ -111,6 +111,12 @@ const nextConfig: NextConfig = {
       '@radix-ui/react-slider',
       'streamdown',
       'zod',
+      // Heavy barrels used across the client graph — transform-only the
+      // imported symbols instead of evaluating the full barrel on compile.
+      'lucide-react',
+      'date-fns',
+      'es-toolkit',
+      '@tanstack/react-query',
     ],
   },
   ...(isDev && {
@@ -128,15 +134,7 @@ const nextConfig: NextConfig = {
       'localhost:3001',
     ],
   }),
-  transpilePackages: [
-    'prettier',
-    '@react-email/components',
-    '@react-email/render',
-    '@t3-oss/env-nextjs',
-    '@t3-oss/env-core',
-    '@sim/db',
-    'better-auth-harmony',
-  ],
+  transpilePackages: ['@t3-oss/env-nextjs', '@t3-oss/env-core', '@sim/db', 'better-auth-harmony'],
   async headers() {
     return [
       {

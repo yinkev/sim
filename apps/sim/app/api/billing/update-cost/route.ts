@@ -12,11 +12,11 @@ import { checkAndBillOverageThreshold } from '@/lib/billing/threshold-billing'
 import { BillingRouteOutcome } from '@/lib/copilot/generated/trace-attribute-values-v1'
 import { TraceAttr } from '@/lib/copilot/generated/trace-attributes-v1'
 import { TraceSpan } from '@/lib/copilot/generated/trace-spans-v1'
-import { checkInternalApiKey } from '@/lib/copilot/request/http'
 import { withIncomingGoSpan } from '@/lib/copilot/request/otel'
 import { isBillingEnabled } from '@/lib/core/config/env-flags'
 import { generateRequestId } from '@/lib/core/utils/request'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { checkSimCallbackAuth } from '@/lib/mothership/service-auth'
 
 const logger = createLogger('BillingUpdateCostAPI')
 
@@ -51,7 +51,7 @@ async function resolveAttributableWorkspaceId(
 
 /**
  * POST /api/billing/update-cost
- * Update user cost with a pre-calculated cost value (internal API key auth required)
+ * Update user cost with a pre-calculated cost value (Mothership callback auth required)
  *
  * Parented under the Go-side `sim.update_cost` span via W3C traceparent
  * propagation. Every mothership request that bills should therefore show
@@ -77,6 +77,20 @@ async function updateCostInner(req: NextRequest, span: Span): Promise<NextRespon
   try {
     logger.info(`[${requestId}] Update cost request started`)
 
+    const authResult = checkSimCallbackAuth(req.headers)
+    if (!authResult.success) {
+      logger.warn(`[${requestId}] Authentication failed: ${authResult.error}`)
+      span.setAttribute(TraceAttr.BillingOutcome, BillingRouteOutcome.AuthFailed)
+      span.setAttribute(TraceAttr.HttpStatusCode, authResult.status)
+      return NextResponse.json(
+        {
+          success: false,
+          error: authResult.error || 'Authentication failed',
+        },
+        { status: authResult.status }
+      )
+    }
+
     if (!isBillingEnabled) {
       span.setAttribute(TraceAttr.BillingOutcome, BillingRouteOutcome.BillingDisabled)
       span.setAttribute(TraceAttr.HttpStatusCode, 200)
@@ -89,21 +103,6 @@ async function updateCostInner(req: NextRequest, span: Span): Promise<NextRespon
           requestId,
         },
       })
-    }
-
-    // Check authentication (internal API key)
-    const authResult = checkInternalApiKey(req)
-    if (!authResult.success) {
-      logger.warn(`[${requestId}] Authentication failed: ${authResult.error}`)
-      span.setAttribute(TraceAttr.BillingOutcome, BillingRouteOutcome.AuthFailed)
-      span.setAttribute(TraceAttr.HttpStatusCode, 401)
-      return NextResponse.json(
-        {
-          success: false,
-          error: authResult.error || 'Authentication failed',
-        },
-        { status: 401 }
-      )
     }
 
     const parsed = await parseRequest(

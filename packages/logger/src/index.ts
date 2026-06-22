@@ -125,9 +125,10 @@ const formatObject = (obj: unknown, isDev: boolean): string => {
         stack: isDev ? obj.stack : undefined,
         name: obj.name,
       }
+      const errorRecord = obj as Error & Record<string, unknown>
       for (const key of Object.keys(obj)) {
         if (!(key in errorObj)) {
-          errorObj[key] = (obj as unknown as Record<string, unknown>)[key]
+          errorObj[key] = errorRecord[key]
         }
       }
       return JSON.stringify(errorObj, null, isDev ? 2 : 0)

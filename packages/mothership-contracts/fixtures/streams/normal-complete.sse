@@ -1,0 +1,5 @@
+data: {"v":1,"type":"session","seq":1,"ts":"2026-06-21T00:00:00.000Z","stream":{"streamId":"msg-normal-1","chatId":"chat-normal-1"},"trace":{"requestId":"req-normal-1"},"payload":{"kind":"chat","chatId":"chat-normal-1"}}
+
+data: {"v":1,"type":"text","seq":2,"ts":"2026-06-21T00:00:01.000Z","stream":{"streamId":"msg-normal-1","chatId":"chat-normal-1"},"trace":{"requestId":"req-normal-1"},"payload":{"channel":"assistant","text":"Done."}}
+
+data: {"v":1,"type":"complete","seq":3,"ts":"2026-06-21T00:00:02.000Z","stream":{"streamId":"msg-normal-1","chatId":"chat-normal-1"},"trace":{"requestId":"req-normal-1"},"payload":{"status":"complete","usage":{"input_tokens":10,"output_tokens":2,"total_tokens":12},"cost":{"total":0.001}}}

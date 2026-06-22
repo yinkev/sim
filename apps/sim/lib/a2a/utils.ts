@@ -68,53 +68,58 @@ export async function createA2AClient(agentUrl: string, apiKey?: string): Promis
 
   const resolvedIP = validation.resolvedIP!
 
-  const pinnedFetch = async (
-    input: Parameters<typeof fetch>[0],
-    init?: Parameters<typeof fetch>[1]
-  ): Promise<Response> => {
-    const url = input instanceof Request ? input.url : input.toString()
-    const method = init?.method ?? (input instanceof Request ? input.method : undefined)
+  const fetchPreconnect =
+    typeof fetch.preconnect === 'function' ? fetch.preconnect.bind(fetch) : () => {}
+  const pinnedFetch = Object.assign(
+    async (
+      input: Parameters<typeof fetch>[0],
+      init?: Parameters<typeof fetch>[1]
+    ): Promise<Response> => {
+      const url = input instanceof Request ? input.url : input.toString()
+      const method = init?.method ?? (input instanceof Request ? input.method : undefined)
 
-    const rawHeaders = init?.headers ?? (input instanceof Request ? input.headers : undefined)
-    const headers =
-      rawHeaders instanceof Headers
-        ? Object.fromEntries(rawHeaders.entries())
-        : Array.isArray(rawHeaders)
-          ? Object.fromEntries(rawHeaders as string[][])
-          : (rawHeaders as Record<string, string> | undefined)
+      const rawHeaders = init?.headers ?? (input instanceof Request ? input.headers : undefined)
+      const headers =
+        rawHeaders instanceof Headers
+          ? Object.fromEntries(rawHeaders.entries())
+          : Array.isArray(rawHeaders)
+            ? Object.fromEntries(rawHeaders as string[][])
+            : (rawHeaders as Record<string, string> | undefined)
 
-    let body: string | Buffer | Uint8Array | undefined
-    if (init?.body !== undefined && init.body !== null) {
-      if (typeof init.body === 'string' || Buffer.isBuffer(init.body)) {
-        body = init.body as string | Buffer
-      } else if (init.body instanceof Uint8Array) {
-        body = init.body
-      } else if (init.body instanceof ArrayBuffer) {
-        body = new Uint8Array(init.body)
-      } else {
-        const text = await new Response(init.body as BodyInit).text()
+      let body: string | Buffer | Uint8Array | undefined
+      if (init?.body !== undefined && init.body !== null) {
+        if (typeof init.body === 'string' || Buffer.isBuffer(init.body)) {
+          body = init.body as string | Buffer
+        } else if (init.body instanceof Uint8Array) {
+          body = init.body
+        } else if (init.body instanceof ArrayBuffer) {
+          body = new Uint8Array(init.body)
+        } else {
+          const text = await new Response(init.body as BodyInit).text()
+          if (text) body = text
+        }
+      } else if (init?.body === undefined && input instanceof Request && !input.bodyUsed) {
+        const text = await input.text()
         if (text) body = text
       }
-    } else if (init?.body === undefined && input instanceof Request && !input.bodyUsed) {
-      const text = await input.text()
-      if (text) body = text
-    }
 
-    const signal =
-      init?.signal instanceof AbortSignal
-        ? init.signal
-        : input instanceof Request && input.signal instanceof AbortSignal
-          ? input.signal
-          : undefined
+      const signal =
+        init?.signal instanceof AbortSignal
+          ? init.signal
+          : input instanceof Request && input.signal instanceof AbortSignal
+            ? input.signal
+            : undefined
 
-    const res = await secureFetchWithPinnedIP(url, resolvedIP, { method, headers, body, signal })
-    const resHeaders = new Headers(res.headers.toRecord())
-    return new Response(res.body, {
-      status: res.status,
-      statusText: res.statusText,
-      headers: resHeaders,
-    })
-  }
+      const res = await secureFetchWithPinnedIP(url, resolvedIP, { method, headers, body, signal })
+      const resHeaders = new Headers(res.headers.toRecord())
+      return new Response(res.body, {
+        status: res.status,
+        statusText: res.statusText,
+        headers: resHeaders,
+      })
+    },
+    { preconnect: fetchPreconnect }
+  )
 
   const pinnedTransports = [
     new JsonRpcTransportFactory({ fetchImpl: pinnedFetch }),

@@ -58,7 +58,11 @@ export const POST = withRouteHandler(async (req: NextRequest) => {
       )
     }
 
-    const body = await req.json()
+    // boundary-raw-json: contact endpoint must inspect honeypot and captcha fallback before full contract validation
+    const body = await req.json().catch(() => null)
+    if (body === null) {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
     const bodyRecord = body && typeof body === 'object' ? (body as Record<string, unknown>) : {}
 
     const honeypot = bodyRecord.website

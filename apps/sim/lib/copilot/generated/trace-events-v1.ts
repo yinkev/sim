@@ -1,12 +1,12 @@
 // AUTO-GENERATED FILE. DO NOT EDIT.
 //
-// Source: copilot/copilot/contracts/trace-events-v1.schema.json
+// Source: packages/mothership-contracts/contracts/trace-events-v1.schema.json
 // Regenerate with: bun run trace-events-contract:generate
 //
 // Canonical mothership OTel span event names. Call sites should
 // reference `TraceEvent.<Identifier>` (e.g.
 // `TraceEvent.RequestCancelled`) rather than raw string literals,
-// so the Go-side contract is the single source of truth and typos
+// so the owned contract is the single source of truth and typos
 // become compile errors.
 
 export const TraceEvent = {

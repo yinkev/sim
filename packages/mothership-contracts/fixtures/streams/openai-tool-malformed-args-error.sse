@@ -1,0 +1,1 @@
+data: {"v":1,"type":"error","seq":1,"ts":"2026-06-21T00:00:00.000Z","stream":{"streamId":"msg-openai-tool-malformed-args-1","cursor":"1"},"trace":{"requestId":"req-openai-tool-malformed-args-1"},"payload":{"code":"owned_provider_error","message":"OpenAI function_call arguments must be valid JSON","provider":"openai"}}

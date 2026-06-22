@@ -40,6 +40,7 @@ function buildMockResponse(init: {
     status: init.status ?? (init.ok ? 200 : 500),
     headers: new Headers(),
     json: init.json,
+    text: async () => JSON.stringify(await init.json()),
   }
 }
 
@@ -124,7 +125,44 @@ describe('Copilot API Keys API Route', () => {
       expect(responseData.keys).toEqual([])
     })
 
-    it('should forward userId to Sim Agent', async () => {
+    it('should preserve display-only API key values from owned Mothership', async () => {
+      authMockFns.mockGetSession.mockResolvedValue({
+        user: { id: 'user-123', email: 'test@example.com' },
+      })
+
+      mockFetch.mockResolvedValueOnce(
+        buildMockResponse({
+          ok: true,
+          json: () =>
+            Promise.resolve([
+              {
+                id: 'key-1',
+                displayKey: 'sk-sim-...abcd',
+                name: 'Owned Key',
+                createdAt: '2026-06-21T00:00:00.000Z',
+                lastUsed: null,
+              },
+            ]),
+        })
+      )
+
+      const request = new NextRequest('http://localhost:3000/api/copilot/api-keys')
+      const response = await GET(request)
+
+      expect(response.status).toBe(200)
+      const responseData = await response.json()
+      expect(responseData.keys).toEqual([
+        {
+          id: 'key-1',
+          displayKey: 'sk-sim-...abcd',
+          name: 'Owned Key',
+          createdAt: '2026-06-21T00:00:00.000Z',
+          lastUsed: null,
+        },
+      ])
+    })
+
+    it('should forward userId to owned Mothership with strict runtime auth', async () => {
       authMockFns.mockGetSession.mockResolvedValue({
         user: { id: 'user-123', email: 'test@example.com' },
       })
@@ -144,8 +182,8 @@ describe('Copilot API Keys API Route', () => {
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
-            'Content-Type': 'application/json',
-            'x-api-key': 'test-api-key',
+            'content-type': 'application/json',
+            'x-mothership-runtime-key': 'test-api-key',
           }),
           body: JSON.stringify({ userId: 'user-123' }),
         })
@@ -284,7 +322,7 @@ describe('Copilot API Keys API Route', () => {
       expect(responseData).toEqual({ error: 'id is required' })
     })
 
-    it('should successfully delete an API key', async () => {
+    it('should successfully delete an API key with strict runtime auth', async () => {
       authMockFns.mockGetSession.mockResolvedValue({
         user: { id: 'user-123', email: 'test@example.com' },
       })
@@ -308,8 +346,8 @@ describe('Copilot API Keys API Route', () => {
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
-            'Content-Type': 'application/json',
-            'x-api-key': 'test-api-key',
+            'content-type': 'application/json',
+            'x-mothership-runtime-key': 'test-api-key',
           }),
           body: JSON.stringify({ userId: 'user-123', apiKeyId: 'key-123' }),
         })

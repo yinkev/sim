@@ -1,6 +1,6 @@
 // AUTO-GENERATED FILE. DO NOT EDIT.
 //
-// Source: copilot/copilot/contracts/trace-attribute-values-v1.schema.json
+// Source: packages/mothership-contracts/contracts/trace-attribute-values-v1.schema.json
 // Regenerate with: bun run trace-attribute-values-contract:generate
 //
 // Canonical closed-set value vocabularies for mothership OTel

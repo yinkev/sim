@@ -13,6 +13,21 @@ import { getFromEmailAddress } from '@/lib/messaging/email/utils'
 
 const logger = createLogger('HelpAPI')
 
+interface HelpImageUpload {
+  arrayBuffer(): Promise<ArrayBuffer>
+  name?: string
+  type?: string
+}
+
+function isHelpImageUpload(value: unknown): value is HelpImageUpload {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'arrayBuffer' in value &&
+    typeof (value as { arrayBuffer?: unknown }).arrayBuffer === 'function'
+  )
+}
+
 export const POST = withRouteHandler(async (req: NextRequest) => {
   const requestId = generateRequestId()
 
@@ -55,17 +70,15 @@ export const POST = withRouteHandler(async (req: NextRequest) => {
     const images: { filename: string; content: Buffer; contentType: string }[] = []
 
     for (const [key, value] of formData.entries()) {
-      if (key.startsWith('image_') && typeof value !== 'string') {
-        if (value && 'arrayBuffer' in value) {
-          const buffer = Buffer.from(await value.arrayBuffer())
-          const filename = value.name || `image_${key.split('_')[1]}`
+      if (key.startsWith('image_') && isHelpImageUpload(value)) {
+        const buffer = Buffer.from(await value.arrayBuffer())
+        const filename = value.name || `image_${key.split('_')[1]}`
 
-          images.push({
-            filename,
-            content: buffer,
-            contentType: value.type || 'application/octet-stream',
-          })
-        }
+        images.push({
+          filename,
+          content: buffer,
+          contentType: value.type || 'application/octet-stream',
+        })
       }
     }
 

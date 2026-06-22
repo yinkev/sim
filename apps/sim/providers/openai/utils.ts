@@ -227,7 +227,7 @@ export function extractResponseReasoning(output: OpenAI.Responses.ResponseOutput
   const parts: string[] = []
   for (const item of output) {
     if (!item || item.type !== 'reasoning') continue
-    const summary = (item as unknown as { summary?: Array<{ text?: string | null } | null> })
+    const summary = (item as typeof item & { summary?: Array<{ text?: string | null } | null> })
       .summary
     if (!Array.isArray(summary)) continue
     for (const entry of summary) {

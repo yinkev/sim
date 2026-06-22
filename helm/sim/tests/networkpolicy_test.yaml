@@ -8,6 +8,9 @@ defaults: &defaults
   app.env.BETTER_AUTH_SECRET: x
   app.env.ENCRYPTION_KEY: x
   app.env.INTERNAL_API_SECRET: x
+  app.env.SIM_TO_MOTHERSHIP_API_KEY: x
+  app.env.MOTHERSHIP_TO_SIM_CALLBACK_KEY: x
+  app.env.MOTHERSHIP_ADMIN_API_KEY: x
   app.env.CRON_SECRET: x
   postgresql.auth.password: x
   networkPolicy.enabled: true

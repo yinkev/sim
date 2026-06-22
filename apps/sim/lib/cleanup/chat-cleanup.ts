@@ -3,8 +3,8 @@ import { copilotMessages, workspaceFiles } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
 import { and, inArray, isNull } from 'drizzle-orm'
 import { chunkArray } from '@/lib/cleanup/batch-delete'
-import { SIM_AGENT_API_URL } from '@/lib/copilot/constants'
-import { env } from '@/lib/core/config/env'
+import { getRequiredSimAgentApiUrl } from '@/lib/copilot/constants'
+import { getMothershipRuntimeApiKey } from '@/lib/mothership/service-auth'
 import type { StorageContext } from '@/lib/uploads'
 import { isUsingCloudStorage, StorageService } from '@/lib/uploads'
 
@@ -128,10 +128,11 @@ export async function cleanupCopilotBackend(
   label: string
 ): Promise<{ deleted: number; failed: number }> {
   const stats = { deleted: 0, failed: 0 }
+  const runtimeApiKey = getMothershipRuntimeApiKey()
 
-  if (chatIds.length === 0 || !env.COPILOT_API_KEY) {
-    if (!env.COPILOT_API_KEY) {
-      logger.warn(`[${label}] COPILOT_API_KEY not set, skipping copilot backend cleanup`)
+  if (chatIds.length === 0 || !runtimeApiKey) {
+    if (!runtimeApiKey) {
+      logger.warn(`[${label}] SIM_TO_MOTHERSHIP_API_KEY not set, skipping copilot backend cleanup`)
     }
     return stats
   }
@@ -139,11 +140,12 @@ export async function cleanupCopilotBackend(
   for (let i = 0; i < chatIds.length; i += COPILOT_CLEANUP_BATCH_SIZE) {
     const chunk = chatIds.slice(i, i + COPILOT_CLEANUP_BATCH_SIZE)
     try {
-      const response = await fetch(`${SIM_AGENT_API_URL}/api/tasks/cleanup`, {
+      const simAgentApiUrl = getRequiredSimAgentApiUrl()
+      const response = await fetch(`${simAgentApiUrl}/api/tasks/cleanup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': env.COPILOT_API_KEY,
+          'x-api-key': runtimeApiKey,
         },
         body: JSON.stringify({ chatIds: chunk }),
       })

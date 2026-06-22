@@ -1,10 +1,14 @@
 /**
  * @vitest-environment node
  */
+import { readdirSync, readFileSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   MothershipStreamV1CompletionStatus,
   MothershipStreamV1EventType,
+  MothershipStreamV1RunKind,
   MothershipStreamV1ToolExecutor,
   MothershipStreamV1ToolMode,
   MothershipStreamV1ToolOutcome,
@@ -51,20 +55,7 @@ import type { ExecutionContext, StreamingContext } from '@/lib/copilot/request/t
 function createSseResponse(events: unknown[]): Response {
   const payload = events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join('')
 
-  return new Response(
-    new ReadableStream<Uint8Array>({
-      start(controller) {
-        controller.enqueue(new TextEncoder().encode(payload))
-        controller.close()
-      },
-    }),
-    {
-      status: 200,
-      headers: {
-        'Content-Type': 'text/event-stream',
-      },
-    }
-  )
+  return createRawSseResponse(payload)
 }
 
 function createRawSseResponse(payload: string): Response {
@@ -107,6 +98,34 @@ function createStreamingContext(): StreamingContext {
     activeFileIntent: null,
     trace: new TraceCollector(),
   }
+}
+
+const TEST_DIR = dirname(fileURLToPath(import.meta.url))
+const VALID_STREAM_FIXTURE_DIR = resolve(
+  TEST_DIR,
+  '../../../../../../packages/mothership-contracts/fixtures/streams'
+)
+const INVALID_STREAM_FIXTURE_DIR = resolve(
+  TEST_DIR,
+  '../../../../../../packages/mothership-contracts/fixtures/streams-invalid'
+)
+const VALID_STREAM_FIXTURE_FILES = readdirSync(VALID_STREAM_FIXTURE_DIR)
+  .filter((file) => file.endsWith('.sse'))
+  .sort()
+const READ_LOOP_INVALID_STREAM_FIXTURE_FILES = [
+  'invalid-envelope.sse',
+  'invalid-payload-required.sse',
+  'missing-envelope-required.sse',
+  'missing-terminal.sse',
+  'openai-tool-resume-truncated.sse',
+] as const
+const MISSING_TERMINAL_INVALID_STREAM_FIXTURE_FILES = new Set<string>([
+  'missing-terminal.sse',
+  'openai-tool-resume-truncated.sse',
+])
+
+function readStreamFixture(dir: string, file: string): string {
+  return readFileSync(join(dir, file), 'utf8')
 }
 
 describe('copilot go stream helpers', () => {
@@ -581,6 +600,140 @@ describe('copilot go stream helpers', () => {
     ).toBe(true)
   })
 
+  it('stops live streams immediately on checkpoint pause', async () => {
+    const toolCall = createEvent({
+      streamId: 'stream-1',
+      cursor: '1',
+      seq: 1,
+      requestId: 'req-1',
+      type: MothershipStreamV1EventType.tool,
+      payload: {
+        toolCallId: 'call-live-pause-1',
+        toolName: 'read_workflow',
+        executor: MothershipStreamV1ToolExecutor.sim,
+        mode: MothershipStreamV1ToolMode.async,
+        phase: MothershipStreamV1ToolPhase.call,
+        arguments: { workflowId: 'workflow-1' },
+        status: 'executing',
+      },
+    })
+    const checkpointPause = createEvent({
+      streamId: 'stream-1',
+      cursor: '2',
+      seq: 2,
+      requestId: 'req-1',
+      type: MothershipStreamV1EventType.run,
+      payload: {
+        kind: MothershipStreamV1RunKind.checkpoint_pause,
+        runId: 'run-1',
+        executionId: 'exec-1',
+        checkpointId: 'checkpoint-1',
+        pendingToolCallIds: ['call-live-pause-1'],
+      },
+    })
+    const trailingText = createEvent({
+      streamId: 'stream-1',
+      cursor: '3',
+      seq: 3,
+      requestId: 'req-1',
+      type: MothershipStreamV1EventType.text,
+      payload: {
+        channel: 'assistant',
+        text: 'this should not be dispatched on the live pause leg',
+      },
+    })
+
+    vi.mocked(fetch).mockResolvedValueOnce(
+      createSseResponse([toolCall, checkpointPause, trailingText])
+    )
+
+    const onEvent = vi.fn()
+    const context = createStreamingContext()
+    const execContext: ExecutionContext = {
+      userId: 'user-1',
+      workflowId: 'workflow-1',
+    }
+
+    await runStreamLoop('https://example.com/mothership/stream', {}, context, execContext, {
+      onEvent,
+      timeout: 1000,
+    })
+
+    const dispatchedEvents = onEvent.mock.calls.map(([event]) => event)
+    expect(dispatchedEvents).toEqual(
+      expect.arrayContaining([expect.objectContaining({ type: MothershipStreamV1EventType.run })])
+    )
+    expect(dispatchedEvents).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: MothershipStreamV1EventType.text,
+          payload: expect.objectContaining({
+            text: 'this should not be dispatched on the live pause leg',
+          }),
+        }),
+      ])
+    )
+    expect(context.awaitingAsyncContinuation).toMatchObject({
+      checkpointId: 'checkpoint-1',
+      pendingToolCallIds: ['call-live-pause-1'],
+    })
+  })
+
+  it('does not dispatch buffered trailing data after checkpoint pause stop', async () => {
+    const checkpointPause = createEvent({
+      streamId: 'stream-1',
+      cursor: '1',
+      seq: 1,
+      requestId: 'req-1',
+      type: MothershipStreamV1EventType.run,
+      payload: {
+        kind: MothershipStreamV1RunKind.checkpoint_pause,
+        runId: 'run-1',
+        executionId: 'exec-1',
+        checkpointId: 'checkpoint-1',
+        pendingToolCallIds: ['call-live-pause-1'],
+      },
+    })
+    const trailingText = createEvent({
+      streamId: 'stream-1',
+      cursor: '2',
+      seq: 2,
+      requestId: 'req-1',
+      type: MothershipStreamV1EventType.text,
+      payload: {
+        channel: 'assistant',
+        text: 'buffered trailing event',
+      },
+    })
+    const payload = [
+      `data: ${JSON.stringify(checkpointPause)}`,
+      '',
+      `data: ${JSON.stringify(trailingText)}`,
+    ].join('\n')
+
+    vi.mocked(fetch).mockResolvedValueOnce(createRawSseResponse(payload))
+
+    const onEvent = vi.fn()
+    const context = createStreamingContext()
+    const execContext: ExecutionContext = {
+      userId: 'user-1',
+      workflowId: 'workflow-1',
+    }
+
+    await runStreamLoop('https://example.com/mothership/stream', {}, context, execContext, {
+      onEvent,
+      timeout: 1000,
+    })
+
+    expect(onEvent.mock.calls.map(([event]) => event.type)).toEqual([
+      MothershipStreamV1EventType.run,
+    ])
+    expect(context.awaitingAsyncContinuation).toMatchObject({
+      checkpointId: 'checkpoint-1',
+      pendingToolCallIds: ['call-live-pause-1'],
+    })
+  })
+
   it('reclassifies as aborted when the body closes without terminal but the abort marker is set', async () => {
     const textEvent = createEvent({
       streamId: 'stream-1',
@@ -868,4 +1021,88 @@ describe('copilot go stream helpers', () => {
     expect(subagentBlock?.parentSpanId).toBe('S1')
     expect(subagentBlock?.parentToolCallId).toBe('tc-deploy-inner')
   })
+
+  it.each(VALID_STREAM_FIXTURE_FILES)('replays valid stream fixture %s', async (fixtureFile) => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      createRawSseResponse(readStreamFixture(VALID_STREAM_FIXTURE_DIR, fixtureFile))
+    )
+
+    const onEvent = vi.fn()
+    const context = createStreamingContext()
+    const execContext: ExecutionContext = {
+      userId: 'user-1',
+      workflowId: 'workflow-1',
+      workspaceId: 'workspace-1',
+    }
+
+    await runStreamLoop('https://example.com/mothership/stream', {}, context, execContext, {
+      allowMultiLegReplay: true,
+      onEvent,
+      timeout: 1000,
+    })
+
+    expect(onEvent).toHaveBeenCalled()
+    expect(context.streamComplete).toBe(true)
+    const events = onEvent.mock.calls.map(([event]) => event)
+    if (fixtureFile === 'openai-tool-checkpoint-resume.sse') {
+      expect(events).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: MothershipStreamV1EventType.run,
+            payload: expect.objectContaining({ kind: MothershipStreamV1RunKind.resumed }),
+          }),
+          expect.objectContaining({
+            type: MothershipStreamV1EventType.complete,
+            payload: expect.objectContaining({
+              status: MothershipStreamV1CompletionStatus.complete,
+            }),
+          }),
+        ])
+      )
+    }
+    if (fixtureFile === 'openai-tool-checkpoint-resume-next-pause.sse') {
+      expect(events).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: MothershipStreamV1EventType.run,
+            payload: expect.objectContaining({ kind: MothershipStreamV1RunKind.resumed }),
+          }),
+          expect.objectContaining({
+            type: MothershipStreamV1EventType.run,
+            payload: expect.objectContaining({
+              checkpointId: 'checkpoint-openai-chain-2',
+              kind: MothershipStreamV1RunKind.checkpoint_pause,
+            }),
+          }),
+        ])
+      )
+    }
+  })
+
+  it.each(READ_LOOP_INVALID_STREAM_FIXTURE_FILES)(
+    'fails closed for invalid stream fixture %s',
+    async (fixtureFile) => {
+      vi.mocked(fetch).mockResolvedValueOnce(
+        createRawSseResponse(readStreamFixture(INVALID_STREAM_FIXTURE_DIR, fixtureFile))
+      )
+
+      const context = createStreamingContext()
+      const execContext: ExecutionContext = {
+        userId: 'user-1',
+        workflowId: 'workflow-1',
+      }
+
+      await expect(
+        runStreamLoop('https://example.com/mothership/stream', {}, context, execContext, {
+          allowMultiLegReplay: true,
+          timeout: 1000,
+        })
+      ).rejects.toThrow(
+        MISSING_TERMINAL_INVALID_STREAM_FIXTURE_FILES.has(fixtureFile)
+          ? 'Copilot backend stream ended before a terminal event'
+          : 'Received invalid stream event on shared path'
+      )
+      expect(context.errors.length).toBeGreaterThan(0)
+    }
+  )
 })

@@ -1,0 +1,96 @@
+{{- if and .Values.mothership.processor.billingCallbacks.enabled (not .Values.mothership.enabled) }}
+{{- fail "mothership.processor.billingCallbacks.enabled requires mothership.enabled=true" }}
+{{- end }}
+{{- if and .Values.mothership.enabled .Values.mothership.processor.billingCallbacks.enabled }}
+{{- include "sim.validateSecrets" . }}
+{{- include "sim.mothership.validate" . }}
+{{- $job := .Values.mothership.processor.billingCallbacks }}
+{{- $retryAttempts := int ($job.retryAttempts | default 3) }}
+{{- $retryDelaySeconds := int ($job.retryDelaySeconds | default 10) }}
+{{- $timeoutSeconds := int ($job.timeoutSeconds | default 60) }}
+{{- $failOnNonClean := true }}
+{{- if hasKey $job "failOnNonClean" }}
+{{- $failOnNonClean = $job.failOnNonClean }}
+{{- end }}
+{{- $minimumActiveDeadlineSeconds := add (mul $retryAttempts $timeoutSeconds) (mul (sub $retryAttempts 1) $retryDelaySeconds) }}
+{{- if and $job.activeDeadlineSeconds (lt (int $job.activeDeadlineSeconds) $minimumActiveDeadlineSeconds) }}
+{{- fail (printf "mothership.processor.billingCallbacks.activeDeadlineSeconds must be at least retryAttempts*timeoutSeconds + (retryAttempts-1)*retryDelaySeconds (%d)" $minimumActiveDeadlineSeconds) }}
+{{- end }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "sim.fullname" . }}-mothership-billing-processor
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "sim.mothership.processor.labels" . | nindent 4 }}
+spec:
+  schedule: {{ $job.schedule | quote }}
+  concurrencyPolicy: {{ $job.concurrencyPolicy | default "Forbid" }}
+  successfulJobsHistoryLimit: {{ $job.successfulJobsHistoryLimit | default 3 }}
+  failedJobsHistoryLimit: {{ $job.failedJobsHistoryLimit | default 3 }}
+  {{- with $job.startingDeadlineSeconds }}
+  startingDeadlineSeconds: {{ . }}
+  {{- end }}
+  jobTemplate:
+    spec:
+      backoffLimit: {{ $job.backoffLimit | default 0 }}
+      ttlSecondsAfterFinished: {{ $job.ttlSecondsAfterFinished | default 600 }}
+      {{- with $job.activeDeadlineSeconds }}
+      activeDeadlineSeconds: {{ . }}
+      {{- end }}
+      template:
+        metadata:
+          labels:
+            {{- include "sim.mothership.processor.selectorLabels" . | nindent 12 }}
+        spec:
+          serviceAccountName: {{ include "sim.serviceAccountName" . }}
+          automountServiceAccountToken: false
+          restartPolicy: {{ $job.restartPolicy | default "OnFailure" }}
+          {{- include "sim.podSecurityContext" $job | nindent 10 }}
+          {{- with .Values.global.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- include "sim.nodeSelector" $job | nindent 10 }}
+          {{- include "sim.tolerations" .Values | nindent 10 }}
+          {{- include "sim.affinity" .Values | nindent 10 }}
+          containers:
+            - name: billing-processor
+              image: {{ include "sim.image" (dict "imageRoot" $job.image "global" .Values.global "chartAppVersion" .Chart.AppVersion) }}
+              imagePullPolicy: {{ $job.image.pullPolicy }}
+              {{- include "sim.containerSecurityContext" $job | nindent 14 }}
+              env:
+                {{- include "sim.appSecretEnvVars" (dict "root" . "keys" (list "MOTHERSHIP_ADMIN_API_KEY")) | nindent 16 }}
+              command:
+                - /bin/sh
+                - -c
+              args:
+                - |
+                  set -eu
+                  SERVICE_URL="{{ include "sim.mothership.internalUrl" . }}"
+                  BODY='{"batchSize":{{ $job.batchSize }},"failOnNonClean":{{ $failOnNonClean }}}'
+
+                  attempt=1
+                  while [ "$attempt" -le {{ $retryAttempts }} ]; do
+                    echo "Processing Mothership billing callback outbox batch: attempt $attempt"
+                    if curl -f -s -S --max-time {{ $timeoutSeconds }} \
+                      -H "Content-Type: application/json" \
+                      -H "User-Agent: Kubernetes-CronJob/mothership-billing-processor" \
+                      -H "x-mothership-admin-key: ${MOTHERSHIP_ADMIN_API_KEY}" \
+                      -d "$BODY" \
+                      "$SERVICE_URL/api/admin/callbacks/billing/process"; then
+                      echo "Billing callback processing completed"
+                      exit 0
+                    fi
+                    echo "Billing callback processing attempt $attempt failed"
+                    if [ "$attempt" -lt {{ $retryAttempts }} ]; then
+                      sleep {{ $retryDelaySeconds }}
+                    fi
+                    attempt=$((attempt + 1))
+                  done
+
+                  echo "Billing callback processing failed after all attempts"
+                  exit 1
+              resources:
+                {{- toYaml $job.resources | nindent 16 }}
+{{- end }}

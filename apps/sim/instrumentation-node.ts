@@ -14,6 +14,7 @@ import type {
 } from '@opentelemetry/sdk-trace-base'
 import { createLogger } from '@sim/logger'
 import { TraceAttr } from '@/lib/copilot/generated/trace-attributes-v1'
+import { assertMothershipServiceSecretTopology } from '@/lib/mothership/service-auth'
 import { env } from './lib/core/config/env'
 import { parseOtlpHeaders } from './lib/monitoring/otlp'
 
@@ -25,6 +26,10 @@ const MOTHERSHIP_ORIGIN = 'sim-mothership' as const
 const SPAN_NAME_PREFIX = `${MOTHERSHIP_ORIGIN}: `
 
 const SERVICE_INSTANCE_SLUG = 'sim' as const
+const isHostedMothershipRuntime =
+  Boolean(
+    env.SIM_AGENT_API_URL || env.COPILOT_DEV_URL || env.COPILOT_STAGING_URL || env.COPILOT_PROD_URL
+  ) || Boolean(env.COPILOT_API_KEY)
 
 const DEFAULT_TELEMETRY_CONFIG = {
   endpoint: env.TELEMETRY_ENDPOINT || 'https://telemetry.simstudio.ai/v1/traces',
@@ -347,6 +352,11 @@ async function initializeOpenTelemetry() {
 }
 
 export async function register() {
+  assertMothershipServiceSecretTopology({
+    requireRuntimeKey: isHostedMothershipRuntime,
+    requireCallbackKey: true,
+  })
+
   await initializeOpenTelemetry()
 
   const shutdownPostHog = async () => {

@@ -13,6 +13,7 @@ import {
   registerWorkspaceFileContract,
   renameWorkspaceFileContract,
   restoreWorkspaceFileContract,
+  type UploadWorkspaceFileResponse,
   updateWorkspaceFileContentContract,
 } from '@/lib/api/contracts/workspace-files'
 import {
@@ -21,7 +22,6 @@ import {
   type UploadProgressEvent,
 } from '@/lib/uploads/client/direct-upload'
 import type { WorkspaceFileRecord } from '@/lib/uploads/contexts/workspace'
-import type { UserFile } from '@/executor/types'
 
 const logger = createLogger('WorkspaceFilesQuery')
 
@@ -292,17 +292,12 @@ interface UploadFileParams {
   skipInvalidation?: boolean
 }
 
-interface UploadFileResponse {
-  success: boolean
-  file: UserFile
-}
-
 async function uploadViaApiFallback(
   workspaceId: string,
   file: File,
   folderId?: string | null,
   signal?: AbortSignal
-): Promise<UploadFileResponse> {
+): Promise<UploadWorkspaceFileResponse> {
   const formData = new FormData()
   formData.append('file', file)
   if (folderId) formData.append('folderId', folderId)
@@ -320,16 +315,20 @@ async function uploadViaApiFallback(
 async function parseUploadResponse(
   response: Response,
   fallbackMessage: string
-): Promise<UploadFileResponse> {
-  let data: { success?: boolean; error?: string; file?: UserFile } | null = null
+): Promise<UploadWorkspaceFileResponse> {
+  let data: {
+    success?: boolean
+    error?: string
+    file?: UploadWorkspaceFileResponse['file']
+  } | null = null
   try {
     data = await response.json()
   } catch {}
 
-  if (!response.ok || !data?.success) {
+  if (!response.ok || !data?.success || !data.file) {
     throw new Error(data?.error || `${fallbackMessage} (${response.status})`)
   }
-  return data as UploadFileResponse
+  return { success: true, file: data.file }
 }
 
 async function uploadWorkspaceFile(
@@ -338,7 +337,7 @@ async function uploadWorkspaceFile(
   folderId?: string | null,
   onProgress?: (event: UploadProgressEvent) => void,
   signal?: AbortSignal
-): Promise<UploadFileResponse> {
+): Promise<UploadWorkspaceFileResponse> {
   let result
   try {
     result = await runUploadStrategy({

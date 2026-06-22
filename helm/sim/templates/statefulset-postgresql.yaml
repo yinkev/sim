@@ -135,6 +135,10 @@ spec:
             - name: postgresql
               containerPort: {{ .Values.postgresql.service.targetPort }}
               protocol: TCP
+          {{- with include "sim.databaseExistingSecretEnvVars" . }}
+          env:
+            {{- . | nindent 12 }}
+          {{- end }}
           envFrom:
             - configMapRef:
                 name: {{ include "sim.fullname" . }}-postgresql-env

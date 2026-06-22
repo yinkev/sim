@@ -66,6 +66,32 @@ spec:
       {{- include "sim.realtime.selectorLabels" $ | nindent 6 }}
 {{- end }}
 {{- end }}
+{{- if and .Values.mothership.enabled .Values.mothership.server.podDisruptionBudget.enabled }}
+{{- with .Values.mothership.server.podDisruptionBudget }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "sim.fullname" $ }}-mothership-pdb
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "sim.mothership.labels" $ | nindent 4 }}
+spec:
+  {{- if .minAvailable }}
+  minAvailable: {{ .minAvailable }}
+  {{- else if .maxUnavailable }}
+  maxUnavailable: {{ .maxUnavailable }}
+  {{- else }}
+  maxUnavailable: 1
+  {{- end }}
+  {{- if .unhealthyPodEvictionPolicy }}
+  unhealthyPodEvictionPolicy: {{ .unhealthyPodEvictionPolicy }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "sim.mothership.selectorLabels" $ | nindent 6 }}
+{{- end }}
+{{- end }}
 {{- if and .Values.copilot.enabled .Values.copilot.server.podDisruptionBudget.enabled }}
 {{- with .Values.copilot.server.podDisruptionBudget }}
 ---

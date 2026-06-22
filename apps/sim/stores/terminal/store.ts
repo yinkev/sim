@@ -3,6 +3,16 @@ import { persist } from 'zustand/middleware'
 import { OUTPUT_PANEL_WIDTH, TERMINAL_HEIGHT } from '@/stores/constants'
 import type { TerminalState } from './types'
 
+type PersistedTerminalState = Pick<
+  TerminalState,
+  | 'terminalHeight'
+  | 'lastExpandedHeight'
+  | 'outputPanelWidth'
+  | 'openOnRun'
+  | 'wrapText'
+  | 'structuredView'
+>
+
 export const useTerminalStore = create<TerminalState>()(
   persist(
     (set) => ({
@@ -93,6 +103,30 @@ export const useTerminalStore = create<TerminalState>()(
     }),
     {
       name: 'terminal-state',
+      partialize: (state) => ({
+        terminalHeight: state.terminalHeight,
+        lastExpandedHeight: state.lastExpandedHeight,
+        outputPanelWidth: state.outputPanelWidth,
+        openOnRun: state.openOnRun,
+        wrapText: state.wrapText,
+        structuredView: state.structuredView,
+      }),
+      merge: (persistedState, currentState) => {
+        const persisted =
+          typeof persistedState === 'object' && persistedState !== null
+            ? (persistedState as Partial<PersistedTerminalState>)
+            : {}
+
+        return {
+          ...currentState,
+          terminalHeight: persisted.terminalHeight ?? currentState.terminalHeight,
+          lastExpandedHeight: persisted.lastExpandedHeight ?? currentState.lastExpandedHeight,
+          outputPanelWidth: persisted.outputPanelWidth ?? currentState.outputPanelWidth,
+          openOnRun: persisted.openOnRun ?? currentState.openOnRun,
+          wrapText: persisted.wrapText ?? currentState.wrapText,
+          structuredView: persisted.structuredView ?? currentState.structuredView,
+        }
+      },
       /**
        * Synchronizes the `--terminal-height` CSS custom property with the
        * persisted store value after client-side rehydration.

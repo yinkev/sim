@@ -1,8 +1,15 @@
 import { createLogger } from '@sim/logger'
 import { toError } from '@sim/utils/errors'
+import type { ErrorObject, ValidateFunction } from 'ajv'
+import Ajv2020 from 'ajv/dist/2020'
 import { MothershipStreamV1EventType } from '@/lib/copilot/generated/mothership-stream-v1'
+import { MOTHERSHIP_STREAM_V1_SCHEMA } from '@/lib/copilot/generated/mothership-stream-v1-schema'
 import { appendEvents } from './buffer'
-import type { PersistedStreamEventEnvelope } from './contract'
+import {
+  isContractStreamEventEnvelope,
+  isSyntheticFilePreviewEventEnvelope,
+  type PersistedStreamEventEnvelope,
+} from './contract'
 import { createEvent } from './event'
 import { encodeSSEComment, encodeSSEEnvelope } from './sse'
 import type { StreamEvent } from './types'
@@ -12,6 +19,28 @@ const logger = createLogger('StreamWriter')
 const DEFAULT_KEEPALIVE_MS = 15_000
 const DEFAULT_PERSIST_FLUSH_INTERVAL_MS = 15
 const DEFAULT_PERSIST_FLUSH_MAX_BATCH = 200
+const ajv = new Ajv2020({
+  allErrors: true,
+  strict: false,
+})
+const streamEventSchemaValidator = ajv.compile(
+  MOTHERSHIP_STREAM_V1_SCHEMA as object
+) as ValidateFunction
+
+function formatSchemaErrors(errors: ErrorObject[] | null | undefined): string {
+  if (!errors || errors.length === 0) return 'unknown schema error'
+  return errors
+    .slice(0, 5)
+    .map((error) => `${error.instancePath || '/'} ${error.message || 'is invalid'}`.trim())
+    .join('; ')
+}
+
+function isTerminalEvent(event: PersistedStreamEventEnvelope): boolean {
+  return (
+    event.type === MothershipStreamV1EventType.complete ||
+    event.type === MothershipStreamV1EventType.error
+  )
+}
 
 export interface StreamWriterOptions {
   streamId: string
@@ -33,6 +62,7 @@ export class StreamWriter {
   private flushTimer: ReturnType<typeof setTimeout> | null = null
   private _clientDisconnected = false
   private _sawComplete = false
+  private _sawTerminal = false
   private nextSeq = 0
   private pendingEnvelopes: PersistedStreamEventEnvelope[] = []
   private persistenceTail: Promise<void> = Promise.resolve()
@@ -54,6 +84,10 @@ export class StreamWriter {
 
   get sawComplete(): boolean {
     return this._sawComplete
+  }
+
+  get sawTerminal(): boolean {
+    return this._sawTerminal
   }
 
   updateRequestId(id: string): void {
@@ -89,10 +123,14 @@ export class StreamWriter {
 
   publish(event: StreamEvent): void {
     const envelope = this.createEnvelope(event)
+    this.validateEnvelope(envelope)
     this.enqueue(envelope)
     this.queuePersistence(envelope)
     if (event.type === MothershipStreamV1EventType.complete) {
       this._sawComplete = true
+    }
+    if (isTerminalEvent(envelope)) {
+      this._sawTerminal = true
     }
   }
 
@@ -113,14 +151,23 @@ export class StreamWriter {
   async close(): Promise<void> {
     this.stopKeepalive()
     this.clearFlushTimer()
-    await this.flush()
-    if (!this.controller) return
+    const missingTerminalError = this._sawTerminal
+      ? null
+      : new Error(`Stream ${this.streamId} closed without a terminal event`)
+    let flushError: Error | null = null
     try {
-      this.controller.close()
+      await this.flush()
+    } catch (error) {
+      flushError = toError(error)
+    }
+    try {
+      this.controller?.close()
     } catch {
       // Controller already closed
     }
     this.controller = null
+    if (flushError) throw flushError
+    if (missingTerminalError) throw missingTerminalError
   }
 
   private enqueue(envelope: PersistedStreamEventEnvelope): void {
@@ -148,6 +195,28 @@ export class StreamWriter {
       seq,
       requestId: this.requestId,
     })
+  }
+
+  private validateEnvelope(envelope: PersistedStreamEventEnvelope): void {
+    if (isTerminalEvent(envelope) && this._sawTerminal) {
+      throw new Error(`Stream ${this.streamId} already published a terminal event`)
+    }
+
+    if (isSyntheticFilePreviewEventEnvelope(envelope)) {
+      return
+    }
+
+    if (!isContractStreamEventEnvelope(envelope)) {
+      throw new Error(`Stream ${this.streamId} event failed stream parser validation`)
+    }
+
+    if (!streamEventSchemaValidator(envelope)) {
+      throw new Error(
+        `Stream ${this.streamId} event failed generated stream schema validation: ${formatSchemaErrors(
+          streamEventSchemaValidator.errors
+        )}`
+      )
+    }
   }
 
   private queuePersistence(envelope: PersistedStreamEventEnvelope): void {

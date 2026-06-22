@@ -4,6 +4,12 @@ const DEFAULT_LOOP_ITERATIONS = 5
 const DEFAULT_PARALLEL_BATCH_SIZE = 20
 const MAX_PARALLEL_BATCH_SIZE = 20
 
+type ParallelType = NonNullable<Parallel['parallelType']>
+
+function isParallelType(value: unknown): value is ParallelType {
+  return value === 'collection' || value === 'count'
+}
+
 export function clampParallelBatchSize(batchSize: unknown): number {
   const parsed = typeof batchSize === 'number' ? batchSize : Number.parseInt(String(batchSize), 10)
   if (Number.isNaN(parsed)) {
@@ -30,7 +36,7 @@ export function convertLoopBlockToLoop(
   const loop: Loop = {
     id: loopBlockId,
     nodes: findChildNodes(loopBlockId, blocks),
-    iterations: loopBlock.data?.count || DEFAULT_LOOP_ITERATIONS,
+    iterations: loopBlock.data?.count ?? DEFAULT_LOOP_ITERATIONS,
     loopType,
     enabled: loopBlock.enabled,
   }
@@ -49,15 +55,12 @@ export function convertParallelBlockToParallel(
   const parallelBlock = blocks[parallelBlockId]
   if (!parallelBlock || parallelBlock.type !== 'parallel') return undefined
 
-  const parallelType = parallelBlock.data?.parallelType || 'count'
-
-  const validParallelTypes = ['collection', 'count'] as const
-  const validatedParallelType = validParallelTypes.includes(parallelType as any)
-    ? parallelType
-    : 'collection'
+  const parallelType = isParallelType(parallelBlock.data?.parallelType)
+    ? parallelBlock.data.parallelType
+    : 'count'
 
   const distribution =
-    validatedParallelType === 'collection' ? parallelBlock.data?.collection || '' : undefined
+    parallelType === 'collection' ? parallelBlock.data?.collection || '' : undefined
 
   const count = parallelBlock.data?.count || 5
   const batchSize = clampParallelBatchSize(parallelBlock.data?.batchSize)
@@ -67,7 +70,7 @@ export function convertParallelBlockToParallel(
     nodes: findChildNodes(parallelBlockId, blocks),
     distribution,
     count,
-    parallelType: validatedParallelType,
+    parallelType,
     batchSize,
     enabled: parallelBlock.enabled,
   }

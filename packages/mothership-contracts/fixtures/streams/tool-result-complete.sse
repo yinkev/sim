@@ -1,0 +1,11 @@
+data: {"v":1,"type":"session","seq":1,"ts":"2026-06-21T00:00:00.000Z","stream":{"streamId":"msg-tool-result-1","chatId":"chat-tool-result-1"},"trace":{"requestId":"req-tool-result-1"},"payload":{"kind":"chat","chatId":"chat-tool-result-1"}}
+
+data: {"v":1,"type":"tool","seq":2,"ts":"2026-06-21T00:00:01.000Z","stream":{"streamId":"msg-tool-result-1","chatId":"chat-tool-result-1"},"trace":{"requestId":"req-tool-result-1"},"payload":{"phase":"call","toolCallId":"call-sync-1","toolName":"search_docs","executor":"sim","mode":"sync","status":"generating","partial":true}}
+
+data: {"v":1,"type":"tool","seq":3,"ts":"2026-06-21T00:00:02.000Z","stream":{"streamId":"msg-tool-result-1","chatId":"chat-tool-result-1"},"trace":{"requestId":"req-tool-result-1"},"payload":{"phase":"args_delta","toolCallId":"call-sync-1","toolName":"search_docs","executor":"sim","mode":"sync","argumentsDelta":"{\"query\":\"mothership\"}"}}
+
+data: {"v":1,"type":"tool","seq":4,"ts":"2026-06-21T00:00:03.000Z","stream":{"streamId":"msg-tool-result-1","chatId":"chat-tool-result-1"},"trace":{"requestId":"req-tool-result-1"},"payload":{"phase":"result","toolCallId":"call-sync-1","toolName":"search_docs","executor":"sim","mode":"sync","status":"success","success":true,"output":{"matches":1}}}
+
+data: {"v":1,"type":"text","seq":5,"ts":"2026-06-21T00:00:04.000Z","stream":{"streamId":"msg-tool-result-1","chatId":"chat-tool-result-1"},"trace":{"requestId":"req-tool-result-1"},"payload":{"channel":"assistant","text":"Found one result."}}
+
+data: {"v":1,"type":"complete","seq":6,"ts":"2026-06-21T00:00:05.000Z","stream":{"streamId":"msg-tool-result-1","chatId":"chat-tool-result-1"},"trace":{"requestId":"req-tool-result-1"},"payload":{"status":"complete","response":{"summary":"Found one result."}}}

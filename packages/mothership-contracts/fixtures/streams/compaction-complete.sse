@@ -1,0 +1,11 @@
+data: {"v":1,"type":"session","seq":1,"ts":"2026-06-21T00:00:00.000Z","stream":{"streamId":"msg-compaction-1","chatId":"chat-compaction-1"},"trace":{"requestId":"req-compaction-1"},"payload":{"kind":"chat","chatId":"chat-compaction-1"}}
+
+data: {"v":1,"type":"text","seq":2,"ts":"2026-06-21T00:00:01.000Z","stream":{"streamId":"msg-compaction-1","chatId":"chat-compaction-1"},"trace":{"requestId":"req-compaction-1"},"payload":{"channel":"thinking","text":"Compressing prior context."}}
+
+data: {"v":1,"type":"run","seq":3,"ts":"2026-06-21T00:00:02.000Z","stream":{"streamId":"msg-compaction-1","chatId":"chat-compaction-1"},"trace":{"requestId":"req-compaction-1"},"payload":{"kind":"compaction_start"}}
+
+data: {"v":1,"type":"run","seq":4,"ts":"2026-06-21T00:00:03.000Z","stream":{"streamId":"msg-compaction-1","chatId":"chat-compaction-1"},"trace":{"requestId":"req-compaction-1"},"payload":{"kind":"compaction_done","data":{"summary_chars":128}}}
+
+data: {"v":1,"type":"text","seq":5,"ts":"2026-06-21T00:00:04.000Z","stream":{"streamId":"msg-compaction-1","chatId":"chat-compaction-1"},"trace":{"requestId":"req-compaction-1"},"payload":{"channel":"assistant","text":"Context compacted."}}
+
+data: {"v":1,"type":"complete","seq":6,"ts":"2026-06-21T00:00:05.000Z","stream":{"streamId":"msg-compaction-1","chatId":"chat-compaction-1"},"trace":{"requestId":"req-compaction-1"},"payload":{"status":"complete"}}

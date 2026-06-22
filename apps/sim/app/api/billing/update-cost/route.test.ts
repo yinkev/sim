@@ -5,21 +5,29 @@ import { createMockRequest, dbChainMock, dbChainMockFns, resetDbChainMock } from
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const {
-  mockCheckInternalApiKey,
   mockRecordUsage,
   mockRecordCumulativeUsage,
   mockCheckAndBillOverageThreshold,
+  mockFeatureFlags,
 } = vi.hoisted(() => ({
-  mockCheckInternalApiKey: vi.fn(),
   mockRecordUsage: vi.fn(),
   mockRecordCumulativeUsage: vi.fn(),
   mockCheckAndBillOverageThreshold: vi.fn(),
+  mockFeatureFlags: { isBillingEnabled: true },
 }))
 
 vi.mock('@sim/db', () => dbChainMock)
 
-vi.mock('@/lib/copilot/request/http', () => ({
-  checkInternalApiKey: mockCheckInternalApiKey,
+vi.mock('@/lib/core/config/env', () => ({
+  env: {
+    SIM_TO_MOTHERSHIP_API_KEY: 'runtime-key',
+    MOTHERSHIP_TO_SIM_CALLBACK_KEY: 'callback-key',
+    MOTHERSHIP_ADMIN_API_KEY: 'admin-key',
+    INTERNAL_API_SECRET: 'internal-secret',
+    COPILOT_API_KEY: undefined,
+  },
+  isTruthy: (value: string | boolean | number | undefined) =>
+    typeof value === 'string' ? value.toLowerCase() === 'true' || value === '1' : Boolean(value),
 }))
 
 vi.mock('@/lib/copilot/request/otel', () => ({
@@ -41,19 +49,23 @@ vi.mock('@/lib/billing/threshold-billing', () => ({
 }))
 
 vi.mock('@/lib/core/config/env-flags', () => ({
-  isBillingEnabled: true,
+  get isBillingEnabled() {
+    return mockFeatureFlags.isBillingEnabled
+  },
 }))
 
 import { POST } from '@/app/api/billing/update-cost/route'
+
+const callbackHeaders = { 'x-sim-callback-key': 'callback-key' }
 
 describe('POST /api/billing/update-cost — workspaceId attribution', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     resetDbChainMock()
-    mockCheckInternalApiKey.mockReturnValue({ success: true })
     mockRecordUsage.mockResolvedValue(undefined)
     mockRecordCumulativeUsage.mockResolvedValue({ billed: true, delta: 0.5, total: 0.5 })
     mockCheckAndBillOverageThreshold.mockResolvedValue(undefined)
+    mockFeatureFlags.isBillingEnabled = true
     dbChainMockFns.limit.mockResolvedValue([{ id: 'ws-1' }])
   })
 
@@ -62,7 +74,7 @@ describe('POST /api/billing/update-cost — workspaceId attribution', () => {
       createMockRequest(
         'POST',
         { userId: 'user-1', cost: 0.5, model: 'gpt', source: 'mcp_copilot', workspaceId: 'ws-1' },
-        { 'x-api-key': 'internal' }
+        callbackHeaders
       )
     )
     expect(res.status).toBe(200)
@@ -87,7 +99,7 @@ describe('POST /api/billing/update-cost — workspaceId attribution', () => {
           inputTokens: 461371,
           outputTokens: 1686,
         },
-        { 'x-api-key': 'internal' }
+        callbackHeaders
       )
     )
     expect(res.status).toBe(200)
@@ -117,7 +129,7 @@ describe('POST /api/billing/update-cost — workspaceId attribution', () => {
           workspaceId: 'ws-1',
           idempotencyKey: 'msg-1-billing',
         },
-        { 'x-api-key': 'internal' }
+        callbackHeaders
       )
     )
     expect(res.status).toBe(409)
@@ -129,7 +141,7 @@ describe('POST /api/billing/update-cost — workspaceId attribution', () => {
       createMockRequest(
         'POST',
         { userId: 'user-1', cost: 0.5, model: 'gpt', source: 'copilot' },
-        { 'x-api-key': 'internal' }
+        callbackHeaders
       )
     )
     expect(res.status).toBe(200)
@@ -154,7 +166,7 @@ describe('POST /api/billing/update-cost — workspaceId attribution', () => {
           workspaceId: 'self-hosted-ws',
           idempotencyKey: 'msg-1-billing',
         },
-        { 'x-api-key': 'internal' }
+        callbackHeaders
       )
     )
     expect(res.status).toBe(200)
@@ -164,5 +176,51 @@ describe('POST /api/billing/update-cost — workspaceId attribution', () => {
       workspaceId: undefined,
       eventKey: 'update-cost:msg-1-billing',
     })
+  })
+
+  it('rejects legacy x-api-key on the callback route', async () => {
+    const res = await POST(
+      createMockRequest(
+        'POST',
+        { userId: 'user-1', cost: 0.5, model: 'gpt', source: 'copilot' },
+        { 'x-api-key': 'internal' }
+      )
+    )
+
+    expect(res.status).toBe(403)
+    expect(await res.json()).toMatchObject({
+      success: false,
+      error: 'Wrong Mothership service key family for callback route',
+    })
+    expect(mockRecordUsage).not.toHaveBeenCalled()
+  })
+
+  it('rejects missing callback auth', async () => {
+    const res = await POST(
+      createMockRequest('POST', { userId: 'user-1', cost: 0.5, model: 'gpt', source: 'copilot' })
+    )
+
+    expect(res.status).toBe(401)
+    expect(await res.json()).toMatchObject({
+      success: false,
+      error: 'Mothership callback key required',
+    })
+    expect(mockRecordUsage).not.toHaveBeenCalled()
+  })
+
+  it('rejects missing callback auth even when billing is disabled', async () => {
+    mockFeatureFlags.isBillingEnabled = false
+
+    const res = await POST(
+      createMockRequest('POST', { userId: 'user-1', cost: 0.5, model: 'gpt', source: 'copilot' })
+    )
+
+    expect(res.status).toBe(401)
+    expect(await res.json()).toMatchObject({
+      success: false,
+      error: 'Mothership callback key required',
+    })
+    expect(mockRecordUsage).not.toHaveBeenCalled()
+    expect(mockRecordCumulativeUsage).not.toHaveBeenCalled()
   })
 })

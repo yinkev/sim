@@ -1,5 +1,5 @@
 // AUTO-GENERATED FILE. DO NOT EDIT.
-// Generated from copilot/contracts/tool-catalog-v1.json
+// Generated from packages/mothership-contracts/contracts/tool-catalog-v1.json
 //
 
 export interface ToolCatalogEntry {

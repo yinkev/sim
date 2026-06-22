@@ -1,0 +1,1 @@
+ALTER TABLE "copilot_run_checkpoints" ADD COLUMN "resume_event_start_seq" integer;

@@ -14,8 +14,8 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import { db } from '@sim/db'
 import { permissions, user, workflow, workspace } from '@sim/db/schema'
-import { saveWorkflowToNormalizedTables } from '@sim/workflow-persistence'
 import { generateId } from '@sim/utils/id'
+import { saveWorkflowToNormalizedTables } from '@sim/workflow-persistence'
 import { and, eq, isNull } from 'drizzle-orm'
 import { parseWorkflowJson } from '@/lib/workflows/operations/import-export'
 
@@ -32,7 +32,8 @@ function parseArgs() {
   let email: string | undefined
   for (const arg of process.argv.slice(2)) {
     if (arg.startsWith('--email=')) email = arg.slice('--email='.length)
-    if (arg.startsWith('--user-id=')) return { force, userId: arg.slice('--user-id='.length), email }
+    if (arg.startsWith('--user-id='))
+      return { force, userId: arg.slice('--user-id='.length), email }
   }
   return { force, email, userId: undefined as string | undefined }
 }

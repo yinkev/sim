@@ -3,6 +3,7 @@ import { isApiClientError } from '@/lib/api/client/errors'
 import { requestJson } from '@/lib/api/client/request'
 import {
   getPauseContextDetailContract,
+  type ResumeWorkflowExecutionContextResponse,
   resumeWorkflowExecutionContract,
 } from '@/lib/api/contracts/workflows'
 import type { ResumeStatus } from '@/executor/types'
@@ -81,17 +82,6 @@ export interface PauseContextDetail {
   activeResumeEntry?: ResumeQueueEntrySummary | null
 }
 
-export interface ResumeContextResult {
-  ok: boolean
-  payload: {
-    status?: string
-    queuePosition?: number | null
-    error?: string
-    message?: string
-    [key: string]: unknown
-  }
-}
-
 interface ResumeContextVariables {
   workflowId: string
   executionId: string
@@ -165,7 +155,10 @@ export function useResumeContext() {
       executionId,
       contextId,
       input,
-    }: ResumeContextVariables): Promise<ResumeContextResult> => {
+    }: ResumeContextVariables): Promise<{
+      ok: boolean
+      payload: ResumeWorkflowExecutionContextResponse
+    }> => {
       // boundary-raw-fetch: resume-context POST contract has no body schema (route uses tolerant raw JSON parse for resume input forwarded to PauseResumeManager)
       const response = await fetch(`/api/resume/${workflowId}/${executionId}/${contextId}`, {
         method: 'POST',
@@ -173,7 +166,9 @@ export function useResumeContext() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input ? { input } : {}),
       })
-      const payload = await response.json().catch(() => ({}))
+      const payload = (await response
+        .json()
+        .catch(() => ({}))) as ResumeWorkflowExecutionContextResponse
       return { ok: response.ok, payload }
     },
     onSettled: (_data, _error, variables) =>

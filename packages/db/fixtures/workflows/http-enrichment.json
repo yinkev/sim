@@ -22,7 +22,11 @@
       "enabled": true,
       "horizontalHandles": true,
       "subBlocks": {
-        "url": { "id": "url", "type": "short-input", "value": "https://jsonplaceholder.typicode.com/todos/1" },
+        "url": {
+          "id": "url",
+          "type": "short-input",
+          "value": "https://jsonplaceholder.typicode.com/todos/1"
+        },
         "method": { "id": "method", "type": "dropdown", "value": "GET" },
         "params": { "id": "params", "type": "table", "value": [] },
         "headers": { "id": "headers", "type": "table", "value": [] },
