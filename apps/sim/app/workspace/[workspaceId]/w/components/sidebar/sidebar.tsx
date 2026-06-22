@@ -33,6 +33,7 @@ import {
   PanelLeft,
   Plus,
   Search,
+  Server,
   Settings,
   Table,
   Task,
@@ -767,6 +768,12 @@ export const Sidebar = memo(function Sidebar() {
           label: 'Logs',
           icon: Library,
           href: `/workspace/${workspaceId}/logs`,
+        },
+        {
+          id: 'mothership',
+          label: 'Mothership',
+          icon: Server,
+          href: `/workspace/${workspaceId}/mothership`,
         },
       ].filter((item) => !item.hidden),
     [

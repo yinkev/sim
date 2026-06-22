@@ -1,0 +1,203 @@
+{
+  "id": "task-67-control-panel-ui",
+  "state": "NEXT_SLICE_SELECTED",
+  "repo": {
+    "workspace": "/Users/kyin/Projects/sim",
+    "root": "/Users/kyin/Projects/sim",
+    "branch": "feat/demo-workspace-local-dev",
+    "head": "aff48f7d98fecfa4c2828a58910eadb77e5fe47b",
+    "statusShortBranch": "## feat/demo-workspace-local-dev",
+    "dirtyOverlap": false
+  },
+  "charter": {
+    "objective": "Add the first workspace Mothership control-panel UI over the FeatureCase ledger-backed backend.",
+    "nonObjectives": [
+      "Do not claim real provider or browser E2E.",
+      "Do not claim Docker image build or push proof.",
+      "Do not claim live Kubernetes service or CronJob proof.",
+      "Do not touch billing or provider-pricing runtime behavior."
+    ],
+    "invariants": [
+      "The UI must consume the contract-bound control-panel backend through React Query.",
+      "The UI must show claims, non-claims, evidence, reviews, grade, blockers, next action, and hard-gate status.",
+      "Positive future proof claims must not be displayed as blocked hard gates.",
+      "Hard external gates remain non-claims until real proof exists."
+    ],
+    "proofRequired": [
+      "Focused hook and UI tests pass.",
+      "API-boundary and React Query policy checks pass.",
+      "Local dev browser render shows the Mothership route and ledger-backed cases.",
+      "Reviewer-found gate-classification defect is fixed and covered by regression test."
+    ],
+    "stopRules": [
+      "Stop on route-local API boundary schemas.",
+      "Stop on raw same-origin client fetch in the new hook.",
+      "Stop on visual overlap in the case list.",
+      "Stop on any claim that external hard gates are complete."
+    ],
+    "expectedNonClaims": [
+      "browser/provider E2E not proven",
+      "Docker build/push not proven",
+      "Kubernetes proof not proven",
+      "replacement complete not claimed"
+    ]
+  },
+  "orchestration": {
+    "owner": "codex-main",
+    "workers": ["codex-ui-implementer"],
+    "reviewers": ["leibniz-subagent-review", "spec-review", "evidence-review"],
+    "grader": "codex-grader",
+    "roleSeparated": true
+  },
+  "evidence": {
+    "commands": [
+      {
+        "cmd": "pwd",
+        "result": "passed",
+        "proves": ["F0 repo-state workspace verified"]
+      },
+      {
+        "cmd": "git status --short --branch",
+        "result": "passed",
+        "proves": ["F0 repo-state branch/status verified"]
+      },
+      {
+        "cmd": "bun run --cwd apps/mothership smoke:strict-e2e-preflight",
+        "result": "blocked",
+        "proves": [
+          "Strict provider/browser hard-gate preflight unavailable because required env/secrets are missing"
+        ]
+      },
+      {
+        "cmd": "docker info --format '{{json .ServerVersion}}'",
+        "result": "blocked",
+        "proves": [
+          "Docker image-build proof unavailable because the local Docker socket is missing"
+        ]
+      },
+      {
+        "cmd": "kubectl version --client --output=json",
+        "result": "blocked",
+        "proves": ["Kubernetes proof unavailable because kubectl is not installed"]
+      },
+      {
+        "cmd": "curl -sS 'http://localhost:6888/api/mothership/control-panel/feature-cases?limit=100'",
+        "result": "passed",
+        "proves": [
+          "Control-panel backend returns success and ledger-backed cases during local dev server run"
+        ]
+      },
+      {
+        "cmd": "bunx biome check apps/sim/lib/api/contracts/mothership-control-panel.ts apps/sim/hooks/queries/mothership-control-panel.ts apps/sim/hooks/queries/mothership-control-panel.test.ts 'apps/sim/app/workspace/[workspaceId]/mothership/page.tsx' 'apps/sim/app/workspace/[workspaceId]/mothership/mothership-control-panel.tsx' 'apps/sim/app/workspace/[workspaceId]/mothership/mothership-control-panel.test.ts' 'apps/sim/app/workspace/[workspaceId]/w/components/sidebar/sidebar.tsx'",
+        "result": "passed",
+        "proves": ["Scoped formatting and lint checks pass for the UI slice"]
+      },
+      {
+        "cmd": "bun run --cwd apps/sim test hooks/queries/mothership-control-panel.test.ts 'app/workspace/[workspaceId]/mothership/mothership-control-panel.test.ts'",
+        "result": "passed",
+        "proves": ["Focused hook and UI gate-classifier tests pass"]
+      },
+      {
+        "cmd": "bun run --cwd apps/sim type-check",
+        "result": "passed",
+        "proves": ["App TypeScript check passes after the UI slice"]
+      },
+      {
+        "cmd": "bun run check:api-validation:strict",
+        "result": "passed",
+        "proves": ["API boundary policy remains clean after adding the UI hook contract usage"]
+      },
+      {
+        "cmd": "bun run check:react-query",
+        "result": "passed",
+        "proves": ["React Query policy remains clean after adding the Mothership hook"]
+      },
+      {
+        "cmd": "bun run mship-case:check",
+        "result": "passed",
+        "proves": [
+          "FeatureCase checker accepts valid cases and rejects invalid over-claim fixtures"
+        ]
+      },
+      {
+        "cmd": "bun run mship-case-ledger:check",
+        "result": "passed",
+        "proves": ["FeatureCase ledger checker validates the hash-chained ledger"]
+      },
+      {
+        "cmd": "playwright headless load http://localhost:6888/workspace/e16205a1-7107-4ab0-9eb1-dfb46028bc14/mothership",
+        "result": "passed",
+        "proves": [
+          "Local dev browser render shows Mothership route, Cases summary, Browser/provider E2E gate, visible CLOSE_SAFE_PARTIAL decision, no failed-load state, and Docker/image proof blocked"
+        ]
+      }
+    ]
+  },
+  "gateEvidence": {
+    "F0": ["cmd:pwd", "cmd:git status --short --branch"],
+    "F1": ["field:charter"],
+    "F2": ["field:orchestration"],
+    "F3": [
+      "diff:apps/sim/app/workspace/[workspaceId]/mothership",
+      "diff:apps/sim/hooks/queries/mothership-control-panel.ts",
+      "diff:apps/sim/app/workspace/[workspaceId]/w/components/sidebar/sidebar.tsx"
+    ],
+    "F4": [
+      "cmd:bun run --cwd apps/sim test hooks/queries/mothership-control-panel.test.ts 'app/workspace/[workspaceId]/mothership/mothership-control-panel.test.ts'",
+      "cmd:bun run --cwd apps/sim type-check",
+      "cmd:bun run check:api-validation:strict",
+      "cmd:bun run check:react-query"
+    ],
+    "F5": ["review:leibniz-subagent-review", "review:spec", "review:evidence"],
+    "F6": ["grade:CLOSE_SAFE_PARTIAL/B"],
+    "F7": ["ledger:coverage-audit+handoff"],
+    "F8": ["grade:claimsAdvanced+nonClaims"]
+  },
+  "blockers": [
+    "Strict provider/browser hard-gate env/secrets unavailable.",
+    "Docker daemon unavailable for image-build proof.",
+    "kubectl unavailable for live Kubernetes proof."
+  ],
+  "reviews": [
+    {
+      "type": "spec",
+      "reviewer": "spec-review",
+      "status": "pass",
+      "findings": []
+    },
+    {
+      "type": "code",
+      "reviewer": "leibniz-subagent-review",
+      "status": "pass",
+      "findings": [
+        "Initial gate classifier scanned claimsAdvanced and could mark future positive hard-gate claims as blocked; fixed by scanning only nonClaims and blockers and adding regression coverage."
+      ]
+    },
+    {
+      "type": "evidence",
+      "reviewer": "evidence-review",
+      "status": "pass",
+      "findings": []
+    }
+  ],
+  "grade": {
+    "decision": "CLOSE_SAFE_PARTIAL",
+    "grade": "B",
+    "capReason": "Safe local control-panel UI progress with focused tests and local browser-render proof; external provider/browser, Docker, and Kubernetes hard gates remain blocked.",
+    "claimsAdvanced": [
+      "Workspace Mothership control-panel UI renders ledger-backed FeatureCases with search, summary counts, hard-gate status, case details, evidence commands, reviews, grade, blockers, non-claims, next action, and ledger metadata."
+    ],
+    "nonClaims": [
+      "browser/provider E2E not proven",
+      "Docker build/push not proven",
+      "Kubernetes proof not proven",
+      "replacement complete not claimed"
+    ]
+  },
+  "ledger": {
+    "coverageAuditUpdated": true,
+    "handoffPath": "/var/folders/mc/qjwd1ld97_bfhl86xpbfrpp00000gn/T/sim-mothership-owned-replacement-handoff-20260622T051442Z.md",
+    "redactionAudit": true
+  },
+  "nextAction": "If external hard gates remain unavailable, make the control panel an active closure cockpit with handoff/audit drill-through and subagent/Oracle review evidence panels."
+}

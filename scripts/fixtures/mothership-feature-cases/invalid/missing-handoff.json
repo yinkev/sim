@@ -1,0 +1,76 @@
+{
+  "id": "invalid-missing-handoff",
+  "expectedErrors": ["ledger.handoffPath must point to a timestamped Sim Mothership handoff"],
+  "state": "PROMOTED_OR_NONPROMOTED_CLOSED",
+  "repo": {
+    "workspace": "/Users/kyin/Projects/sim",
+    "root": "/Users/kyin/Projects/sim",
+    "branch": "feat/demo-workspace-local-dev",
+    "head": "aff48f7d98fecfa4c2828a58910eadb77e5fe47b",
+    "statusShortBranch": "## feat/demo-workspace-local-dev",
+    "dirtyOverlap": false
+  },
+  "charter": {
+    "objective": "Invalid missing handoff case.",
+    "nonObjectives": ["Do not skip handoff."],
+    "invariants": ["Closed cases require handoff."],
+    "proofRequired": ["Reject missing handoff."],
+    "stopRules": ["Stop on missing handoff."],
+    "expectedNonClaims": ["replacement complete not claimed"]
+  },
+  "orchestration": {
+    "owner": "codex-main",
+    "workers": ["worker"],
+    "reviewers": ["spec", "code", "evidence"],
+    "grader": "grader",
+    "roleSeparated": true
+  },
+  "evidence": {
+    "commands": [
+      {
+        "cmd": "pwd",
+        "result": "passed",
+        "proves": ["F0 repo-state workspace verified"]
+      },
+      {
+        "cmd": "git status --short --branch",
+        "result": "passed",
+        "proves": ["F0 repo-state branch/status verified"]
+      },
+      {
+        "cmd": "bun run mship-case:check",
+        "result": "passed",
+        "proves": ["checker ran"]
+      }
+    ]
+  },
+  "gateEvidence": {
+    "F0": ["cmd:pwd", "cmd:git status --short --branch"],
+    "F1": ["field:charter"],
+    "F2": ["field:orchestration"],
+    "F3": ["diff:fake-fixture"],
+    "F4": ["cmd:bun run mship-case:check"],
+    "F5": ["review:spec", "review:code", "review:evidence"],
+    "F6": ["grade:CLOSE_SAFE_PARTIAL/B"],
+    "F7": ["ledger:coverage-audit+handoff"],
+    "F8": ["grade:claimsAdvanced+nonClaims"]
+  },
+  "reviews": [
+    { "type": "spec", "reviewer": "spec", "status": "pass", "findings": [] },
+    { "type": "code", "reviewer": "code", "status": "pass", "findings": [] },
+    { "type": "evidence", "reviewer": "evidence", "status": "pass", "findings": [] }
+  ],
+  "grade": {
+    "decision": "CLOSE_SAFE_PARTIAL",
+    "grade": "B",
+    "capReason": "Invalid fixture.",
+    "claimsAdvanced": ["FeatureCase checker ran."],
+    "nonClaims": ["replacement complete not claimed"]
+  },
+  "ledger": {
+    "coverageAuditUpdated": true,
+    "handoffPath": "",
+    "redactionAudit": true
+  },
+  "nextAction": "Invalid."
+}

@@ -48,6 +48,8 @@
     "mship:generate": "bun run scripts/generate-mship-contracts.ts",
     "mship:check": "bun run scripts/generate-mship-contracts.ts --check",
     "mship-fixtures:check": "bun run scripts/check-mothership-stream-fixtures.ts",
+    "mship-case:check": "bun run scripts/check-mothership-feature-case.ts",
+    "mship-case-ledger:check": "bun run scripts/mothership-feature-case-ledger.ts check-fixtures",
     "mship-client:check": "bun run --cwd packages/mothership-client lint:check && bun run --cwd packages/mothership-client type-check && bun run --cwd packages/mothership-client test",
     "mship-service:check": "bun run --cwd apps/mothership lint:check && bun run --cwd apps/mothership type-check && bun run --cwd apps/mothership test",
     "prepare": "bun husky",

@@ -1,0 +1,245 @@
+{
+  "id": "task-68-artifact-drill-through",
+  "state": "NEXT_SLICE_SELECTED",
+  "repo": {
+    "workspace": "/Users/kyin/Projects/sim",
+    "root": "/Users/kyin/Projects/sim",
+    "branch": "feat/demo-workspace-local-dev",
+    "head": "aff48f7d98fecfa4c2828a58910eadb77e5fe47b",
+    "statusShortBranch": "## feat/demo-workspace-local-dev",
+    "dirtyOverlap": false
+  },
+  "charter": {
+    "objective": "Add authenticated FeatureCase artifact drill-through from the workspace Mothership control panel to selected ledger-backed case, coverage-audit, and handoff artifacts.",
+    "nonObjectives": [
+      "Do not claim real provider or browser E2E.",
+      "Do not claim Docker image build or push proof.",
+      "Do not claim live Kubernetes service or CronJob proof.",
+      "Do not claim workspace authorization beyond session-auth proof.",
+      "Do not touch billing or provider-pricing runtime behavior."
+    ],
+    "invariants": [
+      "Artifact route auth must run before query parsing.",
+      "Artifact reads must be backed by validated ledger events.",
+      "Case and coverage-audit artifacts must stay inside the repo root.",
+      "Handoff artifacts must stay inside the temp directory and use the Sim Mothership handoff filename convention.",
+      "Symlink targets must be checked by realpath before file reads.",
+      "The UI must select artifacts by eventId, not caseId."
+    ],
+    "proofRequired": [
+      "Focused route, ledger, and UI tests pass.",
+      "API-boundary and React Query policy checks pass.",
+      "Local curl proves case and handoff artifact reads plus missing-event 404.",
+      "Local dev browser render shows artifact links.",
+      "Subagent and Grok CLI reviews are documented."
+    ],
+    "stopRules": [
+      "Stop on route-local boundary schemas.",
+      "Stop on auth after parseRequest.",
+      "Stop on raw same-origin client fetch for JSON boundaries.",
+      "Stop on artifact path traversal or symlink escape.",
+      "Stop on any claim that external hard gates are complete."
+    ],
+    "expectedNonClaims": [
+      "browser/provider E2E not proven",
+      "Docker build/push not proven",
+      "Kubernetes proof not proven",
+      "workspace authorization beyond session auth not proven",
+      "replacement complete not claimed"
+    ]
+  },
+  "orchestration": {
+    "owner": "codex-main",
+    "workers": ["codex-artifact-implementer"],
+    "reviewers": ["kuhn-subagent-review", "locke-doc-review", "grok-cli-review"],
+    "grader": "codex-grader",
+    "roleSeparated": true
+  },
+  "evidence": {
+    "commands": [
+      {
+        "cmd": "pwd",
+        "result": "passed",
+        "proves": ["F0 repo-state workspace verified"]
+      },
+      {
+        "cmd": "git status --short --branch",
+        "result": "passed",
+        "proves": ["F0 repo-state branch/status verified"]
+      },
+      {
+        "cmd": "bun run --cwd apps/mothership smoke:strict-e2e-preflight",
+        "result": "blocked",
+        "proves": [
+          "Strict provider/browser hard-gate preflight unavailable because required env/secrets are missing"
+        ]
+      },
+      {
+        "cmd": "docker info --format '{{json .ServerVersion}}'",
+        "result": "blocked",
+        "proves": [
+          "Docker image-build proof unavailable because the local Docker socket is missing"
+        ]
+      },
+      {
+        "cmd": "kubectl version --client --output=json",
+        "result": "blocked",
+        "proves": ["Kubernetes proof unavailable because kubectl is not installed"]
+      },
+      {
+        "cmd": "bunx biome check apps/sim/lib/api/contracts/mothership-control-panel.ts apps/sim/lib/mothership/control-panel/feature-case-ledger.ts apps/sim/lib/mothership/control-panel/feature-case-ledger.test.ts apps/sim/app/api/mothership/control-panel/feature-case-artifact/route.ts apps/sim/app/api/mothership/control-panel/feature-case-artifact/route.test.ts 'apps/sim/app/workspace/[workspaceId]/mothership/mothership-control-panel.tsx' 'apps/sim/app/workspace/[workspaceId]/mothership/mothership-control-panel.test.ts' scripts/check-api-validation-contracts.ts",
+        "result": "passed",
+        "proves": ["Scoped formatting and lint checks pass for artifact drill-through files"]
+      },
+      {
+        "cmd": "bun run --cwd apps/sim test lib/mothership/control-panel/feature-case-ledger.test.ts app/api/mothership/control-panel/feature-case-artifact/route.test.ts 'app/workspace/[workspaceId]/mothership/mothership-control-panel.test.ts'",
+        "result": "passed",
+        "proves": [
+          "Focused route, ledger artifact, symlink escape, and UI artifact-link tests pass"
+        ]
+      },
+      {
+        "cmd": "bun run --cwd apps/sim type-check",
+        "result": "passed",
+        "proves": ["App TypeScript check passes after artifact drill-through slice"]
+      },
+      {
+        "cmd": "bun run check:api-validation:strict",
+        "result": "passed",
+        "proves": ["API boundary policy remains clean after adding the text artifact route"]
+      },
+      {
+        "cmd": "bun run check:react-query",
+        "result": "passed",
+        "proves": ["React Query policy remains clean after UI artifact links"]
+      },
+      {
+        "cmd": "bun run mship-case:check",
+        "result": "passed",
+        "proves": [
+          "FeatureCase checker accepts valid cases and rejects invalid over-claim fixtures before Task 68 append"
+        ]
+      },
+      {
+        "cmd": "bun run mship-case-ledger:check",
+        "result": "passed",
+        "proves": ["FeatureCase ledger checker validates the hash-chained ledger before Task 68 append"]
+      },
+      {
+        "cmd": "curl -sS -D - 'http://localhost:6888/api/mothership/control-panel/feature-case-artifact?eventId=task-67-control-panel-ui%3A2026-06-22T05%3A14%3A42.000Z&artifact=case'",
+        "result": "passed",
+        "proves": ["Local route proof returned Task 67 case artifact text with artifact path header"]
+      },
+      {
+        "cmd": "curl -sS -D - 'http://localhost:6888/api/mothership/control-panel/feature-case-artifact?eventId=task-67-control-panel-ui%3A2026-06-22T05%3A14%3A42.000Z&artifact=handoff'",
+        "result": "passed",
+        "proves": ["Local route proof returned Task 67 handoff artifact text"]
+      },
+      {
+        "cmd": "curl -sS -o /tmp/sim-mship-forbidden.out -w '%{http_code}\\n' 'http://localhost:6888/api/mothership/control-panel/feature-case-artifact?eventId=missing&artifact=case'",
+        "result": "passed",
+        "proves": ["Local route proof returned 404 for missing ledger event"]
+      },
+      {
+        "cmd": "playwright headless load http://localhost:6888/workspace/e16205a1-7107-4ab0-9eb1-dfb46028bc14/mothership",
+        "result": "passed",
+        "proves": [
+          "Local dev browser render shows Mothership route and Case JSON, Coverage Audit, and Handoff artifact links"
+        ]
+      },
+      {
+        "cmd": "/Users/kyin/.grok/bin/grok --cwd /Users/kyin/Projects/sim --disable-web-search --no-subagents --max-turns 4 --output-format plain -p '<Task 68 context-only advisory review prompt>'",
+        "result": "passed",
+        "proves": [
+          "Grok CLI advisory review returned scoped safe claims, non-claims, overclaim risks, and next-slice guidance"
+        ]
+      }
+    ]
+  },
+  "gateEvidence": {
+    "F0": ["cmd:pwd", "cmd:git status --short --branch"],
+    "F1": ["field:charter"],
+    "F2": ["field:orchestration"],
+    "F3": [
+      "diff:apps/sim/lib/api/contracts/mothership-control-panel.ts",
+      "diff:apps/sim/lib/mothership/control-panel/feature-case-ledger.ts",
+      "diff:apps/sim/app/api/mothership/control-panel/feature-case-artifact/route.ts",
+      "diff:apps/sim/app/workspace/[workspaceId]/mothership/mothership-control-panel.tsx"
+    ],
+    "F4": [
+      "cmd:bun run --cwd apps/sim test lib/mothership/control-panel/feature-case-ledger.test.ts app/api/mothership/control-panel/feature-case-artifact/route.test.ts 'app/workspace/[workspaceId]/mothership/mothership-control-panel.test.ts'",
+      "cmd:bun run --cwd apps/sim type-check",
+      "cmd:bun run check:api-validation:strict",
+      "cmd:bun run check:react-query"
+    ],
+    "F5": [
+      "review:kuhn-subagent-review",
+      "review:locke-doc-review",
+      "review:grok-cli-review"
+    ],
+    "F6": ["grade:CLOSE_SAFE_PARTIAL/B"],
+    "F7": ["ledger:coverage-audit+handoff"],
+    "F8": ["grade:claimsAdvanced+nonClaims"]
+  },
+  "blockers": [
+    "Strict provider/browser hard-gate env/secrets unavailable.",
+    "Docker daemon unavailable for image-build proof.",
+    "kubectl unavailable for live Kubernetes proof."
+  ],
+  "reviews": [
+    {
+      "type": "spec",
+      "reviewer": "grok-cli-review",
+      "status": "pass",
+      "findings": [
+        "Safe promotion is local contract, route, helper, UI links, realpath containment, local tests, local curl, and local Playwright proof only; production readiness and workspace authorization remain non-claims."
+      ]
+    },
+    {
+      "type": "code",
+      "reviewer": "kuhn-subagent-review",
+      "status": "pass",
+      "findings": [
+        "Initial symlink escape risk was fixed with realpath containment checks and symlink regression tests.",
+        "Initial API-validation strict route-count baseline failure was fixed by moving the route baseline to 861 without weakening boundary metrics.",
+        "Initial UI artifact selection by caseId was fixed by selecting ledger cases by eventId."
+      ]
+    },
+    {
+      "type": "evidence",
+      "reviewer": "locke-doc-review",
+      "status": "pass",
+      "findings": [
+        "Coverage-audit closure needed a Task 68 FeatureCase, handoff, and ledger append before Task 68 could be called closed.",
+        "Authenticated claim must stay scoped to session auth before parseRequest, not workspace authorization.",
+        "Handoff filename convention is enforced by basename pattern and temp root containment, not by parsed timestamp semantics."
+      ]
+    }
+  ],
+  "grade": {
+    "decision": "CLOSE_SAFE_PARTIAL",
+    "grade": "B",
+    "capReason": "Safe local control-panel artifact drill-through with focused tests, policy checks, local curl proof, local browser-render proof, subagent review, and Grok CLI review; external provider/browser, Docker, and Kubernetes hard gates remain blocked.",
+    "claimsAdvanced": [
+      "Workspace Mothership control-panel detail view links selected FeatureCase ledger events to case JSON, coverage-audit markdown, and handoff markdown artifacts by eventId.",
+      "FeatureCase artifact route authenticates the user session before query parsing and serves selected ledger-backed text artifacts.",
+      "FeatureCase artifact reads enforce repo/temp root containment, handoff basename convention, artifact size limits, and realpath symlink-escape checks.",
+      "Reviewer-found symlink escape, route-count baseline, and caseId selection defects were fixed and reverified locally."
+    ],
+    "nonClaims": [
+      "browser/provider E2E not proven",
+      "Docker build/push not proven",
+      "Kubernetes proof not proven",
+      "workspace authorization beyond session auth not proven",
+      "autonomous swarm completion not proven",
+      "replacement complete not claimed",
+      "billing/pricing not touched"
+    ]
+  },
+  "ledger": {
+    "coverageAuditUpdated": true,
+    "handoffPath": "/var/folders/mc/qjwd1ld97_bfhl86xpbfrpp00000gn/T/sim-mothership-owned-replacement-handoff-20260622T055044Z.md",
+    "redactionAudit": true
+  },
+  "nextAction": "If external hard gates remain unavailable, add visible subagent, Grok CLI, and Oracle evidence panels to the Mothership control panel without weakening non-claim gates."
+}

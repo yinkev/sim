@@ -1,0 +1,129 @@
+{
+  "id": "task-64-case-runner",
+  "state": "NEXT_SLICE_SELECTED",
+  "repo": {
+    "workspace": "/Users/kyin/Projects/sim",
+    "root": "/Users/kyin/Projects/sim",
+    "branch": "feat/demo-workspace-local-dev",
+    "head": "aff48f7d98fecfa4c2828a58910eadb77e5fe47b",
+    "statusShortBranch": "## feat/demo-workspace-local-dev",
+    "dirtyOverlap": false
+  },
+  "charter": {
+    "objective": "Add a minimal F0-F8 evidence case-runner validator for Sim Mothership feature slices.",
+    "nonObjectives": [
+      "Do not build the full UI control panel.",
+      "Do not claim browser/provider E2E.",
+      "Do not touch billing or pricing runtime behavior."
+    ],
+    "invariants": [
+      "Current command output is proof, not memory.",
+      "Closed cases must have evidence, reviews, grade, audit, handoff, claims, and non-claims.",
+      "Forbidden completion/deployment claims must be rejected."
+    ],
+    "proofRequired": [
+      "Feature-case checker accepts valid closed case.",
+      "Feature-case checker rejects fake E2E claim.",
+      "Feature-case checker rejects missing handoff.",
+      "Feature-case checker rejects missing review."
+    ],
+    "stopRules": [
+      "Stop on dirty overlap with unowned files.",
+      "Stop on raw secret exposure.",
+      "Stop on failing checker fixtures."
+    ],
+    "expectedNonClaims": [
+      "browser/provider E2E not proven",
+      "Docker build/push not proven",
+      "replacement complete not claimed"
+    ]
+  },
+  "orchestration": {
+    "owner": "codex-main",
+    "workers": ["script-implementer"],
+    "reviewers": ["spec-review", "code-review", "evidence-review"],
+    "grader": "codex-grader",
+    "roleSeparated": true
+  },
+  "evidence": {
+    "commands": [
+      {
+        "cmd": "pwd",
+        "result": "passed",
+        "proves": ["F0 repo-state workspace verified"]
+      },
+      {
+        "cmd": "git status --short --branch",
+        "result": "passed",
+        "proves": ["F0 repo-state branch/status verified"]
+      },
+      {
+        "cmd": "bun run scripts/check-mothership-feature-case.ts",
+        "result": "passed",
+        "proves": ["F4 valid and invalid feature-case fixtures checked"]
+      },
+      {
+        "cmd": "docker info --format '{{json .ServerVersion}}'",
+        "result": "blocked",
+        "proves": ["Docker image-build proof unavailable in local environment"]
+      }
+    ]
+  },
+  "gateEvidence": {
+    "F0": ["cmd:pwd", "cmd:git status --short --branch"],
+    "F1": ["field:charter"],
+    "F2": ["field:orchestration"],
+    "F3": [
+      "diff:scripts/check-mothership-feature-case.ts",
+      "diff:scripts/fixtures/mothership-feature-cases"
+    ],
+    "F4": ["cmd:bun run scripts/check-mothership-feature-case.ts"],
+    "F5": ["review:spec", "review:code", "review:evidence"],
+    "F6": ["grade:CLOSE_SAFE_PARTIAL/B"],
+    "F7": ["ledger:coverage-audit+handoff"],
+    "F8": ["grade:claimsAdvanced+nonClaims"]
+  },
+  "blockers": [
+    "Docker daemon unavailable for image-build proof.",
+    "Strict browser/provider E2E env/secrets unavailable."
+  ],
+  "reviews": [
+    {
+      "type": "spec",
+      "reviewer": "spec-review",
+      "status": "pass",
+      "findings": []
+    },
+    {
+      "type": "code",
+      "reviewer": "code-review",
+      "status": "pass",
+      "findings": []
+    },
+    {
+      "type": "evidence",
+      "reviewer": "evidence-review",
+      "status": "pass",
+      "findings": []
+    }
+  ],
+  "grade": {
+    "decision": "CLOSE_SAFE_PARTIAL",
+    "grade": "B",
+    "capReason": "Safe local control-plane validator progress; no browser/provider/deployment gate advanced.",
+    "claimsAdvanced": [
+      "FeatureCase checker validates closed FeatureCase gate evidence sources and rejects forbidden over-claims."
+    ],
+    "nonClaims": [
+      "browser/provider E2E not proven",
+      "Docker build/push not proven",
+      "replacement complete not claimed"
+    ]
+  },
+  "ledger": {
+    "coverageAuditUpdated": true,
+    "handoffPath": "/var/folders/mc/qjwd1ld97_bfhl86xpbfrpp00000gn/T/sim-mothership-owned-replacement-handoff-20260622T000000Z.md",
+    "redactionAudit": true
+  },
+  "nextAction": "Use case-runner output as the minimal machine-checkable closure contract before building UI."
+}
