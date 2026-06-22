@@ -1,9 +1,20 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { getErrorMessage } from '@sim/utils/errors'
 import { Loader } from '@/components/emcn'
-import { CircleAlert, Library, Link, RefreshCw } from '@/components/emcn/icons'
+import {
+  Check,
+  CircleAlert,
+  Clipboard,
+  ClipboardList,
+  File,
+  Hand,
+  Library,
+  RefreshCw,
+  ShieldCheck,
+  SquareArrowUpRight,
+} from '@/components/emcn/icons'
 import type { MothershipControlPanelCase } from '@/lib/api/contracts/mothership-control-panel'
 import { cn } from '@/lib/core/utils/cn'
 import { Resource } from '@/app/workspace/[workspaceId]/components'
@@ -87,17 +98,28 @@ interface GateStatusItem {
   status: GateStatus
 }
 
-interface ArtifactRow {
-  id: string
+export type FeatureCaseArtifactType = 'case' | 'coverage-audit' | 'handoff'
+
+export interface ArtifactRow {
+  id: FeatureCaseArtifactType
   label: string
+  type: FeatureCaseArtifactType
+  eventId: string
   path: string
   href: string
 }
 
-function featureCaseArtifactHref(
-  eventId: string,
-  artifact: 'case' | 'coverage-audit' | 'handoff'
-): string {
+export const FEATURE_CASE_ARTIFACT_ICONS = {
+  case: File,
+  'coverage-audit': ClipboardList,
+  handoff: Hand,
+} as const
+
+export function getFeatureCaseArtifactIcon(type: FeatureCaseArtifactType) {
+  return FEATURE_CASE_ARTIFACT_ICONS[type]
+}
+
+function featureCaseArtifactHref(eventId: string, artifact: FeatureCaseArtifactType): string {
   const query = new URLSearchParams({ eventId, artifact })
   return `/api/mothership/control-panel/feature-case-artifact?${query.toString()}`
 }
@@ -107,18 +129,24 @@ export function getFeatureCaseArtifactRows(caseItem: MothershipControlPanelCase)
     {
       id: 'case',
       label: 'Case JSON',
+      type: 'case',
+      eventId: caseItem.eventId,
       path: caseItem.casePath,
       href: featureCaseArtifactHref(caseItem.eventId, 'case'),
     },
     {
       id: 'coverage-audit',
       label: 'Coverage Audit',
+      type: 'coverage-audit',
+      eventId: caseItem.eventId,
       path: caseItem.coverageAuditPath,
       href: featureCaseArtifactHref(caseItem.eventId, 'coverage-audit'),
     },
     {
       id: 'handoff',
       label: 'Handoff',
+      type: 'handoff',
+      eventId: caseItem.eventId,
       path: caseItem.handoffPath,
       href: featureCaseArtifactHref(caseItem.eventId, 'handoff'),
     },
@@ -355,23 +383,118 @@ function ReviewFamilyPanels({ reviews }: { reviews: MothershipControlPanelCase['
   )
 }
 
+function CopyButton({ value, label }: { value: string; label: string }) {
+  const [copied, setCopied] = useState(false)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [])
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      timeoutRef.current = setTimeout(() => {
+        setCopied(false)
+        timeoutRef.current = null
+      }, 1500)
+    } catch {
+      setCopied(false)
+    }
+  }
+
+  const Icon = copied ? Check : Clipboard
+
+  return (
+    <button
+      type='button'
+      onClick={handleCopy}
+      aria-label={copied ? `${label} path copied` : `Copy ${label} path`}
+      className={cn(
+        'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[6px] border border-[var(--border)] bg-[var(--surface-3)] px-2 text-[var(--text-muted)] text-caption transition-colors hover-hover:text-[var(--text-body)]',
+        copied && 'text-[var(--text-body)]'
+      )}
+    >
+      <Icon className='size-[14px] shrink-0 text-[var(--text-icon)]' />
+      <span aria-live='polite'>{copied ? 'Copied' : 'Copy'}</span>
+    </button>
+  )
+}
+
+function ArtifactExhibit({ artifact }: { artifact: ArtifactRow }) {
+  const Icon = getFeatureCaseArtifactIcon(artifact.type)
+
+  return (
+    <article className='rounded-[7px] border border-[var(--border)] border-l-2 border-l-[var(--text-muted)] bg-[var(--surface-2)] p-3 transition-colors hover-hover:bg-[var(--surface-3)]'>
+      <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
+        <div className='flex min-w-0 items-start gap-3'>
+          <div className='flex size-8 shrink-0 items-center justify-center rounded-[6px] border border-[var(--border)] bg-[var(--surface-3)] text-[var(--text-icon)]'>
+            <Icon className='size-[14px]' />
+          </div>
+
+          <div className='min-w-0'>
+            <div className='flex min-w-0 flex-wrap items-center gap-2'>
+              <span className='font-medium text-[var(--text-body)] text-small'>
+                {artifact.label}
+              </span>
+              <span className='inline-flex items-center gap-1 rounded-[5px] border border-[var(--border)] bg-[var(--surface-3)] px-1.5 py-0.5 text-[var(--text-muted)] text-caption'>
+                <ShieldCheck className='size-[14px] shrink-0 text-[var(--text-icon)]' />
+                Exhibit
+              </span>
+            </div>
+
+            <div className='mt-1 flex min-w-0 items-center gap-2 text-caption'>
+              <span className='shrink-0 text-[var(--text-muted)]'>Event</span>
+              <code
+                title={artifact.eventId}
+                className='min-w-0 truncate font-mono text-[var(--text-muted)]'
+              >
+                {shortDigest(artifact.eventId)}
+              </code>
+            </div>
+          </div>
+        </div>
+
+        <div className='flex shrink-0 items-center gap-2'>
+          <CopyButton value={artifact.path} label={artifact.label} />
+          <a
+            href={artifact.href}
+            target='_blank'
+            rel='noreferrer'
+            aria-label={`Open ${artifact.label}`}
+            className='inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[6px] border border-[var(--border)] bg-[var(--surface-3)] px-2 font-medium text-[var(--text-body)] text-caption transition-colors hover-hover:bg-[var(--surface-2)]'
+          >
+            Open
+            <SquareArrowUpRight className='size-[14px] shrink-0 text-[var(--text-icon)]' />
+          </a>
+        </div>
+      </div>
+
+      <div className='mt-3 rounded-[6px] border border-[var(--border)] bg-[var(--surface-3)] px-3 py-2'>
+        <div className='mb-1 text-[var(--text-muted)] text-caption'>Path</div>
+        <code
+          title={artifact.path}
+          className='block truncate font-mono text-[var(--text-body)] text-small'
+        >
+          {artifact.path}
+        </code>
+      </div>
+    </article>
+  )
+}
+
 function ArtifactList({ caseItem }: { caseItem: MothershipControlPanelCase }) {
   const artifacts = getFeatureCaseArtifactRows(caseItem)
 
   return (
     <div className='flex flex-col gap-2'>
       {artifacts.map((artifact) => (
-        <a
-          key={artifact.id}
-          href={artifact.href}
-          target='_blank'
-          rel='noreferrer'
-          className='grid grid-cols-[110px_minmax(0,1fr)_20px] items-center gap-3 border-[var(--border)] border-b pb-2 text-small last:border-b-0 last:pb-0 hover-hover:text-[var(--text-body)]'
-        >
-          <span className='font-medium text-[var(--text-body)]'>{artifact.label}</span>
-          <code className='truncate font-mono text-[var(--text-muted)]'>{artifact.path}</code>
-          <Link className='size-[14px] text-[var(--text-muted)]' />
-        </a>
+        <ArtifactExhibit key={artifact.id} artifact={artifact} />
       ))}
     </div>
   )
