@@ -20,11 +20,16 @@ export const featureCaseReviewSchema = z.object({
   findings: z.array(z.string()).optional(),
 })
 
+export const gateEvidenceSchema = z.record(z.string(), z.array(z.string()))
+
+export type FeatureCaseGateEvidence = z.output<typeof gateEvidenceSchema>
+
 export const featureCaseSnapshotSchema = z
   .object({
     id: z.string().min(1),
     state: z.string().min(1),
     blockers: z.array(z.string()).optional(),
+    gateEvidence: gateEvidenceSchema.optional(),
     evidence: z.object({
       commands: z.array(featureCaseCommandSchema),
     }),
@@ -88,6 +93,7 @@ export const mothershipControlPanelCaseSchema = z.object({
   claimsAdvanced: z.array(z.string()),
   nonClaims: z.array(z.string()),
   blockers: z.array(z.string()),
+  gateEvidence: gateEvidenceSchema.optional(),
   evidenceCommands: z.array(featureCaseCommandSchema),
   reviews: z.array(featureCaseReviewSchema),
 })

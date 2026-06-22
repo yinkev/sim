@@ -11,6 +11,7 @@ import {
   classifyReviewerFamily,
   formatCapReason,
   formatClaimsNonClaimsSummary,
+  getGateRailItems,
   getReviewFamilyGroups,
 } from '@/app/workspace/[workspaceId]/mothership/mothership-control-panel.utils'
 
@@ -192,5 +193,53 @@ describe('formatClaimsNonClaimsSummary', () => {
 
   it('handles singular and zero counts', () => {
     expect(formatClaimsNonClaimsSummary(['a'], [])).toBe('1 claim · 0 non-claims')
+  })
+})
+
+describe('getGateRailItems', () => {
+  it('returns F0 through F8 in order and ignores unknown evidence keys', () => {
+    const items = getGateRailItems(
+      { F0: ['repo-proof'], F2: ['orchestration-proof'], F8: [], FX: ['ignored'] },
+      'CLOSE_SAFE_PARTIAL'
+    )
+
+    expect(items.map((item) => item.id)).toEqual([
+      'F0',
+      'F1',
+      'F2',
+      'F3',
+      'F4',
+      'F5',
+      'F6',
+      'F7',
+      'F8',
+    ])
+    expect(items.find((item) => item.id === 'F0')).toEqual({
+      id: 'F0',
+      label: 'Repo verified',
+      status: 'passed',
+      count: 1,
+    })
+    expect(items.find((item) => item.id === 'F1')).toEqual({
+      id: 'F1',
+      label: 'Chartered',
+      status: 'pending',
+      count: 0,
+    })
+  })
+
+  it('keeps F8 partial when evidence exists but the decision is not PROMOTE', () => {
+    const items = getGateRailItems({ F8: ['promotion-review'] }, 'CLOSE_SAFE_PARTIAL')
+    expect(items.find((item) => item.id === 'F8')).toEqual({
+      id: 'F8',
+      label: 'Promoted',
+      status: 'partial',
+      count: 1,
+    })
+  })
+
+  it('marks F8 passed only when evidence exists and the decision is PROMOTE', () => {
+    const items = getGateRailItems({ F8: ['promotion-review'] }, 'PROMOTE')
+    expect(items.find((item) => item.id === 'F8')?.status).toBe('passed')
   })
 })

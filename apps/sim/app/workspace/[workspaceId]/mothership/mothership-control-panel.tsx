@@ -21,6 +21,8 @@ import { Resource } from '@/app/workspace/[workspaceId]/components'
 import {
   formatCapReason,
   formatClaimsNonClaimsSummary,
+  type GateRailItem,
+  getGateRailItems,
   getReviewFamilyGroups,
   REVIEW_FAMILY_EMPTY_LABELS,
   REVIEW_FAMILY_ICONS,
@@ -525,8 +527,57 @@ function VerdictInstrument({
   )
 }
 
+function gateRailTitle(item: GateRailItem): string {
+  const evidenceLabel = `${item.count} evidence ${item.count === 1 ? 'source' : 'sources'}`
+  return `${item.id} ${item.label}: ${evidenceLabel}; ${item.status}`
+}
+
+function GateRail({ items }: { items: GateRailItem[] }) {
+  return (
+    <div
+      className='mt-3 flex items-center gap-1 overflow-x-auto'
+      role='list'
+      aria-label='F0-F8 ledger gates'
+    >
+      {items.map((item) => {
+        const title = gateRailTitle(item)
+
+        return (
+          <div
+            key={item.id}
+            role='listitem'
+            title={title}
+            aria-label={title}
+            className={cn(
+              'flex h-6 shrink-0 items-center gap-1 rounded-[6px] border border-[var(--border)] bg-[var(--surface-2)] px-1.5 text-caption',
+              item.status === 'passed' && 'text-[#2f7d32]',
+              item.status === 'partial' && 'text-[#946200]',
+              item.status === 'pending' && 'text-[var(--text-muted)]'
+            )}
+          >
+            <span className='flex size-[14px] items-center justify-center'>
+              {item.status === 'passed' ? (
+                <Check className='size-[14px]' />
+              ) : (
+                <span
+                  className={cn(
+                    'size-[6px] rounded-full',
+                    item.status === 'partial' ? 'bg-[#946200]' : 'bg-[var(--border)]'
+                  )}
+                />
+              )}
+            </span>
+            <span className='font-medium'>{item.id}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function VerdictHeader({ caseItem }: { caseItem: MothershipControlPanelCase }) {
   const capReason = formatCapReason(caseItem.capReason)
+  const gateRailItems = getGateRailItems(caseItem.gateEvidence, caseItem.decision)
 
   return (
     <section className='border-[var(--border)] border-b bg-[var(--surface-2)] px-5 py-5'>
@@ -542,6 +593,8 @@ function VerdictHeader({ caseItem }: { caseItem: MothershipControlPanelCase }) {
           className={gradeClassName(caseItem.grade)}
         />
       </div>
+
+      <GateRail items={gateRailItems} />
 
       {capReason && (
         <div className='mt-4 border-[var(--border)] border-t pt-4'>

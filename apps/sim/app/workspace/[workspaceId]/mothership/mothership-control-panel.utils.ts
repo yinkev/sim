@@ -134,3 +134,43 @@ export function formatClaimsNonClaimsSummary(
     nonClaimCount === 1 ? 'non-claim' : 'non-claims'
   }`
 }
+
+export type GateRailItem = {
+  id: string
+  label: string
+  status: 'passed' | 'partial' | 'pending'
+  count: number
+}
+
+const GATE_RAIL_DEFINITIONS = [
+  { id: 'F0', label: 'Repo verified' },
+  { id: 'F1', label: 'Chartered' },
+  { id: 'F2', label: 'Orchestrated' },
+  { id: 'F3', label: 'Implemented' },
+  { id: 'F4', label: 'Verified' },
+  { id: 'F5', label: 'Reviewed' },
+  { id: 'F6', label: 'Graded' },
+  { id: 'F7', label: 'Ledgered' },
+  { id: 'F8', label: 'Promoted' },
+] as const
+
+function getGateRailStatus(id: string, count: number, decision: string): GateRailItem['status'] {
+  if (count === 0) return 'pending'
+  if (id === 'F8' && decision !== 'PROMOTE') return 'partial'
+  return 'passed'
+}
+
+export function getGateRailItems(
+  gateEvidence: Record<string, string[]> | undefined,
+  decision: string
+): GateRailItem[] {
+  return GATE_RAIL_DEFINITIONS.map((gate) => {
+    const count = gateEvidence?.[gate.id]?.length ?? 0
+    return {
+      id: gate.id,
+      label: gate.label,
+      status: getGateRailStatus(gate.id, count, decision),
+      count,
+    }
+  })
+}

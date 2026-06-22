@@ -211,6 +211,7 @@ function toControlPanelCase(event: FeatureCaseLedgerEvent): MothershipControlPan
     claimsAdvanced: event.case.grade.claimsAdvanced,
     nonClaims: event.case.grade.nonClaims,
     blockers: event.case.blockers ?? [],
+    gateEvidence: event.case.gateEvidence,
     evidenceCommands: event.case.evidence.commands,
     reviews: event.case.reviews,
   }
