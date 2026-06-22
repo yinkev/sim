@@ -1,0 +1,149 @@
+{
+  "id": "task-71-artifact-exhibits",
+  "state": "NEXT_SLICE_SELECTED",
+  "repo": {
+    "workspace": "/Users/kyin/Projects/sim",
+    "root": "/Users/kyin/Projects/sim",
+    "branch": "feat/demo-workspace-local-dev",
+    "head": "97be2c0ace9a81657b002a6358d5d431e1fbb420",
+    "statusShortBranch": "## feat/demo-workspace-local-dev",
+    "dirtyOverlap": false
+  },
+  "charter": {
+    "objective": "Upgrade the FeatureCase detail artifact links into evidence exhibit cards (per-type icon, Exhibit seal, backing event ID, inset path panel, copy-to-clipboard with confirmation, and an open action).",
+    "nonObjectives": [
+      "Do not claim real provider or browser E2E.",
+      "Do not claim Docker image build or push proof.",
+      "Do not claim live Kubernetes service or CronJob proof.",
+      "Do not claim workspace authorization beyond session-auth proof.",
+      "Do not touch billing or provider-pricing runtime behavior.",
+      "Do not change the artifact API route, contract, or ledger in this slice."
+    ],
+    "invariants": [
+      "Frontend read-side only; the existing artifact route is reused unchanged.",
+      "getFeatureCaseArtifactRows keeps id/label/path/href and adds type/eventId without dropping fields.",
+      "Clipboard copy clears its timer on re-click and on unmount.",
+      "Cockpit emcn rules hold: two font weights only, size-[14px] icons, color tokens, no focus rings.",
+      "Non-claim gates and the FeatureCase checkers continue to pass."
+    ],
+    "proofRequired": [
+      "Focused tests pass.",
+      "Biome, type-check, API-boundary, and React Query policy checks pass.",
+      "FeatureCase and ledger checkers pass.",
+      "Independent role-separated spec, code, and evidence reviews are documented."
+    ],
+    "stopRules": [
+      "Stop on nonexistent emcn icon imports.",
+      "Stop on any forbidden font weight (semibold/600/700).",
+      "Stop on any backend/route/contract/ledger change in this slice.",
+      "Stop on any claim that external hard gates are complete."
+    ],
+    "expectedNonClaims": [
+      "browser/provider E2E not proven",
+      "Docker build/push not proven",
+      "Kubernetes proof not proven",
+      "workspace authorization beyond session auth not proven",
+      "replacement complete not claimed"
+    ]
+  },
+  "orchestration": {
+    "owner": "claude-main",
+    "workers": ["grok-panelist", "codex-panelist", "mimo-panelist", "codex-synth"],
+    "reviewers": ["oracle-next-move-review", "grok-fusion-judge", "grok-inline-review"],
+    "grader": "claude-grader",
+    "roleSeparated": true
+  },
+  "evidence": {
+    "commands": [
+      { "cmd": "pwd", "result": "passed", "proves": ["F0 repo-state workspace verified"] },
+      { "cmd": "git status --short --branch", "result": "passed", "proves": ["F0 repo-state branch/status verified"] },
+      { "cmd": "bun run --cwd apps/mothership smoke:strict-e2e-preflight", "result": "blocked", "proves": ["Strict provider/browser hard-gate preflight unavailable; deferred to the final phase"] },
+      { "cmd": "docker info --format '{{json .ServerVersion}}'", "result": "blocked", "proves": ["Docker image-build proof unavailable; deferred to the final phase"] },
+      { "cmd": "kubectl version --client --output=json", "result": "blocked", "proves": ["Kubernetes proof unavailable; deferred to the final phase"] },
+      { "cmd": "bunx biome check apps/sim/app/workspace/[workspaceId]/mothership/mothership-control-panel.tsx", "result": "passed", "proves": ["Formatting and lint checks pass for the artifact-exhibits slice"] },
+      { "cmd": "bun run --cwd apps/sim test mothership-control-panel.test", "result": "passed", "proves": ["Focused tests pass with the extended artifact row shape"] },
+      { "cmd": "bun run --cwd apps/sim type-check", "result": "passed", "proves": ["App TypeScript check passes after the artifact-exhibits slice"] },
+      { "cmd": "bun run check:api-validation:strict", "result": "passed", "proves": ["API boundary policy remains clean (frontend-only slice)"] },
+      { "cmd": "bun run check:react-query", "result": "passed", "proves": ["React Query policy remains clean"] },
+      { "cmd": "bun run mship-case:check", "result": "passed", "proves": ["FeatureCase checker accepts valid cases and rejects invalid over-claim fixtures"] },
+      { "cmd": "bun run mship-case-ledger:check", "result": "passed", "proves": ["FeatureCase ledger checker validates the hash-chained ledger"] },
+      { "cmd": "scripts/fusion.sh /tmp/sim-task71-fusion-spec.md grok+codex+mimo panel then grok judge then codex synth", "result": "passed", "proves": ["Fusion orchestration produced the artifact-exhibits implementation with 3 of 3 usable panelists and a high-confidence judge"] },
+      { "cmd": "grok inline-diff review of commit 97be2c0ac", "result": "passed", "proves": ["Independent grok review returned PASS grade A high confidence with two non-blocking P3s"] },
+      { "cmd": "git commit 97be2c0ac feat(mothership): artifact evidence exhibits", "result": "passed", "proves": ["Slice committed at 97be2c0ac"] }
+    ]
+  },
+  "gateEvidence": {
+    "F0": ["cmd:pwd", "cmd:git status --short --branch"],
+    "F1": ["field:charter"],
+    "F2": ["field:orchestration"],
+    "F3": ["diff:apps/sim/app/workspace/[workspaceId]/mothership/mothership-control-panel.tsx"],
+    "F4": [
+      "cmd:bun run --cwd apps/sim test mothership-control-panel.test",
+      "cmd:bun run --cwd apps/sim type-check",
+      "cmd:bun run check:api-validation:strict",
+      "cmd:bun run check:react-query"
+    ],
+    "F5": ["review:oracle-next-move-review", "review:grok-fusion-judge", "review:grok-inline-review"],
+    "F6": ["grade:CLOSE_SAFE_PARTIAL/B"],
+    "F7": ["ledger:coverage-audit+handoff"],
+    "F8": ["grade:claimsAdvanced+nonClaims"]
+  },
+  "blockers": [
+    "Strict provider/browser hard-gate env/secrets deferred to the final phase.",
+    "Docker daemon deferred to the final phase.",
+    "kubectl / Kubernetes deferred to the final phase."
+  ],
+  "reviews": [
+    {
+      "type": "spec",
+      "reviewer": "oracle-next-move-review",
+      "status": "pass",
+      "findings": [
+        "GPT-5.5 Pro ranked artifact exhibits as the #2 next slice: upgrade plain artifact links into evidence exhibits showing type, backing event ID, a copy affordance, and an open action."
+      ]
+    },
+    {
+      "type": "code",
+      "reviewer": "grok-fusion-judge",
+      "status": "pass",
+      "findings": [
+        "Fusion judge (high confidence): disqualified candidate C (wrong artifact keys, nonexistent icons, broken ArtifactList API); merged candidate A's exported icon map and shortDigest reuse with candidate B's visible Copied confirmation, clipboard try/catch, and unmount cleanup. All referenced icons were verified to exist before applying."
+      ]
+    },
+    {
+      "type": "evidence",
+      "reviewer": "grok-inline-review",
+      "status": "pass",
+      "findings": [
+        "Independent inline-diff review verdict PASS, grade A, high confidence: ArtifactRow keeps label/path/href and adds type/eventId without dropping fields, clipboard timers cleared on re-click and unmount, icons size-[14px] with CSS vars, no forbidden font weights or focus rings. Two non-blocking P3s: an unmount-guard nicety and hand-rolled buttons versus chip primitives."
+      ]
+    }
+  ],
+  "grade": {
+    "decision": "CLOSE_SAFE_PARTIAL",
+    "grade": "B",
+    "capReason": "Safe local artifact-exhibit upgrade with focused tests, a fusion-built implementation, and independent role-separated spec, code, and evidence reviews (PASS, grade A); external provider/browser, Docker, and Kubernetes hard gates are deferred to the final phase and the exhibits are not yet proven in a running browser.",
+    "claimsAdvanced": [
+      "The case-detail artifact links are upgraded to evidence exhibit cards: per-type icon, an Exhibit seal, the backing event ID, an inset path panel, a copy-to-clipboard action with visible confirmation, and an open action.",
+      "getFeatureCaseArtifactRows carries the artifact type and backing eventId while keeping the existing id, label, path, and href fields.",
+      "A new exported getFeatureCaseArtifactIcon maps artifact type to its icon, and the clipboard copy clears its timer on re-click and on unmount.",
+      "The slice is frontend read-side only and adds no backend, route, contract, or ledger changes."
+    ],
+    "nonClaims": [
+      "browser/provider E2E not proven",
+      "Docker build/push not proven",
+      "Kubernetes proof not proven",
+      "workspace authorization beyond session auth not proven",
+      "runtime browser render of the artifact exhibits not yet proven",
+      "autonomous swarm completion not proven",
+      "replacement complete not claimed",
+      "billing/pricing not touched"
+    ]
+  },
+  "ledger": {
+    "coverageAuditUpdated": true,
+    "handoffPath": "/var/folders/mc/qjwd1ld97_bfhl86xpbfrpp00000gn/T/sim-mothership-owned-replacement-handoff-20260622T131206Z.md",
+    "redactionAudit": true
+  },
+  "nextAction": "Build the F0-F8 gate rail (Oracle move #3): a compact case state-machine indicator folded into the verdict header, without weakening non-claim gates."
+}

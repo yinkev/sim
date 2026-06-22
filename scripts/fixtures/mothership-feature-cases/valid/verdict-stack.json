@@ -1,0 +1,153 @@
+{
+  "id": "task-70-verdict-stack",
+  "state": "NEXT_SLICE_SELECTED",
+  "repo": {
+    "workspace": "/Users/kyin/Projects/sim",
+    "root": "/Users/kyin/Projects/sim",
+    "branch": "feat/demo-workspace-local-dev",
+    "head": "e532ccd2f6f04920a394e8d654f218f5d9b43592",
+    "statusShortBranch": "## feat/demo-workspace-local-dev",
+    "dirtyOverlap": false
+  },
+  "charter": {
+    "objective": "Redesign the selected FeatureCase detail into a verdict-first 'Verdict Stack' (decision, grade, cap reason, next action lead; raw ledger fields subordinate), and surface capReason through the contract and ledger mapper.",
+    "nonObjectives": [
+      "Do not claim real provider or browser E2E.",
+      "Do not claim Docker image build or push proof.",
+      "Do not claim live Kubernetes service or CronJob proof.",
+      "Do not claim workspace authorization beyond session-auth proof.",
+      "Do not touch billing or provider-pricing runtime behavior."
+    ],
+    "invariants": [
+      "The verdict header leads with decision and grade; raw ledger metadata stays in a subordinate footer.",
+      "capReason is optional end to end and renders gracefully when absent.",
+      "No prior case data is dropped from the detail view.",
+      "formatCapReason and formatClaimsNonClaimsSummary are pure and unit-tested.",
+      "Non-claim gates and the FeatureCase checkers continue to pass."
+    ],
+    "proofRequired": [
+      "Focused UI and helper tests pass.",
+      "Biome, type-check, API-boundary, and React Query policy checks pass.",
+      "FeatureCase and ledger checkers pass.",
+      "Independent role-separated spec, code, and evidence reviews are documented."
+    ],
+    "stopRules": [
+      "Stop on route-local boundary schemas.",
+      "Stop on response-schema drift for the control-panel contract.",
+      "Stop on any forbidden font weight (semibold/600/700) in the cockpit.",
+      "Stop on any claim that external hard gates are complete."
+    ],
+    "expectedNonClaims": [
+      "browser/provider E2E not proven",
+      "Docker build/push not proven",
+      "Kubernetes proof not proven",
+      "workspace authorization beyond session auth not proven",
+      "replacement complete not claimed"
+    ]
+  },
+  "orchestration": {
+    "owner": "claude-main",
+    "workers": ["grok-panelist", "codex-panelist", "mimo-panelist", "codex-synth"],
+    "reviewers": ["oracle-next-move-review", "grok-fusion-judge", "grok-inline-review"],
+    "grader": "claude-grader",
+    "roleSeparated": true
+  },
+  "evidence": {
+    "commands": [
+      { "cmd": "pwd", "result": "passed", "proves": ["F0 repo-state workspace verified"] },
+      { "cmd": "git status --short --branch", "result": "passed", "proves": ["F0 repo-state branch/status verified"] },
+      { "cmd": "bun run --cwd apps/mothership smoke:strict-e2e-preflight", "result": "blocked", "proves": ["Strict provider/browser hard-gate preflight unavailable; deferred to the final phase"] },
+      { "cmd": "docker info --format '{{json .ServerVersion}}'", "result": "blocked", "proves": ["Docker image-build proof unavailable; deferred to the final phase"] },
+      { "cmd": "kubectl version --client --output=json", "result": "blocked", "proves": ["Kubernetes proof unavailable; deferred to the final phase"] },
+      { "cmd": "bunx biome check mothership-control-panel.tsx mothership-control-panel.utils.ts mothership-control-panel.test.ts mothership-control-panel.ts feature-case-ledger.ts", "result": "passed", "proves": ["Formatting and lint checks pass for the verdict-stack slice"] },
+      { "cmd": "bun run --cwd apps/sim test mothership-control-panel.test", "result": "passed", "proves": ["Focused UI and helper tests pass including formatCapReason and formatClaimsNonClaimsSummary"] },
+      { "cmd": "bun run --cwd apps/sim type-check", "result": "passed", "proves": ["App TypeScript check passes after the verdict-stack slice"] },
+      { "cmd": "bun run check:api-validation:strict", "result": "passed", "proves": ["API boundary policy remains clean after adding optional capReason"] },
+      { "cmd": "bun run check:react-query", "result": "passed", "proves": ["React Query policy remains clean"] },
+      { "cmd": "bun run mship-case:check", "result": "passed", "proves": ["FeatureCase checker accepts valid cases and rejects invalid over-claim fixtures"] },
+      { "cmd": "bun run mship-case-ledger:check", "result": "passed", "proves": ["FeatureCase ledger checker validates the hash-chained ledger"] },
+      { "cmd": "scripts/fusion.sh /tmp/sim-task70-fusion-spec.md grok+codex+mimo panel then grok judge then codex synth", "result": "passed", "proves": ["Fusion orchestration produced the verdict-stack implementation with 3 of 3 usable panelists and a high-confidence judge"] },
+      { "cmd": "grok inline-diff review of commit e532ccd2f", "result": "passed", "proves": ["Independent grok review returned PASS grade A high confidence with one non-blocking P3"] },
+      { "cmd": "git commit e532ccd2f feat(mothership): verdict-first case detail + extract review helpers", "result": "passed", "proves": ["Slice committed at e532ccd2f"] }
+    ]
+  },
+  "gateEvidence": {
+    "F0": ["cmd:pwd", "cmd:git status --short --branch"],
+    "F1": ["field:charter"],
+    "F2": ["field:orchestration"],
+    "F3": [
+      "diff:apps/sim/lib/api/contracts/mothership-control-panel.ts",
+      "diff:apps/sim/lib/mothership/control-panel/feature-case-ledger.ts",
+      "diff:apps/sim/app/workspace/[workspaceId]/mothership/mothership-control-panel.tsx",
+      "diff:apps/sim/app/workspace/[workspaceId]/mothership/mothership-control-panel.utils.ts"
+    ],
+    "F4": [
+      "cmd:bun run --cwd apps/sim test mothership-control-panel.test",
+      "cmd:bun run --cwd apps/sim type-check",
+      "cmd:bun run check:api-validation:strict",
+      "cmd:bun run check:react-query"
+    ],
+    "F5": ["review:oracle-next-move-review", "review:grok-fusion-judge", "review:grok-inline-review"],
+    "F6": ["grade:CLOSE_SAFE_PARTIAL/B"],
+    "F7": ["ledger:coverage-audit+handoff"],
+    "F8": ["grade:claimsAdvanced+nonClaims"]
+  },
+  "blockers": [
+    "Strict provider/browser hard-gate env/secrets deferred to the final phase.",
+    "Docker daemon deferred to the final phase.",
+    "kubectl / Kubernetes deferred to the final phase."
+  ],
+  "reviews": [
+    {
+      "type": "spec",
+      "reviewer": "oracle-next-move-review",
+      "status": "pass",
+      "findings": [
+        "GPT-5.5 Pro ranked verdict-first case detail as the #1 next slice and specified the Verdict Stack layout: lead with decision, grade, cap reason (human-readable), and an imperative next action, keeping raw fields subordinate."
+      ]
+    },
+    {
+      "type": "code",
+      "reviewer": "grok-fusion-judge",
+      "status": "pass",
+      "findings": [
+        "Fusion judge (high confidence): both candidate implementations matched the contract; the synthesis merged cap-reason humanization, grade styling, and a quiet ledger footer. A panelist's font-semibold was corrected to font-medium to satisfy the emcn two-weight rule before applying."
+      ]
+    },
+    {
+      "type": "evidence",
+      "reviewer": "grok-inline-review",
+      "status": "pass",
+      "findings": [
+        "Independent inline-diff review verdict PASS, grade A, high confidence: capReason wired through contract and mapper, caseId/sequence relocated into the ledger footer without dropping data, and pure format/review helpers extracted to the utils module with unit tests. One non-blocking P3: ledger digests now render muted in the quiet footer."
+      ]
+    }
+  ],
+  "grade": {
+    "decision": "CLOSE_SAFE_PARTIAL",
+    "grade": "B",
+    "capReason": "Safe local verdict-first case detail with unit-tested formatters, a fusion-built implementation, and independent role-separated spec, code, and evidence reviews (PASS, grade A); external provider/browser, Docker, and Kubernetes hard gates are deferred to the final phase and the new detail view is not yet proven in a running browser.",
+    "claimsAdvanced": [
+      "The selected FeatureCase detail leads with a verdict header: decision and grade instruments, a human-readable cap reason, an imperative next action, and a claims/non-claims summary.",
+      "Raw ledger metadata is preserved in a subordinate quiet footer; no fields were dropped from the detail view.",
+      "capReason is surfaced through the control-panel contract and ledger mapper as an optional field and renders gracefully when absent.",
+      "formatCapReason and formatClaimsNonClaimsSummary are pure, exported, and unit-tested, and the review-family helpers were extracted into a pure utils module."
+    ],
+    "nonClaims": [
+      "browser/provider E2E not proven",
+      "Docker build/push not proven",
+      "Kubernetes proof not proven",
+      "workspace authorization beyond session auth not proven",
+      "runtime browser render of the verdict-first case detail not yet proven",
+      "autonomous swarm completion not proven",
+      "replacement complete not claimed",
+      "billing/pricing not touched"
+    ]
+  },
+  "ledger": {
+    "coverageAuditUpdated": true,
+    "handoffPath": "/var/folders/mc/qjwd1ld97_bfhl86xpbfrpp00000gn/T/sim-mothership-owned-replacement-handoff-20260622T131205Z.md",
+    "redactionAudit": true
+  },
+  "nextAction": "Build the F0-F8 gate rail (Oracle move #3): a compact case state-machine indicator folded into the verdict header, without weakening non-claim gates."
+}
