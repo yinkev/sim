@@ -128,6 +128,19 @@ export const useTerminalStore = create<TerminalState>()(
         }
       },
       /**
+       * Persist only the durable terminal UI preferences. The transient
+       * `isResizing` drag flag and the `_hasHydrated` hydration marker are
+       * excluded so they always start fresh on load.
+       */
+      partialize: (state) => ({
+        terminalHeight: state.terminalHeight,
+        lastExpandedHeight: state.lastExpandedHeight,
+        outputPanelWidth: state.outputPanelWidth,
+        openOnRun: state.openOnRun,
+        wrapText: state.wrapText,
+        structuredView: state.structuredView,
+      }),
+      /**
        * Synchronizes the `--terminal-height` CSS custom property with the
        * persisted store value after client-side rehydration.
        */
