@@ -3,18 +3,21 @@
 import { useMemo, useState } from 'react'
 import { getErrorMessage } from '@sim/utils/errors'
 import { Loader } from '@/components/emcn'
-import {
-  CircleAlert,
-  Eye,
-  Library,
-  Link,
-  RefreshCw,
-  TerminalWindow,
-  Users,
-} from '@/components/emcn/icons'
+import { CircleAlert, Library, Link, RefreshCw } from '@/components/emcn/icons'
 import type { MothershipControlPanelCase } from '@/lib/api/contracts/mothership-control-panel'
 import { cn } from '@/lib/core/utils/cn'
 import { Resource } from '@/app/workspace/[workspaceId]/components'
+import {
+  formatCapReason,
+  formatClaimsNonClaimsSummary,
+  getReviewFamilyGroups,
+  REVIEW_FAMILY_EMPTY_LABELS,
+  REVIEW_FAMILY_ICONS,
+  REVIEW_FAMILY_JURISDICTION,
+  REVIEW_STATUS_LABELS,
+  REVIEW_STATUS_STYLES,
+  type ReviewFamilyGroup,
+} from '@/app/workspace/[workspaceId]/mothership/mothership-control-panel.utils'
 import { useMothershipFeatureCases } from '@/hooks/queries/mothership-control-panel'
 
 const FEATURE_CASE_LIMIT = 100 as const
@@ -55,102 +58,17 @@ const RESULT_STYLES = {
   blocked: 'text-[#946200]',
 } as const
 
-export type ReviewFamily = 'subagent' | 'grok' | 'oracle' | 'other'
-
-export interface ReviewFamilyGroup {
-  family: ReviewFamily
-  label: string
-  reviews: MothershipControlPanelCase['reviews']
-}
-
-const REVIEW_FAMILY_ORDER = ['subagent', 'grok', 'oracle'] as const
-
-const REVIEW_FAMILY_LABELS: Record<ReviewFamily, string> = {
-  subagent: 'Subagent',
-  grok: 'Grok CLI',
-  oracle: 'Oracle',
-  other: 'Other',
+const GRADE_STYLES = {
+  A: 'bg-[#e7f7ec] text-[#256a32]',
+  B: 'bg-[#eef3ff] text-[#3159a6]',
+  C: 'bg-[#fff5d6] text-[#856000]',
+  D: 'bg-[#fff1e8] text-[#9a4d0f]',
+  F: 'bg-[#ffecec] text-[#aa2f2f]',
 } as const
 
-const REVIEW_FAMILY_EMPTY_LABELS: Record<ReviewFamily, string> = {
-  subagent: 'No Subagent evidence yet',
-  grok: 'No Grok CLI evidence yet',
-  oracle: 'No Oracle evidence yet',
-  other: 'No Other evidence yet',
-} as const
-
-const REVIEW_FAMILY_JURISDICTION: Record<ReviewFamily, string> = {
-  subagent: 'Role-separated implementation review',
-  grok: 'External advisory review',
-  oracle: 'High-judgment advisory',
-  other: 'Other review',
-} as const
-
-const REVIEW_STATUS_LABELS: Record<
-  MothershipControlPanelCase['reviews'][number]['status'],
-  string
-> = {
-  pass: 'Pass',
-  fail: 'Fail',
-  self_review: 'Self review',
-} as const
-
-const REVIEW_STATUS_STYLES: Record<
-  MothershipControlPanelCase['reviews'][number]['status'],
-  string
-> = {
-  pass: 'bg-[#e7f7ec] text-[#2f7d32]',
-  fail: 'bg-[#ffecec] text-[#b42318]',
-  self_review: 'bg-[var(--surface-3)] text-[var(--text-muted)]',
-} as const
-
-const REVIEW_FAMILY_ICONS = {
-  subagent: Users,
-  grok: TerminalWindow,
-  oracle: Eye,
-  other: CircleAlert,
-} as const
-
-const SUBAGENT_REVIEWER_PATTERN = /subagent|kuhn|locke|leibniz/i
-const GROK_REVIEWER_PATTERN = /grok/i
-const ORACLE_REVIEWER_PATTERN = /oracle/i
-
-export function classifyReviewerFamily(reviewer: string): ReviewFamily {
-  if (SUBAGENT_REVIEWER_PATTERN.test(reviewer)) return 'subagent'
-  if (GROK_REVIEWER_PATTERN.test(reviewer)) return 'grok'
-  if (ORACLE_REVIEWER_PATTERN.test(reviewer)) return 'oracle'
-  return 'other'
-}
-
-export function getReviewFamilyGroups(
-  reviews: MothershipControlPanelCase['reviews']
-): ReviewFamilyGroup[] {
-  const groupedReviews: Record<ReviewFamily, MothershipControlPanelCase['reviews']> = {
-    subagent: [],
-    grok: [],
-    oracle: [],
-    other: [],
-  }
-
-  for (const review of reviews) {
-    groupedReviews[classifyReviewerFamily(review.reviewer)].push(review)
-  }
-
-  const groups: ReviewFamilyGroup[] = REVIEW_FAMILY_ORDER.map((family) => ({
-    family,
-    label: REVIEW_FAMILY_LABELS[family],
-    reviews: groupedReviews[family],
-  }))
-
-  if (groupedReviews.other.length > 0) {
-    groups.push({
-      family: 'other',
-      label: REVIEW_FAMILY_LABELS.other,
-      reviews: groupedReviews.other,
-    })
-  }
-
-  return groups
+function gradeClassName(grade: string): string {
+  const gradeKey = grade.trim().slice(0, 1).toUpperCase() as keyof typeof GRADE_STYLES
+  return GRADE_STYLES[gradeKey] ?? 'bg-[var(--surface-3)] text-[var(--text-body)]'
 }
 
 const DECISION_STYLES = {
@@ -459,31 +377,92 @@ function ArtifactList({ caseItem }: { caseItem: MothershipControlPanelCase }) {
   )
 }
 
+function VerdictInstrument({
+  label,
+  value,
+  className,
+}: {
+  label: string
+  value: string
+  className: string
+}) {
+  return (
+    <div className='min-w-0'>
+      <div className='mb-1 text-[var(--text-muted)] text-caption'>{label}</div>
+      <div
+        title={value}
+        className={cn(
+          'inline-flex max-w-full items-center rounded-[7px] px-3 py-2 font-medium text-base leading-5',
+          className
+        )}
+      >
+        <span className='min-w-0 break-words'>{value}</span>
+      </div>
+    </div>
+  )
+}
+
+function VerdictHeader({ caseItem }: { caseItem: MothershipControlPanelCase }) {
+  const capReason = formatCapReason(caseItem.capReason)
+
+  return (
+    <section className='border-[var(--border)] border-b bg-[var(--surface-2)] px-5 py-5'>
+      <div className='grid gap-4 sm:grid-cols-[minmax(0,1fr)_112px]'>
+        <VerdictInstrument
+          label='Decision'
+          value={caseItem.decision}
+          className={decisionClassName(caseItem.decision)}
+        />
+        <VerdictInstrument
+          label='Grade'
+          value={caseItem.grade}
+          className={gradeClassName(caseItem.grade)}
+        />
+      </div>
+
+      {capReason && (
+        <div className='mt-4 border-[var(--border)] border-t pt-4'>
+          <div className='mb-1 text-[var(--text-muted)] text-caption'>Cap reason</div>
+          <p className='font-medium text-[var(--text-body)] text-base leading-6'>{capReason}</p>
+        </div>
+      )}
+
+      <div className='mt-4 border-[var(--border)] border-t pt-4'>
+        <div className='mb-1 text-[var(--text-muted)] text-caption'>Next action</div>
+        <p className='font-medium text-[var(--text-body)] text-base leading-6'>
+          {caseItem.nextAction}
+        </p>
+      </div>
+
+      <div className='mt-3 text-[var(--text-muted)] text-small'>
+        {formatClaimsNonClaimsSummary(caseItem.claimsAdvanced, caseItem.nonClaims)}
+      </div>
+    </section>
+  )
+}
+
+function QuietDetailSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className='border-[var(--border)] border-b bg-[var(--surface-2)] px-5 py-3 last:border-b-0'>
+      <h2 className='mb-2 font-medium text-[var(--text-muted)] text-caption'>{title}</h2>
+      {children}
+    </section>
+  )
+}
+
+function LedgerRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className='grid grid-cols-[104px_minmax(0,1fr)] gap-3 text-caption'>
+      <span className='text-[var(--text-muted)]'>{label}</span>
+      <div className='min-w-0 text-[var(--text-muted)]'>{children}</div>
+    </div>
+  )
+}
+
 function CaseDetail({ caseItem }: { caseItem: MothershipControlPanelCase }) {
   return (
     <div className='min-h-0 flex-1 overflow-auto'>
-      <div className='border-[var(--border)] border-b px-5 py-4'>
-        <div className='mb-2 flex flex-wrap items-center gap-2'>
-          <span
-            className={cn(
-              'rounded-[5px] px-2 py-1 font-medium text-small',
-              decisionClassName(caseItem.decision)
-            )}
-          >
-            {caseItem.decision}
-          </span>
-          <span className='rounded-[5px] bg-[var(--surface-3)] px-2 py-1 font-medium text-[var(--text-body)] text-small'>
-            Grade {caseItem.grade}
-          </span>
-          <span className='rounded-[5px] bg-[var(--surface-3)] px-2 py-1 text-[var(--text-muted)] text-small'>
-            seq {caseItem.sequence}
-          </span>
-        </div>
-        <h1 className='truncate font-medium text-[var(--text-body)] text-base'>
-          {caseItem.caseId}
-        </h1>
-        <p className='mt-1 text-[var(--text-muted)] text-small leading-5'>{caseItem.nextAction}</p>
-      </div>
+      <VerdictHeader caseItem={caseItem} />
 
       <DetailSection title='Claims'>
         <TextList items={caseItem.claimsAdvanced} emptyLabel='No claims advanced' />
@@ -533,32 +512,49 @@ function CaseDetail({ caseItem }: { caseItem: MothershipControlPanelCase }) {
         <ArtifactList caseItem={caseItem} />
       </DetailSection>
 
-      <DetailSection title='Ledger'>
-        <div className='grid gap-2 text-small'>
-          <div className='grid grid-cols-[130px_minmax(0,1fr)] gap-3'>
-            <span className='text-[var(--text-muted)]'>caseDigest</span>
-            <code className='truncate font-mono text-[var(--text-body)]'>
-              {shortDigest(caseItem.caseDigest)}
-            </code>
-          </div>
-          <div className='grid grid-cols-[130px_minmax(0,1fr)] gap-3'>
-            <span className='text-[var(--text-muted)]'>entryDigest</span>
-            <code className='truncate font-mono text-[var(--text-body)]'>
-              {shortDigest(caseItem.entryDigest)}
-            </code>
-          </div>
-          <div className='grid grid-cols-[130px_minmax(0,1fr)] gap-3'>
-            <span className='text-[var(--text-muted)]'>casePath</span>
-            <code className='truncate font-mono text-[var(--text-body)]'>{caseItem.casePath}</code>
-          </div>
-          <div className='grid grid-cols-[130px_minmax(0,1fr)] gap-3'>
-            <span className='text-[var(--text-muted)]'>handoffPath</span>
-            <code className='truncate font-mono text-[var(--text-body)]'>
-              {caseItem.handoffPath}
-            </code>
-          </div>
+      <QuietDetailSection title='Ledger'>
+        <div className='grid gap-2'>
+          <LedgerRow label='Case ID'>
+            <code className='block truncate font-mono'>{caseItem.caseId}</code>
+          </LedgerRow>
+          <LedgerRow label='State'>
+            <span className='block truncate'>{caseItem.state}</span>
+          </LedgerRow>
+          <LedgerRow label='Sequence'>
+            <span>{caseItem.sequence}</span>
+          </LedgerRow>
+          <LedgerRow label='Appended'>
+            <span>{formatDate(caseItem.appendedAt)}</span>
+          </LedgerRow>
+          <LedgerRow label='Event ID'>
+            <code className='block truncate font-mono'>{caseItem.eventId}</code>
+          </LedgerRow>
+          <LedgerRow label='Case digest'>
+            <code className='block truncate font-mono'>{shortDigest(caseItem.caseDigest)}</code>
+          </LedgerRow>
+          <LedgerRow label='Entry digest'>
+            <code className='block truncate font-mono'>{shortDigest(caseItem.entryDigest)}</code>
+          </LedgerRow>
+          <LedgerRow label='Previous'>
+            {caseItem.previousEntryDigest ? (
+              <code className='block truncate font-mono'>
+                {shortDigest(caseItem.previousEntryDigest)}
+              </code>
+            ) : (
+              <span>none</span>
+            )}
+          </LedgerRow>
+          <LedgerRow label='Case path'>
+            <code className='block truncate font-mono'>{caseItem.casePath}</code>
+          </LedgerRow>
+          <LedgerRow label='Coverage'>
+            <code className='block truncate font-mono'>{caseItem.coverageAuditPath}</code>
+          </LedgerRow>
+          <LedgerRow label='Handoff'>
+            <code className='block truncate font-mono'>{caseItem.handoffPath}</code>
+          </LedgerRow>
         </div>
-      </DetailSection>
+      </QuietDetailSection>
     </div>
   )
 }

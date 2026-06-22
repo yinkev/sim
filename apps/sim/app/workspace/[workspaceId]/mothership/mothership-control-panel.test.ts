@@ -4,11 +4,15 @@
 import { describe, expect, it } from 'vitest'
 import type { MothershipControlPanelCase } from '@/lib/api/contracts/mothership-control-panel'
 import {
-  classifyReviewerFamily,
   getFeatureCaseArtifactRows,
   getFeatureCaseGateStatuses,
-  getReviewFamilyGroups,
 } from '@/app/workspace/[workspaceId]/mothership/mothership-control-panel'
+import {
+  classifyReviewerFamily,
+  formatCapReason,
+  formatClaimsNonClaimsSummary,
+  getReviewFamilyGroups,
+} from '@/app/workspace/[workspaceId]/mothership/mothership-control-panel.utils'
 
 function caseFixture(overrides: Partial<MothershipControlPanelCase>): MothershipControlPanelCase {
   return {
@@ -158,5 +162,35 @@ describe('getReviewFamilyGroups', () => {
     ])
     expect(withOther.map((group) => group.family)).toEqual(['subagent', 'grok', 'oracle', 'other'])
     expect(withOther.find((group) => group.family === 'other')?.reviews).toHaveLength(1)
+  })
+})
+
+describe('formatCapReason', () => {
+  it('humanizes snake_case tokens into a sentence', () => {
+    expect(formatCapReason('reviewer_separation_missing')).toBe('Reviewer separation missing.')
+  })
+
+  it('uppercases known acronym tokens', () => {
+    expect(formatCapReason('strict_e2e')).toBe('Strict E2E.')
+  })
+
+  it('keeps a real sentence and ensures terminal punctuation', () => {
+    expect(formatCapReason('safe local slice')).toBe('Safe local slice.')
+    expect(formatCapReason('External gates blocked.')).toBe('External gates blocked.')
+  })
+
+  it('returns null for missing or empty input', () => {
+    expect(formatCapReason(undefined)).toBeNull()
+    expect(formatCapReason('   ')).toBeNull()
+  })
+})
+
+describe('formatClaimsNonClaimsSummary', () => {
+  it('pluralizes claims and non-claims', () => {
+    expect(formatClaimsNonClaimsSummary(['a', 'b', 'c', 'd'], ['x'])).toBe('4 claims · 1 non-claim')
+  })
+
+  it('handles singular and zero counts', () => {
+    expect(formatClaimsNonClaimsSummary(['a'], [])).toBe('1 claim · 0 non-claims')
   })
 })

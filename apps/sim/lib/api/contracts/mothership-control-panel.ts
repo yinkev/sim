@@ -32,6 +32,7 @@ export const featureCaseSnapshotSchema = z
     grade: z.object({
       decision: z.string().min(1),
       grade: z.string().min(1),
+      capReason: z.string().optional(),
       claimsAdvanced: z.array(z.string()),
       nonClaims: z.array(z.string()),
     }),
@@ -82,6 +83,7 @@ export const mothershipControlPanelCaseSchema = z.object({
   state: z.string(),
   decision: z.string(),
   grade: z.string(),
+  capReason: z.string().optional(),
   nextAction: z.string(),
   claimsAdvanced: z.array(z.string()),
   nonClaims: z.array(z.string()),

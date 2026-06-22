@@ -206,6 +206,7 @@ function toControlPanelCase(event: FeatureCaseLedgerEvent): MothershipControlPan
     state: event.summary.state,
     decision: event.summary.decision,
     grade: event.summary.grade,
+    capReason: event.case.grade.capReason,
     nextAction: event.summary.nextAction,
     claimsAdvanced: event.case.grade.claimsAdvanced,
     nonClaims: event.case.grade.nonClaims,
