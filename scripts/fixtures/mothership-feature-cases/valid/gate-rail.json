@@ -1,0 +1,154 @@
+{
+  "id": "task-72-gate-rail",
+  "state": "NEXT_SLICE_SELECTED",
+  "repo": {
+    "workspace": "/Users/kyin/Projects/sim",
+    "root": "/Users/kyin/Projects/sim",
+    "branch": "feat/demo-workspace-local-dev",
+    "head": "81f8544a296a9a464b6d3e328a83217cf08f863d",
+    "statusShortBranch": "## feat/demo-workspace-local-dev",
+    "dirtyOverlap": false
+  },
+  "charter": {
+    "objective": "Surface FeatureCase gateEvidence through the contract and ledger mapper and render a compact, honest F0-F8 gate rail in the verdict header (Oracle move #3).",
+    "nonObjectives": [
+      "Do not claim real provider or browser E2E.",
+      "Do not claim Docker image build or push proof.",
+      "Do not claim live Kubernetes service or CronJob proof.",
+      "Do not claim workspace authorization beyond session-auth proof.",
+      "Do not touch billing or provider-pricing runtime behavior.",
+      "Do not add new API routes or mutate the ledger in this slice."
+    ],
+    "invariants": [
+      "The gate rail is a compact, non-dominant element inside the verdict header.",
+      "F8 (Promoted) renders partial unless decision is PROMOTE, so safe-partial cases never overclaim promotion.",
+      "getGateRailItems is pure and deterministic (F0-F8 in order, pending without evidence, ignores unknown keys).",
+      "gateEvidence is optional end to end and renders gracefully when absent.",
+      "Non-claim gates and the FeatureCase checkers continue to pass."
+    ],
+    "proofRequired": [
+      "Focused tests pass including getGateRailItems.",
+      "Biome, type-check, API-boundary, and React Query policy checks pass.",
+      "FeatureCase and ledger checkers pass.",
+      "Independent role-separated spec, code, and evidence reviews are documented."
+    ],
+    "stopRules": [
+      "Stop on response-schema drift for the control-panel contract.",
+      "Stop on any forbidden font weight (semibold/600/700).",
+      "Stop on F8 reading passed for a non-PROMOTE decision.",
+      "Stop on any claim that external hard gates are complete."
+    ],
+    "expectedNonClaims": [
+      "browser/provider E2E not proven",
+      "Docker build/push not proven",
+      "Kubernetes proof not proven",
+      "workspace authorization beyond session auth not proven",
+      "replacement complete not claimed"
+    ]
+  },
+  "orchestration": {
+    "owner": "claude-main",
+    "workers": ["grok-panelist", "codex-panelist", "mimo-panelist", "codex-synth"],
+    "reviewers": ["oracle-next-move-review", "grok-fusion-judge", "grok-inline-review"],
+    "grader": "claude-grader",
+    "roleSeparated": true
+  },
+  "evidence": {
+    "commands": [
+      { "cmd": "pwd", "result": "passed", "proves": ["F0 repo-state workspace verified"] },
+      { "cmd": "git status --short --branch", "result": "passed", "proves": ["F0 repo-state branch/status verified"] },
+      { "cmd": "bun run --cwd apps/mothership smoke:strict-e2e-preflight", "result": "blocked", "proves": ["Strict provider/browser hard-gate preflight unavailable; deferred to the final phase"] },
+      { "cmd": "docker info --format '{{json .ServerVersion}}'", "result": "blocked", "proves": ["Docker image-build proof unavailable; deferred to the final phase"] },
+      { "cmd": "kubectl version --client --output=json", "result": "blocked", "proves": ["Kubernetes proof unavailable; deferred to the final phase"] },
+      { "cmd": "bunx biome check apps/sim/app/workspace/[workspaceId]/mothership/mothership-control-panel.tsx", "result": "passed", "proves": ["Formatting and lint checks pass for the gate-rail slice"] },
+      { "cmd": "bun run --cwd apps/sim test mothership-control-panel.test", "result": "passed", "proves": ["Focused tests pass including getGateRailItems"] },
+      { "cmd": "bun run --cwd apps/sim type-check", "result": "passed", "proves": ["App TypeScript check passes after the gate-rail slice"] },
+      { "cmd": "bun run check:api-validation:strict", "result": "passed", "proves": ["API boundary policy remains clean after adding optional typed gateEvidence"] },
+      { "cmd": "bun run check:react-query", "result": "passed", "proves": ["React Query policy remains clean"] },
+      { "cmd": "bun run mship-case:check", "result": "passed", "proves": ["FeatureCase checker accepts valid cases and rejects invalid over-claim fixtures"] },
+      { "cmd": "bun run mship-case-ledger:check", "result": "passed", "proves": ["FeatureCase ledger checker validates the hash-chained ledger"] },
+      { "cmd": "scripts/fusion.sh /tmp/sim-task72-fusion-spec.md grok+codex+mimo panel then grok judge then codex synth", "result": "passed", "proves": ["Fusion orchestration produced the gate-rail implementation with a high-confidence judge"] },
+      { "cmd": "grok inline-diff review of commit 81f8544a2", "result": "passed", "proves": ["Independent grok review returned PASS grade B high confidence with non-blocking findings"] },
+      { "cmd": "git commit 81f8544a2 feat(mothership): F0-F8 gate rail in verdict header", "result": "passed", "proves": ["Slice committed at 81f8544a2"] }
+    ]
+  },
+  "gateEvidence": {
+    "F0": ["cmd:pwd", "cmd:git status --short --branch"],
+    "F1": ["field:charter"],
+    "F2": ["field:orchestration"],
+    "F3": [
+      "diff:apps/sim/lib/api/contracts/mothership-control-panel.ts",
+      "diff:apps/sim/lib/mothership/control-panel/feature-case-ledger.ts",
+      "diff:apps/sim/app/workspace/[workspaceId]/mothership/mothership-control-panel.tsx",
+      "diff:apps/sim/app/workspace/[workspaceId]/mothership/mothership-control-panel.utils.ts"
+    ],
+    "F4": [
+      "cmd:bun run --cwd apps/sim test mothership-control-panel.test",
+      "cmd:bun run --cwd apps/sim type-check",
+      "cmd:bun run check:api-validation:strict",
+      "cmd:bun run check:react-query"
+    ],
+    "F5": ["review:oracle-next-move-review", "review:grok-fusion-judge", "review:grok-inline-review"],
+    "F6": ["grade:CLOSE_SAFE_PARTIAL/B"],
+    "F7": ["ledger:coverage-audit+handoff"],
+    "F8": ["grade:claimsAdvanced+nonClaims"]
+  },
+  "blockers": [
+    "Strict provider/browser hard-gate env/secrets deferred to the final phase.",
+    "Docker daemon deferred to the final phase.",
+    "kubectl / Kubernetes deferred to the final phase."
+  ],
+  "reviews": [
+    {
+      "type": "spec",
+      "reviewer": "oracle-next-move-review",
+      "status": "pass",
+      "findings": [
+        "GPT-5.5 Pro ranked the F0-F8 gate rail as the #3 next slice and advised keeping it a small, non-dominant indicator inside the verdict header rather than a standalone dashboard."
+      ]
+    },
+    {
+      "type": "code",
+      "reviewer": "grok-fusion-judge",
+      "status": "pass",
+      "findings": [
+        "Fusion judge (high confidence): candidate A was repo-grounded with correct contract/mapper/helper/UI and honest F8 partial logic; candidate C was rejected for inline styles, wrong cn import path, and heavier marker chrome; candidate B was empty. Synthesis used A with a small amber dot for partial."
+      ]
+    },
+    {
+      "type": "evidence",
+      "reviewer": "grok-inline-review",
+      "status": "pass",
+      "findings": [
+        "Independent inline-diff review verdict PASS, grade B, high confidence: getGateRailItems derivation and gateEvidence contract-to-mapper wiring are correct (F0-F8 order, pending without evidence, F8 partial unless PROMOTE, unknown keys ignored). Non-blocking: GateRail status colors use hardcoded hex consistent with the file's existing palette; decision typed as string; a couple of test assertions omitted."
+      ]
+    }
+  ],
+  "grade": {
+    "decision": "CLOSE_SAFE_PARTIAL",
+    "grade": "B",
+    "capReason": "Safe local F0-F8 gate rail with a pure unit-tested derivation, a fusion-built implementation, and independent role-separated spec, code, and evidence reviews (PASS, grade B); external provider/browser, Docker, and Kubernetes hard gates are deferred to the final phase and the rail is not yet proven in a running browser.",
+    "claimsAdvanced": [
+      "FeatureCase gateEvidence is surfaced through the control-panel contract and ledger mapper as an optional typed field.",
+      "The verdict header renders a compact F0-F8 gate rail; each gate shows passed, partial, or pending derived from its evidence.",
+      "F8 (Promoted) renders partial unless the decision is PROMOTE, so CLOSE_SAFE_PARTIAL cases do not overclaim promotion.",
+      "getGateRailItems is pure, exported, and unit-tested, and the change adds no API routes or ledger mutations."
+    ],
+    "nonClaims": [
+      "browser/provider E2E not proven",
+      "Docker build/push not proven",
+      "Kubernetes proof not proven",
+      "workspace authorization beyond session auth not proven",
+      "runtime browser render of the gate rail not yet proven",
+      "autonomous swarm completion not proven",
+      "replacement complete not claimed",
+      "billing/pricing not touched"
+    ]
+  },
+  "ledger": {
+    "coverageAuditUpdated": true,
+    "handoffPath": "/var/folders/mc/qjwd1ld97_bfhl86xpbfrpp00000gn/T/sim-mothership-owned-replacement-handoff-20260622T133845Z.md",
+    "redactionAudit": true
+  },
+  "nextAction": "Cockpit queue (review panels, verdict-first detail, artifact exhibits, F0-F8 gate rail) is complete; open a staging PR for review. Defer Oracle move #4 (richer review schema fields) until a UI affordance requires it. Docker, Kubernetes, real E2E, and pricing/payment remain deferred to the final phase."
+}

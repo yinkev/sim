@@ -1373,6 +1373,22 @@ bun run mship-case-ledger:check
 
 Result: external provider/browser E2E, Docker, and Kubernetes proofs are deferred to the final deployment phase. Each artifact (Case JSON, Coverage Audit, Handoff) now renders as an evidence exhibit card with a per-type icon, an "Exhibit" seal, the backing event ID (`shortDigest`), an inset path panel, a copy-to-clipboard button with a visible "Copied" confirmation that clears its timer on re-click and unmount, and an Open action. `getFeatureCaseArtifactRows` carries `type` and `eventId` while keeping `id`/`label`/`path`/`href`; a new exported `getFeatureCaseArtifactIcon` maps type to icon. The change is frontend read-side only and reuses the existing artifact route. Built by a Fusion orchestration (grok + codex + mimo panel, grok judge at high confidence, codex synthesis; candidate C disqualified for wrong artifact keys and nonexistent icons; all referenced icons verified to exist before applying). Independent role-separated reviews: spec by the Oracle next-move review, code by the Grok fusion judge, evidence by an independent grok inline-diff review (verdict PASS, grade A, two non-blocking P3s). Committed at `97be2c0ac`, appended to the ledger as the sixth event. Grade: `B_CLOSE_SAFE_PARTIAL`. Cap reason: safe local artifact-exhibit upgrade; external deploy gates deferred; not yet proven in a running browser.
 
+## Verification Performed For F0-F8 Gate Rail
+
+Task 72 checks run after surfacing FeatureCase `gateEvidence` and rendering a compact F0-F8 gate rail in the verdict header:
+
+```bash
+bunx biome check 'apps/sim/app/workspace/[workspaceId]/mothership/mothership-control-panel.tsx'
+bun run --cwd apps/sim test mothership-control-panel.test
+bun run --cwd apps/sim type-check
+bun run check:api-validation:strict
+bun run check:react-query
+bun run mship-case:check
+bun run mship-case-ledger:check
+```
+
+Result: external provider/browser E2E, Docker, and Kubernetes proofs are deferred to the final deployment phase. `gateEvidence` is now an optional typed field (`z.record(z.string(), z.array(z.string()))`) in `featureCaseSnapshotSchema` and `mothershipControlPanelCaseSchema`, mapped from `event.case.gateEvidence`. The verdict header renders a compact, non-dominant gate rail of F0–F8 derived by the pure exported `getGateRailItems`: a gate is `passed` when its evidence is non-empty, `pending` when empty, and F8 (Promoted) stays `partial` unless `decision === 'PROMOTE'` — so `CLOSE_SAFE_PARTIAL` cases never overclaim promotion. The implementation was produced by a Fusion orchestration (grok + codex + mimo panel, grok judge at high confidence, codex synthesis; candidate C rejected for inline styles and wrong import path, candidate B empty). Independent role-separated reviews: spec by the Oracle next-move review, code by the Grok fusion judge, evidence by an independent grok inline-diff review (verdict PASS, grade B; non-blocking notes on hardcoded status hex consistent with the file's existing palette, a loosely-typed `decision`, and a couple of omitted test assertions). Committed at `81f8544a2`, appended to the ledger as the seventh event. Grade: `B_CLOSE_SAFE_PARTIAL`. Cap reason: safe local gate rail; external deploy gates deferred; not yet proven in a running browser.
+
 ## Not Yet Verified
 
 These are deliberately not claimed complete:
@@ -1471,6 +1487,8 @@ These tasks were added from P2-1 review and should remain active until closed:
 70. Closed verdict-first case detail slice: the selected FeatureCase detail leads with a `VerdictHeader` (decision/grade instruments, human-readable cap reason, imperative next action, claims/non-claims summary) and moves raw ledger metadata into a subordinate quiet footer; `capReason` is surfaced through the contract and ledger mapper as an optional field; `formatCapReason`/`formatClaimsNonClaimsSummary` are pure, exported, unit-tested. Fusion-built, independent role-separated spec/code/evidence reviews (PASS, grade A). Committed at `e532ccd2f`, ledger event five. This does not claim real provider/browser E2E, Docker proof, Kubernetes proof, runtime browser render, autonomous swarm completion, or replacement completion.
 
 71. Closed artifact exhibits slice: case-detail artifact links upgraded to evidence exhibit cards (per-type icon, Exhibit seal, backing event ID, inset path panel, copy-to-clipboard with confirmation and unmount cleanup, Open action); `getFeatureCaseArtifactRows` carries `type`/`eventId` without dropping fields; adds exported `getFeatureCaseArtifactIcon`. Frontend read-side only, reuses the existing artifact route. Fusion-built (candidate C disqualified), independent role-separated reviews (PASS, grade A). Committed at `97be2c0ac`, ledger event six. This does not claim real provider/browser E2E, Docker proof, Kubernetes proof, runtime browser render, autonomous swarm completion, or replacement completion.
+
+72. Closed F0-F8 gate rail slice: FeatureCase `gateEvidence` surfaced through the contract and ledger mapper as an optional typed field; the verdict header renders a compact F0-F8 rail derived by the pure exported `getGateRailItems` (passed/partial/pending; F8 partial unless decision is PROMOTE). Fusion-built, independent role-separated reviews (PASS, grade B). Committed at `81f8544a2`, ledger event seven. This completes the local cockpit queue (review panels, verdict-first detail, artifact exhibits, gate rail). This does not claim real provider/browser E2E, Docker proof, Kubernetes proof, runtime browser render, autonomous swarm completion, or replacement completion.
 
 ## Next Required Action
 
