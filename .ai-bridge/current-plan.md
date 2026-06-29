@@ -266,6 +266,28 @@ The approved Center roadmap is implemented through Phase 12. No further autonomo
 
 Center remains the working name for the daily operating surface. Workflow remains a feature module, not the operating surface.
 
+## Next gate
+
+Draft review packet:
+
+```text
+.ai-bridge/projects/center/reviews/RP-20260629-003-dogfood-readiness-capability-enforcement.md
+```
+
+Audit:
+
+```text
+.ai-bridge/projects/center/audits/phase-0-12-integration-audit-20260629.md
+```
+
+Worker handoff:
+
+```text
+.ai-bridge/projects/center/audits/worker-handoff-after-phase-0-12-audit.md
+```
+
+Do not start a new feature phase until this dogfood-readiness / truth-preservation gate is resolved.
+
 ## Read first
 
 - `.ai-bridge/README.md`
@@ -285,6 +307,9 @@ Center remains the working name for the daily operating surface. Workflow remain
 - `.ai-bridge/projects/center/phase-11-implementation.md`
 - `.ai-bridge/projects/worker-lane/index.md`
 - `.ai-bridge/projects/center/phase-12-implementation.md`
+- `.ai-bridge/projects/center/audits/phase-0-12-integration-audit-20260629.md`
+- `.ai-bridge/projects/center/audits/worker-handoff-after-phase-0-12-audit.md`
+- `.ai-bridge/projects/center/reviews/RP-20260629-003-dogfood-readiness-capability-enforcement.md`
 - `.ai-bridge/projects/center/reviews/RP-20260628-002-v1.md`
 - `.ai-bridge/projects/cpu-ram-stabilization/index.md`
 - `.ai-bridge/projects/ms2scheduler-integration/index.md`

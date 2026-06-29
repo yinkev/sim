@@ -7,6 +7,8 @@ updated: 2026-06-29
 links:
   - center-governing-spec-v1
   - current-plan
+  - center-phase-0-12-integration-audit-20260629
+  - RP-20260629-003
   - center-phase-6-implementation
   - center-phase-7-implementation
   - center-phase-8-implementation
