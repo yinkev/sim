@@ -57,12 +57,10 @@ Do not overload `current-plan.md` with the whole strategy. It should point to th
 ## Current active project
 
 ```text
-projects/cpu-ram-stabilization/
+projects/center/
 ```
 
-This project is Phase 0 for Center: make local Sim development usable before Center UI work.
-
-Center is the approved operating surface, but Center UI implementation is blocked until Phase 0 is handled or explicitly waived.
+Center is the approved operating surface. Phase 0 CPU/RAM stabilization is handled, and implementation is now proceeding through the approved producer sequence.
 
 Current active plan:
 

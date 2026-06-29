@@ -1,4 +1,4 @@
-# Current Plan — Phase 10 Learn / Understand Producers
+# Current Plan — Phase 11 Worker / Hermes / Codex Lane
 
 Status: active.
 
@@ -170,9 +170,39 @@ Evidence:
 - `bun run check:center-boundary` passed.
 - `bun run check:boundaries` passed.
 
+## Phase 10 result
+
+Handled. Learn-shaped and Understand-shaped knowledge state now feeds Center through typed producer import packets and an explicit local import action.
+
+Implemented:
+
+- `apps/sim/lib/center/producers/learn-understand.ts`
+- `apps/sim/lib/center/producers/learn-understand-files.ts`
+- `apps/sim/app/api/center/learn-understand/import/route.ts`
+- `apps/sim/lib/api/contracts/center.ts`
+- Center UI `Import Learn/Understand` action and Knowledge State projection
+- `.ai-bridge/projects/learn-understand-producers/sample-events.json`
+- `.ai-bridge/capabilities/emit.learn_learning_gap.json`
+- `.ai-bridge/capabilities/emit.learn_practice_task.json`
+- `.ai-bridge/capabilities/emit.learn_review_evidence.json`
+- `.ai-bridge/capabilities/emit.understand_system_map.json`
+- `.ai-bridge/capabilities/emit.understand_dependency_observation.json`
+- `.ai-bridge/capabilities/emit.understand_risk_evidence.json`
+
+Evidence:
+
+- Import route produced 6 evidence records, 6 raw events, 6 observations, and 2 blocked loops from 6 sample Learn/Understand records.
+- Browser smoke created a profile, clicked `Import Learn/Understand`, persisted the imported records, and rendered both knowledge next actions.
+- Targeted Center boundary checks still passed.
+- `bun --cwd apps/sim test lib/center/producers/learn-understand.test.ts lib/center/producers/plane.test.ts lib/center/producer-import.test.ts` passed.
+- `bun --cwd apps/sim type-check` passed.
+- `bun run check:api-validation` passed.
+- `bun run check:center-boundary` passed.
+- `bun run check:boundaries` passed.
+
 ## Objective
 
-Bring Learn and Understand producer outputs into Center through local producer shapes.
+Bring Worker, Hermes, and Codex execution outputs into Center through local producer shapes.
 
 Center remains the working name for the daily operating surface. Workflow remains a feature module, not the operating surface.
 
@@ -190,6 +220,8 @@ Center remains the working name for the daily operating surface. Workflow remain
 - `.ai-bridge/projects/github-producer/index.md`
 - `.ai-bridge/projects/center/phase-9-implementation.md`
 - `.ai-bridge/projects/plane-producer/index.md`
+- `.ai-bridge/projects/center/phase-10-implementation.md`
+- `.ai-bridge/projects/learn-understand-producers/index.md`
 - `.ai-bridge/projects/center/reviews/RP-20260628-002-v1.md`
 - `.ai-bridge/projects/cpu-ram-stabilization/index.md`
 - `.ai-bridge/projects/ms2scheduler-integration/index.md`
@@ -279,10 +311,10 @@ Authority and truth impact are defined in:
 
 Build:
 
-- Learn producer contract for learning gaps, practice tasks, and review evidence
-- Understand producer contract for system maps, dependency observations, and risk evidence
-- local/manual import or fixture path that maps Learn/Understand-shaped data into Center events, observations, evidence, loops, and next actions
-- Center UI projection for learning/system-comprehension state without loading workflow or connector registries
+- Worker/Hermes/Codex producer contract for run started, run completed, failure, diff, test result, artifact, and review-needed records
+- local/manual import or fixture path that maps worker-shaped data into Center events, observations, evidence, loops, and action/review state
+- Center UI projection for agent work without loading workflow, connector, provider SDK, block registry, or execution sandbox hot paths
+- capability metadata for worker execution event emission
 
 Guardrail:
 
@@ -290,16 +322,14 @@ Guardrail:
 
 ## Acceptance criteria
 
-- Learn-shaped and Understand-shaped outputs can be represented without bespoke Center architecture.
-- Evidence links back to learning gaps, practice tasks, review receipts, system maps, dependency observations, or risk evidence.
+- Worker, Hermes, and Codex-shaped outputs can be represented without bespoke Center architecture.
+- Agent run evidence links back to loops, action proposals, review-needed records, diffs, test results, and artifacts.
 - Center route remains free of heavy workflow/provider imports.
 - No telemetry.
 - Targeted type/lint/boundary checks pass.
 
 ## Final report format
 
-1. What was actually heavy
-2. What changed
-3. Commands Kevin should use
-4. Remaining tech debt
-5. Exact next fix if CPU/RAM is still bad
+1. Changed
+2. Verified
+3. Notes

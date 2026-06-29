@@ -1,0 +1,27 @@
+{
+  "id": "emit.understand_dependency_observation",
+  "version": "1.0.0",
+  "producerId": "understand",
+  "kind": "emit",
+  "inputs": [
+    {
+      "id": "learn-understand-snapshot-record",
+      "version": "1.0.0",
+      "uri": ".ai-bridge/projects/learn-understand-producers/sample-events.json"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "center-producer-import-packet",
+      "version": "1.0.0",
+      "uri": "apps/sim/lib/center/producer-import.ts"
+    }
+  ],
+  "authorityRequired": "A1",
+  "truthImpact": "T2",
+  "policyRequirements": ["profile-scope", "explicit-local-import", "evidence-required"],
+  "evidenceProduced": ["Dependency observation source"],
+  "failureModes": ["snapshot is stale", "dependency relation is incomplete"],
+  "requires": ["emit.understand_system_map"],
+  "lifecycle": "available"
+}

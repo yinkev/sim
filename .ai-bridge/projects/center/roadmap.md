@@ -11,6 +11,7 @@ links:
   - center-phase-7-implementation
   - center-phase-8-implementation
   - center-phase-9-implementation
+  - center-phase-10-implementation
 ---
 
 # Center Implementation Roadmap
@@ -226,13 +227,28 @@ Verified:
 
 ## Phase 10 - Learn / Understand Producers
 
-Status: active.
+Status: initial implementation complete.
 
 Learn emits learning gaps, practice tasks, and review evidence.
 
 Understand emits system maps, dependency observations, and risk evidence.
 
+Implementation:
+
+- Local Learn/Understand-shaped snapshot reader.
+- Learn and Understand producer import packet mapper.
+- Local-development import API route.
+- Center UI `Import Learn/Understand` action and Knowledge State projection.
+- Registered capability metadata for learning gaps, practice tasks, review evidence, system maps, dependency observations, and risk evidence.
+
+Verified:
+
+- Sample snapshot imports 6 records into 6 evidence, 6 raw events, 6 observations, and 2 blocked loops.
+- Center UI persists and renders learning and system-comprehension next actions, blocker state, and knowledge observations.
+
 ## Phase 11 - Worker / Hermes / Codex Lane
+
+Status: active.
 
 Workers emit run started, run completed, failure, diff, test result, artifact, and review needed.
 

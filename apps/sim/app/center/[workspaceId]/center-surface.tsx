@@ -6,6 +6,7 @@ import {
   Activity,
   AlertTriangle,
   Archive,
+  Brain,
   CheckCircle2,
   CircleDot,
   ClipboardList,
@@ -22,6 +23,7 @@ import { Button, ChipInput, ChipTag, ChipTextarea } from '@/components/emcn'
 import { requestJson } from '@/lib/api/client/request'
 import {
   importCenterGithubContract,
+  importCenterLearnUnderstandContract,
   importCenterPlaneContract,
   importCenterReviewPacketsContract,
   importMs2SchedulerCenterContract,
@@ -208,11 +210,13 @@ export function CenterSurface() {
   const [error, setError] = useState<string | null>(null)
   const [importSummary, setImportSummary] = useState<string | null>(null)
   const [githubImportSummary, setGithubImportSummary] = useState<string | null>(null)
+  const [knowledgeImportSummary, setKnowledgeImportSummary] = useState<string | null>(null)
   const [planeImportSummary, setPlaneImportSummary] = useState<string | null>(null)
   const [reviewImportSummary, setReviewImportSummary] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [isImportingGithub, setIsImportingGithub] = useState(false)
+  const [isImportingKnowledge, setIsImportingKnowledge] = useState(false)
   const [isImportingPlane, setIsImportingPlane] = useState(false)
   const [isImportingReviews, setIsImportingReviews] = useState(false)
 
@@ -282,6 +286,18 @@ export function CenterSurface() {
       newestFirst(
         scoped.observations.filter((observation) =>
           observation.observationType.startsWith('planning.')
+        ),
+        (observation) => observation.observedAt
+      ).slice(0, 5),
+    [scoped.observations]
+  )
+  const knowledgeObservations = useMemo(
+    () =>
+      newestFirst(
+        scoped.observations.filter(
+          (observation) =>
+            observation.observationType.startsWith('learning.') ||
+            observation.observationType.startsWith('understanding.')
         ),
         (observation) => observation.observedAt
       ).slice(0, 5),
@@ -407,6 +423,37 @@ export function CenterSurface() {
       setError(getErrorMessage(err, 'Plane import failed'))
     } finally {
       setIsImportingPlane(false)
+    }
+  }
+
+  const importLearnUnderstand = async () => {
+    if (!storage || !selectedProfile) return
+    setIsImportingKnowledge(true)
+    setError(null)
+    setKnowledgeImportSummary(null)
+    try {
+      const response = await requestJson(importCenterLearnUnderstandContract, {})
+      const total = {
+        evidenceAdded: 0,
+        rawEventsAdded: 0,
+        observationsAdded: 0,
+        loopsAdded: 0,
+      }
+      for (const packet of response.packets) {
+        const summary = await applyCenterProducerImport(storage, selectedProfile.id, packet)
+        total.evidenceAdded += summary.evidenceAdded
+        total.rawEventsAdded += summary.rawEventsAdded
+        total.observationsAdded += summary.observationsAdded
+        total.loopsAdded += summary.loopsAdded
+      }
+      await reloadDataset(selectedProfile.id)
+      setKnowledgeImportSummary(
+        `Learn/Understand import: ${total.evidenceAdded} evidence, ${total.rawEventsAdded} events, ${total.observationsAdded} observations, ${total.loopsAdded} loops from ${response.source.recordCount} records.`
+      )
+    } catch (err) {
+      setError(getErrorMessage(err, 'Learn/Understand import failed'))
+    } finally {
+      setIsImportingKnowledge(false)
     }
   }
 
@@ -593,6 +640,13 @@ export function CenterSurface() {
               </Button>
               <Button
                 type='button'
+                disabled={!selectedProfile || isImportingKnowledge}
+                onClick={importLearnUnderstand}
+              >
+                Import Learn/Understand
+              </Button>
+              <Button
+                type='button'
                 disabled={!selectedProfile || isImportingReviews}
                 onClick={importReviewPackets}
               >
@@ -616,6 +670,12 @@ export function CenterSurface() {
           {githubImportSummary ? (
             <div className='rounded-[8px] border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-[var(--text-muted)] text-sm'>
               {githubImportSummary}
+            </div>
+          ) : null}
+
+          {knowledgeImportSummary ? (
+            <div className='rounded-[8px] border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-[var(--text-muted)] text-sm'>
+              {knowledgeImportSummary}
             </div>
           ) : null}
 
@@ -741,6 +801,33 @@ export function CenterSurface() {
                         detail={String(observation.payload.url ?? observation.observationType)}
                         tone={
                           observation.observationType.endsWith('_blocked')
+                            ? 'text-[var(--text-error)]'
+                            : undefined
+                        }
+                      />
+                    ))
+                  )}
+                </div>
+              </Section>
+
+              <Section title='Knowledge State' count={knowledgeObservations.length} icon={Brain}>
+                <div className='flex flex-col gap-2'>
+                  {knowledgeObservations.length === 0 ? (
+                    <EmptyState label='No learning or system observations' />
+                  ) : (
+                    knowledgeObservations.map((observation) => (
+                      <RecordRow
+                        key={observation.id}
+                        title={String(observation.payload.summary ?? observation.observationType)}
+                        meta={String(
+                          observation.payload.severity ??
+                            observation.payload.status ??
+                            observation.observationType
+                        )}
+                        detail={String(observation.payload.url ?? observation.observationType)}
+                        tone={
+                          observation.observationType === 'understanding.risk_detected' ||
+                          observation.observationType === 'learning.gap_detected'
                             ? 'text-[var(--text-error)]'
                             : undefined
                         }

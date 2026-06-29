@@ -1,0 +1,65 @@
+{
+  "records": [
+    {
+      "kind": "learning_gap",
+      "gapId": "gap-1",
+      "topic": "Cardiology",
+      "title": "Differentiate preload and afterload",
+      "severity": "high",
+      "detectedAt": "2026-06-29T03:00:00Z",
+      "source": "review",
+      "url": "file://learn/gap-1"
+    },
+    {
+      "kind": "practice_task",
+      "taskId": "practice-1",
+      "topic": "Cardiology",
+      "title": "Complete 10 hemodynamics cards",
+      "status": "open",
+      "createdAt": "2026-06-29T03:05:00Z",
+      "dueAt": "2026-06-30",
+      "url": "file://learn/practice-1"
+    },
+    {
+      "kind": "review_evidence",
+      "evidenceId": "review-1",
+      "topic": "Cardiology",
+      "title": "Hemodynamics quiz",
+      "result": "partial",
+      "score": 0.62,
+      "reviewedAt": "2026-06-29T03:10:00Z",
+      "url": "file://learn/review-1"
+    },
+    {
+      "kind": "system_map",
+      "mapId": "map-1",
+      "scope": "Center",
+      "title": "Center producer spine",
+      "generatedAt": "2026-06-29T03:15:00Z",
+      "nodeCount": 18,
+      "edgeCount": 27,
+      "url": "file://understand/map-1"
+    },
+    {
+      "kind": "dependency_observation",
+      "observationId": "dep-1",
+      "scope": "Center",
+      "from": "Center route",
+      "to": "producer import packet",
+      "relation": "depends-on",
+      "risk": "low",
+      "observedAt": "2026-06-29T03:20:00Z",
+      "url": "file://understand/dep-1"
+    },
+    {
+      "kind": "risk_evidence",
+      "riskId": "risk-1",
+      "scope": "Center",
+      "title": "Producer fixture can drift from live API",
+      "severity": "high",
+      "area": "producer import",
+      "detectedAt": "2026-06-29T03:25:00Z",
+      "url": "file://understand/risk-1"
+    }
+  ]
+}

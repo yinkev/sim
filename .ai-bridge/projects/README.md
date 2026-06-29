@@ -2,7 +2,7 @@
 id: ai-bridge-projects-readme
 type: standard
 status: active
-updated: 2026-06-28
+updated: 2026-06-29
 links:
   - ai-bridge-projects-index
   - ai-bridge-index
@@ -103,6 +103,7 @@ Center should not depend on MS2Scheduler's internal implementation details unles
 center/                    # product surface and operating graph
 cpu-ram-stabilization/     # performance/dev usability blocker
 github-producer/           # engineering-state producer input for Center
+learn-understand-producers/ # learning and system-comprehension producer input for Center
 ms2scheduler-integration/  # scheduler as first mature producer/module
 plane-producer/            # project/task-state producer input for Center
 pro-review-workflow/       # review packets + governor process

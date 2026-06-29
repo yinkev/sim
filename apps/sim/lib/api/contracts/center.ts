@@ -201,6 +201,25 @@ export const importCenterPlaneContract = defineRouteContract({
 
 export type ImportCenterPlaneResponse = z.output<typeof importCenterPlaneContract.response.schema>
 
+export const importCenterLearnUnderstandContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/center/learn-understand/import',
+  response: {
+    mode: 'json',
+    schema: z.object({
+      packets: z.array(centerProducerImportPacketSchema),
+      source: z.object({
+        filePath: z.string(),
+        recordCount: z.number().int().min(0),
+      }),
+    }),
+  },
+})
+
+export type ImportCenterLearnUnderstandResponse = z.output<
+  typeof importCenterLearnUnderstandContract.response.schema
+>
+
 export const importCenterReviewPacketsContract = defineRouteContract({
   method: 'GET',
   path: '/api/center/review-packets/import',
