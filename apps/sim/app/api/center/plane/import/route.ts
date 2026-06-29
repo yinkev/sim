@@ -9,6 +9,10 @@ import {
 } from '@/lib/center/capability-registry'
 import { buildPlaneImportPacket } from '@/lib/center/producers/plane'
 import { readCenterPlaneSnapshot } from '@/lib/center/producers/plane-files'
+import {
+  readCenterPlaneLiveConfig,
+  readCenterPlaneLiveSnapshot,
+} from '@/lib/center/producers/plane-live'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 
 const logger = createLogger('CenterPlaneImportAPI')
@@ -25,7 +29,10 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Plane import is local-development only' }, { status: 403 })
   }
 
-  const snapshot = await readCenterPlaneSnapshot()
+  const liveConfig = readCenterPlaneLiveConfig()
+  const snapshot = liveConfig
+    ? await readCenterPlaneLiveSnapshot(liveConfig)
+    : await readCenterPlaneSnapshot()
   const packet = buildPlaneImportPacket(snapshot)
   const capabilities = await readCenterCapabilityRegistry()
   const unknownCapabilityIds = getUnknownCenterCapabilityIds(packet, capabilities)
@@ -36,6 +43,7 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
     )
   }
   logger.info('Prepared Plane Center import packet', {
+    sourceMode: liveConfig ? 'live-plane' : 'sample-file',
     filePath: snapshot.sourcePath,
     records: snapshot.records.length,
     evidence: packet.evidence.length,
@@ -47,6 +55,7 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
   return NextResponse.json({
     packet,
     source: {
+      mode: liveConfig ? 'live-plane' : 'sample-file',
       filePath: snapshot.sourcePath,
       recordCount: snapshot.records.length,
     },

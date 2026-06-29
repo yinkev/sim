@@ -163,3 +163,20 @@ Consequence:
 
 Revisit if:
 Outcome records gain typed schemas per prediction type or enough dogfood data exists to calibrate richer prediction models.
+
+## 2026-06-29 — Live external producers are read-only and environment-gated
+
+Decision:
+GitHub and Plane live imports are available only when explicit environment variables configure the source and credentials. Without those variables, the local import routes keep using the `.ai-bridge/projects/*/sample-events.json` files.
+
+Reason:
+Center needs a real external-state path without storing secrets, adding write authority, or making unconfigured dev machines depend on remote services.
+
+Rejected:
+Do not persist GitHub or Plane credentials in Center storage. Do not add write-capable GitHub/Plane mutations in this slice. Do not make live external calls when required source ids or tokens are missing.
+
+Consequence:
+GitHub live mode reads repository commits, issues, pull requests, reviews, and workflow runs from configured repos. Plane live mode reads project, cycle, module, and work-item state from configured workspace/project ids. API responses expose `source.mode` as `sample-file`, `live-github`, or `live-plane` so the UI and tests can distinguish source provenance.
+
+Revisit if:
+Center gains a reviewed credential store, a policy engine for A2/A3/A4 actions, or durable producer sync beyond local development import routes.

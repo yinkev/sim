@@ -7,7 +7,7 @@ This document explains how external state enters Center.
 Repository path: `apps/sim/docs/center/producer-model.md`  
 Owning project: Center  
 Owner: Sim maintainers  
-Current status: Local import producer adapters exist for MS2Scheduler, GitHub, Plane, Learn/Understand, Review Packets, and Worker Lane.
+Current status: Local import producer adapters exist for MS2Scheduler, GitHub, Plane, Learn/Understand, Review Packets, and Worker Lane. GitHub and Plane also have read-only live import paths behind explicit environment configuration.
 
 ## Model
 
@@ -86,8 +86,8 @@ Observation source refs are resolved through raw event source refs. Evidence ref
 | Producer | Source | Mapper | Route | Center output |
 | --- | --- | --- | --- | --- |
 | MS2Scheduler | `/Users/kyin/Projects/MS2Scheduler/app/data` or `MS2SCHEDULER_DATA_DIR` | `apps/sim/lib/center/producers/ms2scheduler.ts` | `apps/sim/app/api/center/ms2scheduler/import/route.ts` | plan evidence, study events, observations, study loop, recovery recommendations, action proposals |
-| GitHub | `.ai-bridge/projects/github-producer/sample-events.json` or `CENTER_GITHUB_PRODUCER_FILE` | `apps/sim/lib/center/producers/github.ts` | `apps/sim/app/api/center/github/import/route.ts` | commits, issues, pull requests, reviews, CI runs, repo loops |
-| Plane | `.ai-bridge/projects/plane-producer/sample-events.json` or `CENTER_PLANE_PRODUCER_FILE` | `apps/sim/lib/center/producers/plane.ts` | `apps/sim/app/api/center/plane/import/route.ts` | projects, cycles, modules, issues, comments, statuses, project loops |
+| GitHub | `.ai-bridge/projects/github-producer/sample-events.json`, `CENTER_GITHUB_PRODUCER_FILE`, or live `CENTER_GITHUB_LIVE_REPOS` | `apps/sim/lib/center/producers/github.ts`, `apps/sim/lib/center/producers/github-files.ts`, `apps/sim/lib/center/producers/github-live.ts` | `apps/sim/app/api/center/github/import/route.ts` | commits, issues, pull requests, reviews, CI runs, repo loops |
+| Plane | `.ai-bridge/projects/plane-producer/sample-events.json`, `CENTER_PLANE_PRODUCER_FILE`, or live `CENTER_PLANE_WORKSPACE_SLUG` + `CENTER_PLANE_PROJECT_ID(S)` | `apps/sim/lib/center/producers/plane.ts`, `apps/sim/lib/center/producers/plane-files.ts`, `apps/sim/lib/center/producers/plane-live.ts` | `apps/sim/app/api/center/plane/import/route.ts` | projects, cycles, modules, issues/work-items, comments/statuses from sample files, project loops |
 | Learn/Understand | `.ai-bridge/projects/learn-understand-producers/sample-events.json` or `CENTER_LEARN_UNDERSTAND_PRODUCER_FILE` | `apps/sim/lib/center/producers/learn-understand.ts` | `apps/sim/app/api/center/learn-understand/import/route.ts` | learning gaps, practice tasks, review evidence, system maps, dependency observations, risk evidence |
 | Worker Lane | `.ai-bridge/projects/worker-lane/sample-events.json` or `CENTER_WORKER_LANE_PRODUCER_FILE` | `apps/sim/lib/center/producers/worker-lane.ts` | `apps/sim/app/api/center/workers/import/route.ts` | run starts/completions, failures, diffs, test results, artifacts, review-needed proposals |
 | Review Packets | `.ai-bridge/projects/center/reviews/*.md` or `CENTER_REVIEW_PACKET_DIR` | `apps/sim/lib/center/review-packet-files.ts` | `apps/sim/app/api/center/review-packets/import/route.ts` | review packet records and source evidence |
@@ -108,6 +108,52 @@ NODE_ENV !== production
 
 Production behavior should not rely on these routes until a reviewed storage, auth, capability, and policy model exists.
 
+## Live Source Modes
+
+GitHub live imports are enabled only when `CENTER_GITHUB_LIVE_REPOS` contains one or more `owner/repo` entries. Optional variables:
+
+```text
+CENTER_GITHUB_TOKEN=/redacted/token
+GITHUB_TOKEN=/redacted/token
+CENTER_GITHUB_API_BASE_URL=https://api.github.com
+```
+
+The GitHub live reader calls the official REST endpoints for repository commits, issues, pull requests, pull-request reviews, and workflow runs. The route response reports:
+
+```text
+source.mode=live-github
+```
+
+Plane live imports are enabled only when workspace, project, and token variables are all present:
+
+```text
+CENTER_PLANE_WORKSPACE_SLUG=my-workspace
+CENTER_PLANE_PROJECT_ID=project-uuid
+CENTER_PLANE_PROJECT_IDS=project-uuid,other-project-uuid
+CENTER_PLANE_API_KEY=/redacted/token
+PLANE_API_KEY=/redacted/token
+PLANE_OAUTH_TOKEN=/redacted/token
+CENTER_PLANE_BASE_URL=https://api.plane.so
+CENTER_PLANE_APP_BASE_URL=https://app.plane.so
+```
+
+The Plane live reader uses the official Plane REST paths for project detail, cycles, modules, and work items:
+
+```text
+/api/v1/workspaces/{workspace_slug}/projects/{project_id}/
+/api/v1/workspaces/{workspace_slug}/projects/{project_id}/cycles/
+/api/v1/workspaces/{workspace_slug}/projects/{project_id}/modules/
+/api/v1/workspaces/{workspace_slug}/projects/{project_id}/work-items/
+```
+
+The route response reports:
+
+```text
+source.mode=live-plane
+```
+
+Neither live reader writes to the external system. Neither stores credentials in Center data.
+
 ## Capability Relationship
 
 Producer import implementation and capability metadata are separate:
@@ -127,18 +173,19 @@ The capability system is documented in:
 apps/sim/docs/center/capability-system.md
 ```
 
-Capability metadata is not yet enforced at runtime during import. That is a known dogfood-readiness gap recorded in `.ai-bridge/projects/center/reviews/RP-20260629-003-dogfood-readiness-capability-enforcement.md`.
+Capability metadata is enforced at the first runtime boundary: import packets declare capability ids, local routes reject unknown declared ids, and `applyCenterProducerImport` blocks unknown packet-level or record-level capability ids before mutating the profile dataset.
 
 ## Adding A Producer
 
 1. Define the source record shape in `apps/sim/lib/center/producers/<producer>.ts`.
 2. Normalize file or external input in `apps/sim/lib/center/producers/<producer>-files.ts` if local input is file-backed.
-3. Map records into `CenterProducerImportPacket`.
-4. Add a route contract in `apps/sim/lib/api/contracts/center.ts`.
-5. Add a local import route under `apps/sim/app/api/center/<producer>/import/route.ts`.
-6. Add capability metadata under `.ai-bridge/capabilities/`.
-7. Add targeted tests beside the mapper.
-8. Add UI projection only after the packet and spine behavior exist.
+3. Normalize live external input in `apps/sim/lib/center/producers/<producer>-live.ts` only when credentials/source ids can be read from explicit environment variables.
+4. Map records into `CenterProducerImportPacket`.
+5. Add a route contract in `apps/sim/lib/api/contracts/center.ts`.
+6. Add a local import route under `apps/sim/app/api/center/<producer>/import/route.ts`.
+7. Add capability metadata under `.ai-bridge/capabilities/`.
+8. Add targeted tests beside the mapper and live reader.
+9. Add UI projection only after the packet and spine behavior exist.
 
 Do not import live SDKs or heavy provider registries into the Center route.
 

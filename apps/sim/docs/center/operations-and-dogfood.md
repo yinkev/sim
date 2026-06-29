@@ -116,12 +116,24 @@ GitHub:
 
 ```text
 CENTER_GITHUB_PRODUCER_FILE=/path/to/events.json
+CENTER_GITHUB_LIVE_REPOS=owner/repo,other/repo
+CENTER_GITHUB_TOKEN=/redacted/token
+GITHUB_TOKEN=/redacted/token
+CENTER_GITHUB_API_BASE_URL=https://api.github.com
 ```
 
 Plane:
 
 ```text
 CENTER_PLANE_PRODUCER_FILE=/path/to/events.json
+CENTER_PLANE_WORKSPACE_SLUG=my-workspace
+CENTER_PLANE_PROJECT_ID=project-uuid
+CENTER_PLANE_PROJECT_IDS=project-uuid,other-project-uuid
+CENTER_PLANE_API_KEY=/redacted/token
+PLANE_API_KEY=/redacted/token
+PLANE_OAUTH_TOKEN=/redacted/token
+CENTER_PLANE_BASE_URL=https://api.plane.so
+CENTER_PLANE_APP_BASE_URL=https://app.plane.so
 ```
 
 Learn/Understand:
@@ -189,7 +201,9 @@ Add producer-specific tests when changing a producer:
 ```text
 bun --cwd apps/sim test lib/center/producers/ms2scheduler.test.ts
 bun --cwd apps/sim test lib/center/producers/github.test.ts
+bun --cwd apps/sim test lib/center/producers/github-live.test.ts
 bun --cwd apps/sim test lib/center/producers/plane.test.ts
+bun --cwd apps/sim test lib/center/producers/plane-live.test.ts
 bun --cwd apps/sim test lib/center/producers/learn-understand.test.ts
 bun --cwd apps/sim test lib/center/producers/worker-lane.test.ts
 ```
@@ -205,9 +219,9 @@ Do not treat Center as live-dogfood ready until these review packets are resolve
 
 Current blockers:
 
-- Live external producers are not connected.
 - Full authority/truth-impact/policy capability enforcement is not implemented beyond registered-id import gating.
 - Production sync beyond local workspace JSON storage is not implemented.
+- Real live GitHub/Plane dogfood import requires local credential/source-id environment variables. Current checked local env has none configured.
 
 First-use runbook:
 
@@ -259,6 +273,8 @@ MS2 import returns empty packet:
 GitHub, Plane, Learn/Understand, or Worker import fails:
 
 - Confirm the default `.ai-bridge/projects/<producer>/sample-events.json` file exists or set the matching `CENTER_*_PRODUCER_FILE` override.
+- For GitHub live mode, confirm `CENTER_GITHUB_LIVE_REPOS` is set and the optional token can read the configured repos.
+- For Plane live mode, confirm `CENTER_PLANE_WORKSPACE_SLUG`, `CENTER_PLANE_PROJECT_ID` or `CENTER_PLANE_PROJECT_IDS`, and a Plane token variable are set.
 
 Review import returns no records:
 

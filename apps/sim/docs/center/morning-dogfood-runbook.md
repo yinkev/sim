@@ -7,7 +7,7 @@ This is the short first-use runbook for a local Center dogfood session.
 Repository path: `apps/sim/docs/center/morning-dogfood-runbook.md`  
 Owning project: Center  
 Owner: Sim maintainers  
-Current status: Local dogfood guide; live/autonomous producer execution remains gated.
+Current status: Local dogfood guide; GitHub/Plane live imports are credential-gated and autonomous producer execution remains policy-gated.
 
 ## Prerequisites
 

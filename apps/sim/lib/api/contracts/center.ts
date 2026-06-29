@@ -363,6 +363,16 @@ const centerWorkspaceStorageSourceSchema = z.object({
   storageMode: z.literal('workspace'),
   filePath: z.string(),
 })
+const centerGithubImportSourceSchema = z.object({
+  mode: z.enum(['sample-file', 'live-github']),
+  filePath: z.string(),
+  recordCount: z.number().int().min(0),
+})
+const centerPlaneImportSourceSchema = z.object({
+  mode: z.enum(['sample-file', 'live-plane']),
+  filePath: z.string(),
+  recordCount: z.number().int().min(0),
+})
 
 export const centerProducerImportPacketSchema = z.object({
   producerId: z.string(),
@@ -447,10 +457,7 @@ export const importCenterGithubContract = defineRouteContract({
     mode: 'json',
     schema: z.object({
       packet: centerProducerImportPacketSchema,
-      source: z.object({
-        filePath: z.string(),
-        recordCount: z.number().int().min(0),
-      }),
+      source: centerGithubImportSourceSchema,
       capabilities: centerCapabilityRegistrySchema,
     }),
   },
@@ -465,10 +472,7 @@ export const importCenterPlaneContract = defineRouteContract({
     mode: 'json',
     schema: z.object({
       packet: centerProducerImportPacketSchema,
-      source: z.object({
-        filePath: z.string(),
-        recordCount: z.number().int().min(0),
-      }),
+      source: centerPlaneImportSourceSchema,
       capabilities: centerCapabilityRegistrySchema,
     }),
   },

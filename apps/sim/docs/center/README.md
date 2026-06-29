@@ -79,10 +79,12 @@ Implemented:
 - Workspace-scoped local-server storage with browser-local fallback.
 - Profile export/delete actions in the Center UI.
 - Derived prediction outcome scoring for explicit prediction outcomes.
+- Read-only live GitHub and Plane import paths behind explicit environment configuration.
 
 Not complete:
 
-- Real external API connectors for GitHub, Plane, Learn/Understand, and workers.
+- Real external API connectors for Learn/Understand and workers.
+- GitHub and Plane live dogfood import on this machine until credential/source-id environment variables are configured.
 - Production sync beyond local workspace JSON storage.
 - Full authority/truth-impact/policy capability enforcement beyond registered-id import gating.
 
@@ -92,7 +94,7 @@ Center depends on:
 
 - Sim app shell for route hosting, styling primitives, proxy routing, and build tooling.
 - Center contracts in `apps/sim/lib/api/contracts/center.ts`.
-- Local producer sample/event files under `.ai-bridge/projects/*/sample-events.json` for current development imports.
+- Local producer sample/event files under `.ai-bridge/projects/*/sample-events.json` for current development imports when live source variables are not configured.
 - MS2Scheduler data at `/Users/kyin/Projects/MS2Scheduler/app/data` for the local MS2 import path.
 
 Center must not depend on:

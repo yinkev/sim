@@ -66,6 +66,7 @@ Read for decisions, reviews, audits, and gates:
 - Added workspace-scoped local-server JSON storage with browser-local fallback.
 - Added profile export/delete actions in the Center UI.
 - Added derived prediction outcome scoring for explicit prediction outcomes.
+- Added read-only live GitHub and Plane producer paths behind explicit environment configuration.
 
 ## Verification
 
@@ -76,6 +77,7 @@ bun run check:center-boundary
 bun run check:api-validation
 bun --cwd apps/sim test lib/center/producer-import.test.ts lib/center/review-packets.test.ts lib/center/all-producer-smoke.test.ts lib/center/producers/ms2scheduler.test.ts lib/center/producers/github.test.ts lib/center/producers/plane.test.ts lib/center/producers/learn-understand.test.ts lib/center/producers/worker-lane.test.ts
 bun --cwd apps/sim test lib/center/file-storage.test.ts lib/center/workspace-storage.test.ts lib/center/baseline-prediction.test.ts lib/center/local-spine.test.ts lib/center/all-producer-smoke.test.ts
+bun --cwd apps/sim test lib/center/producers/github-live.test.ts lib/center/producers/plane-live.test.ts
 ```
 
 ## Remaining Gates
@@ -84,9 +86,9 @@ Center is documented as the implemented local system, not as production-complete
 
 Required implementation gaps remain:
 
-- Live producer connectors.
 - Production sync beyond local workspace JSON storage.
 - Full authority/truth-impact/policy capability enforcement beyond unknown-id import gating.
+- Real live GitHub/Plane dogfood import requires local credentials and source ids. Current local environment has no `CENTER_GITHUB_LIVE_REPOS`, `GITHUB_TOKEN`, `CENTER_GITHUB_TOKEN`, `CENTER_GITHUB_API_BASE_URL`, `CENTER_PLANE_API_KEY`, `PLANE_API_KEY`, `PLANE_OAUTH_TOKEN`, `CENTER_PLANE_WORKSPACE_SLUG`, `CENTER_PLANE_PROJECT_ID`, `CENTER_PLANE_PROJECT_IDS`, `CENTER_PLANE_BASE_URL`, or `CENTER_PLANE_APP_BASE_URL` configured.
 
 These are documented in:
 
