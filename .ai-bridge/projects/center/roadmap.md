@@ -56,6 +56,8 @@ Acceptance:
 
 ## Phase 3 - Center Local Spine
 
+Status: initial pure local substrate implemented.
+
 Build:
 
 - profile creation

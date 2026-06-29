@@ -148,3 +148,17 @@ Capability discovery is read-only until a capability is explicitly connected und
 
 Revisit if:
 MS2Scheduler, GitHub, Plane, worker lanes, or future producers cannot be described by the contract without bespoke exceptions.
+
+## 2026-06-28 — Start Center local spine with browser-local storage adapter
+
+Decision:
+Use a browser-local storage adapter as the first Center local spine implementation, with a memory adapter for tests and future adapter replacement.
+
+Reason:
+Phase 3 needs profile isolation, event/evidence/loop/decision capture, export, and delete without adding DB migrations or server dependencies before the UI and producer lanes prove the shape.
+
+Consequence:
+The first spine is local-first and low-risk, but it is not the final multi-device or server-backed storage story.
+
+Revisit if:
+Center requires authenticated cross-device sync, shared workspace state, or DB-backed export/delete guarantees.
