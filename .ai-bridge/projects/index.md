@@ -9,6 +9,7 @@ links:
   - cpu-ram-stabilization-index
   - github-producer-index
   - ms2scheduler-integration-index
+  - plane-producer-index
   - pro-review-workflow-index
 ---
 
@@ -26,6 +27,7 @@ This folder separates durable project context by mission so `current-plan.md` ca
 | `cpu-ram-stabilization/` | active | Make Sim locally usable before Center implementation. |
 | `github-producer/` | active | GitHub-shaped commits, issues, PRs, reviews, and CI runs as Center producer input. |
 | `ms2scheduler-integration/` | active | Reuse MS2Scheduler as the first mature producer/module feeding Center. |
+| `plane-producer/` | active | Plane-shaped project, cycle, module, issue, comment, and status records as Center producer input. |
 | `pro-review-workflow/` | active | Review packets, governor loop, decision capture, and cross-model relay. |
 | `daily-cockpit/` | legacy-active | Older working folder. Keep as source material until contents are migrated. |
 

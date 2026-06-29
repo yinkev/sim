@@ -1,4 +1,4 @@
-# Current Plan — Phase 9 Plane Producer
+# Current Plan — Phase 10 Learn / Understand Producers
 
 Status: active.
 
@@ -140,9 +140,39 @@ Evidence:
 - `bun run check:center-boundary` passed.
 - `bun run check:boundaries` passed.
 
+## Phase 9 result
+
+Handled. Plane-shaped project/task state now feeds Center through a typed producer import packet and explicit local import action.
+
+Implemented:
+
+- `apps/sim/lib/center/producers/plane.ts`
+- `apps/sim/lib/center/producers/plane-files.ts`
+- `apps/sim/app/api/center/plane/import/route.ts`
+- `apps/sim/lib/api/contracts/center.ts`
+- Center UI `Import Plane` action and Project State projection
+- `.ai-bridge/projects/plane-producer/sample-events.json`
+- `.ai-bridge/capabilities/emit.plane_project.json`
+- `.ai-bridge/capabilities/emit.plane_cycle.json`
+- `.ai-bridge/capabilities/emit.plane_module.json`
+- `.ai-bridge/capabilities/emit.plane_issue.json`
+- `.ai-bridge/capabilities/emit.plane_comment.json`
+- `.ai-bridge/capabilities/emit.plane_status.json`
+
+Evidence:
+
+- Import route produced 6 evidence records, 6 raw events, 6 observations, and 1 blocked project loop from 6 sample Plane records.
+- Browser smoke created a profile, clicked `Import Plane`, persisted the imported records, and rendered `Unblock Plane issue CENTER-101: Plane sync needs reviewable blocker state`.
+- Targeted Center boundary checks still passed.
+- `bun --cwd apps/sim test lib/center/producers/plane.test.ts lib/center/producers/github.test.ts lib/center/producer-import.test.ts` passed.
+- `bun --cwd apps/sim type-check` passed.
+- `bun run check:api-validation` passed.
+- `bun run check:center-boundary` passed.
+- `bun run check:boundaries` passed.
+
 ## Objective
 
-Bring project/task reality into Center through the first Plane producer shape.
+Bring Learn and Understand producer outputs into Center through local producer shapes.
 
 Center remains the working name for the daily operating surface. Workflow remains a feature module, not the operating surface.
 
@@ -158,6 +188,8 @@ Center remains the working name for the daily operating surface. Workflow remain
 - `.ai-bridge/projects/center/phase-7-implementation.md`
 - `.ai-bridge/projects/center/phase-8-implementation.md`
 - `.ai-bridge/projects/github-producer/index.md`
+- `.ai-bridge/projects/center/phase-9-implementation.md`
+- `.ai-bridge/projects/plane-producer/index.md`
 - `.ai-bridge/projects/center/reviews/RP-20260628-002-v1.md`
 - `.ai-bridge/projects/cpu-ram-stabilization/index.md`
 - `.ai-bridge/projects/ms2scheduler-integration/index.md`
@@ -247,9 +279,10 @@ Authority and truth impact are defined in:
 
 Build:
 
-- Plane producer contract for projects, cycles, modules, issues, comments, and statuses
-- local/manual import or fixture path that maps Plane-shaped data into Center events, observations, evidence, loops, and next actions
-- Center UI projection for project/task state without loading workflow or connector registries
+- Learn producer contract for learning gaps, practice tasks, and review evidence
+- Understand producer contract for system maps, dependency observations, and risk evidence
+- local/manual import or fixture path that maps Learn/Understand-shaped data into Center events, observations, evidence, loops, and next actions
+- Center UI projection for learning/system-comprehension state without loading workflow or connector registries
 
 Guardrail:
 
@@ -257,8 +290,8 @@ Guardrail:
 
 ## Acceptance criteria
 
-- Plane-shaped project activity can be represented without bespoke Center architecture.
-- Evidence links back to projects, cycles, modules, issues, comments, or status changes.
+- Learn-shaped and Understand-shaped outputs can be represented without bespoke Center architecture.
+- Evidence links back to learning gaps, practice tasks, review receipts, system maps, dependency observations, or risk evidence.
 - Center route remains free of heavy workflow/provider imports.
 - No telemetry.
 - Targeted type/lint/boundary checks pass.

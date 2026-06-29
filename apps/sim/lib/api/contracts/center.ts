@@ -184,6 +184,23 @@ export const importCenterGithubContract = defineRouteContract({
 
 export type ImportCenterGithubResponse = z.output<typeof importCenterGithubContract.response.schema>
 
+export const importCenterPlaneContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/center/plane/import',
+  response: {
+    mode: 'json',
+    schema: z.object({
+      packet: centerProducerImportPacketSchema,
+      source: z.object({
+        filePath: z.string(),
+        recordCount: z.number().int().min(0),
+      }),
+    }),
+  },
+})
+
+export type ImportCenterPlaneResponse = z.output<typeof importCenterPlaneContract.response.schema>
+
 export const importCenterReviewPacketsContract = defineRouteContract({
   method: 'GET',
   path: '/api/center/review-packets/import',

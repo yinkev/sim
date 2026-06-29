@@ -104,6 +104,7 @@ center/                    # product surface and operating graph
 cpu-ram-stabilization/     # performance/dev usability blocker
 github-producer/           # engineering-state producer input for Center
 ms2scheduler-integration/  # scheduler as first mature producer/module
+plane-producer/            # project/task-state producer input for Center
 pro-review-workflow/       # review packets + governor process
 daily-cockpit/             # legacy staging folder until migration is complete
 ```

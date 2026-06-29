@@ -12,6 +12,7 @@ import {
   FileText,
   GitBranch,
   GitPullRequestArrow,
+  Kanban,
   Lightbulb,
   ListChecks,
   Plus,
@@ -21,6 +22,7 @@ import { Button, ChipInput, ChipTag, ChipTextarea } from '@/components/emcn'
 import { requestJson } from '@/lib/api/client/request'
 import {
   importCenterGithubContract,
+  importCenterPlaneContract,
   importCenterReviewPacketsContract,
   importMs2SchedulerCenterContract,
 } from '@/lib/api/contracts/center'
@@ -206,10 +208,12 @@ export function CenterSurface() {
   const [error, setError] = useState<string | null>(null)
   const [importSummary, setImportSummary] = useState<string | null>(null)
   const [githubImportSummary, setGithubImportSummary] = useState<string | null>(null)
+  const [planeImportSummary, setPlaneImportSummary] = useState<string | null>(null)
   const [reviewImportSummary, setReviewImportSummary] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [isImportingGithub, setIsImportingGithub] = useState(false)
+  const [isImportingPlane, setIsImportingPlane] = useState(false)
   const [isImportingReviews, setIsImportingReviews] = useState(false)
 
   useEffect(() => {
@@ -268,6 +272,16 @@ export function CenterSurface() {
       newestFirst(
         scoped.observations.filter((observation) =>
           observation.observationType.startsWith('engineering.')
+        ),
+        (observation) => observation.observedAt
+      ).slice(0, 5),
+    [scoped.observations]
+  )
+  const planningObservations = useMemo(
+    () =>
+      newestFirst(
+        scoped.observations.filter((observation) =>
+          observation.observationType.startsWith('planning.')
         ),
         (observation) => observation.observedAt
       ).slice(0, 5),
@@ -374,6 +388,25 @@ export function CenterSurface() {
       setError(getErrorMessage(err, 'GitHub import failed'))
     } finally {
       setIsImportingGithub(false)
+    }
+  }
+
+  const importPlane = async () => {
+    if (!storage || !selectedProfile) return
+    setIsImportingPlane(true)
+    setError(null)
+    setPlaneImportSummary(null)
+    try {
+      const response = await requestJson(importCenterPlaneContract, {})
+      const summary = await applyCenterProducerImport(storage, selectedProfile.id, response.packet)
+      await reloadDataset(selectedProfile.id)
+      setPlaneImportSummary(
+        `Plane import: ${summary.evidenceAdded} evidence, ${summary.rawEventsAdded} events, ${summary.observationsAdded} observations, ${summary.loopsAdded} loops from ${response.source.recordCount} records.`
+      )
+    } catch (err) {
+      setError(getErrorMessage(err, 'Plane import failed'))
+    } finally {
+      setIsImportingPlane(false)
     }
   }
 
@@ -553,6 +586,13 @@ export function CenterSurface() {
               </Button>
               <Button
                 type='button'
+                disabled={!selectedProfile || isImportingPlane}
+                onClick={importPlane}
+              >
+                Import Plane
+              </Button>
+              <Button
+                type='button'
                 disabled={!selectedProfile || isImportingReviews}
                 onClick={importReviewPackets}
               >
@@ -576,6 +616,12 @@ export function CenterSurface() {
           {githubImportSummary ? (
             <div className='rounded-[8px] border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-[var(--text-muted)] text-sm'>
               {githubImportSummary}
+            </div>
+          ) : null}
+
+          {planeImportSummary ? (
+            <div className='rounded-[8px] border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-[var(--text-muted)] text-sm'>
+              {planeImportSummary}
             </div>
           ) : null}
 
@@ -673,6 +719,28 @@ export function CenterSurface() {
                         tone={
                           observation.observationType === 'engineering.ci_failed' ||
                           observation.observationType === 'engineering.review_blocking'
+                            ? 'text-[var(--text-error)]'
+                            : undefined
+                        }
+                      />
+                    ))
+                  )}
+                </div>
+              </Section>
+
+              <Section title='Project State' count={planningObservations.length} icon={Kanban}>
+                <div className='flex flex-col gap-2'>
+                  {planningObservations.length === 0 ? (
+                    <EmptyState label='No project observations' />
+                  ) : (
+                    planningObservations.map((observation) => (
+                      <RecordRow
+                        key={observation.id}
+                        title={String(observation.payload.summary ?? observation.observationType)}
+                        meta={String(observation.payload.status ?? observation.observationType)}
+                        detail={String(observation.payload.url ?? observation.observationType)}
+                        tone={
+                          observation.observationType.endsWith('_blocked')
                             ? 'text-[var(--text-error)]'
                             : undefined
                         }

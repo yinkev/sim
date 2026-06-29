@@ -1,0 +1,27 @@
+{
+  "id": "emit.plane_status",
+  "version": "1.0.0",
+  "producerId": "plane",
+  "kind": "emit",
+  "inputs": [
+    {
+      "id": "plane-snapshot-record",
+      "version": "1.0.0",
+      "uri": ".ai-bridge/projects/plane-producer/sample-events.json"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "center-producer-import-packet",
+      "version": "1.0.0",
+      "uri": "apps/sim/lib/center/producer-import.ts"
+    }
+  ],
+  "authorityRequired": "A1",
+  "truthImpact": "T2",
+  "policyRequirements": ["profile-scope", "explicit-local-import", "evidence-required"],
+  "evidenceProduced": ["Plane status-change receipt"],
+  "failureModes": ["snapshot is stale", "status transition actor is missing"],
+  "requires": ["emit.plane_issue"],
+  "lifecycle": "available"
+}
