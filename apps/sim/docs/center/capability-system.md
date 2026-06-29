@@ -7,7 +7,7 @@ This document explains the capability metadata model used to govern producer abi
 Repository path: `apps/sim/docs/center/capability-system.md`  
 Owning project: Center  
 Owner: Sim maintainers  
-Current status: Metadata schema and capability files exist; runtime enforcement is not implemented.
+Current status: Metadata schema and capability files exist; producer imports enforce registered capability ids. Full authority/truth-impact/policy enforcement is not implemented.
 
 ## Canonical Sources
 
@@ -82,6 +82,8 @@ Examples currently registered:
 
 - `.ai-bridge/capabilities/emit.github_commit.json`
 - `.ai-bridge/capabilities/emit.github_pull_request.json`
+- `.ai-bridge/capabilities/emit.ms2.study_activity.json`
+- `.ai-bridge/capabilities/emit.ms2.recovery_proposal.json`
 - `.ai-bridge/capabilities/emit.plane_issue.json`
 - `.ai-bridge/capabilities/emit.learn_learning_gap.json`
 - `.ai-bridge/capabilities/emit.understand_system_map.json`
@@ -144,16 +146,50 @@ Implemented:
 - Capability metadata exists under `.ai-bridge/capabilities/`.
 - Producers are documented with capability ids in governance records.
 - Center import adapters can map producer records into Center packets.
+- Producer import packets declare packet-level capability ids.
+- Producer records can optionally declare record-level capability ids.
+- Local import routes read `.ai-bridge/capabilities/*.json` and reject packets with unknown declared capability ids.
+- Browser-local imports verify declared capability ids before mutating profile data.
+- Unknown capability ids are surfaced in `CenterProducerImportSummary.blockedUnknownCapabilityIds`.
 
 Not implemented:
 
-- Center does not yet verify import packet records against capability ids.
 - Center does not yet enforce `authorityRequired`.
 - Center does not yet enforce `truthImpact`.
 - Center does not yet enforce `policyRequirements`.
 - Center does not yet produce a runtime capability connection registry.
 
-This gap is why `.ai-bridge/projects/center/reviews/RP-20260629-003-dogfood-readiness-capability-enforcement.md` blocks live autonomous expansion.
+This means Center now has a first import-time capability boundary, but live autonomous expansion is still gated on full authority, truth-impact, policy, profile-scope, and evidence enforcement.
+
+## Runtime Entry Points
+
+Capability registry reader:
+
+```text
+apps/sim/lib/center/capability-registry.ts
+```
+
+Producer import enforcement:
+
+```text
+apps/sim/lib/center/producer-import.ts
+```
+
+Local import API routes:
+
+```text
+apps/sim/app/api/center/ms2scheduler/import/route.ts
+apps/sim/app/api/center/github/import/route.ts
+apps/sim/app/api/center/plane/import/route.ts
+apps/sim/app/api/center/learn-understand/import/route.ts
+apps/sim/app/api/center/workers/import/route.ts
+```
+
+Smoke/idempotency proof:
+
+```text
+apps/sim/lib/center/all-producer-smoke.test.ts
+```
 
 ## Extension Rules
 

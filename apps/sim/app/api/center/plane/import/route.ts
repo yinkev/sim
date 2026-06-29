@@ -3,6 +3,10 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { importCenterPlaneContract } from '@/lib/api/contracts/center'
 import { parseRequest } from '@/lib/api/server'
+import {
+  getUnknownCenterCapabilityIds,
+  readCenterCapabilityRegistry,
+} from '@/lib/center/capability-registry'
 import { buildPlaneImportPacket } from '@/lib/center/producers/plane'
 import { readCenterPlaneSnapshot } from '@/lib/center/producers/plane-files'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
@@ -23,6 +27,14 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
 
   const snapshot = await readCenterPlaneSnapshot()
   const packet = buildPlaneImportPacket(snapshot)
+  const capabilities = await readCenterCapabilityRegistry()
+  const unknownCapabilityIds = getUnknownCenterCapabilityIds(packet, capabilities)
+  if (unknownCapabilityIds.length > 0) {
+    return NextResponse.json(
+      { error: 'Unknown Center capability ids', unknownCapabilityIds },
+      { status: 422 }
+    )
+  }
   logger.info('Prepared Plane Center import packet', {
     filePath: snapshot.sourcePath,
     records: snapshot.records.length,
@@ -38,5 +50,6 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
       filePath: snapshot.sourcePath,
       recordCount: snapshot.records.length,
     },
+    capabilities,
   })
 })

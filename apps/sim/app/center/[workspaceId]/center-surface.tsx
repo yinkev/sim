@@ -390,10 +390,19 @@ export function CenterSurface() {
     setImportSummary(null)
     try {
       const response = await requestJson(importMs2SchedulerCenterContract, {})
-      const summary = await applyCenterProducerImport(storage, selectedProfile.id, response.packet)
+      const summary = await applyCenterProducerImport(
+        storage,
+        selectedProfile.id,
+        response.packet,
+        {
+          registeredCapabilityIds: response.capabilities.registeredIds,
+        }
+      )
       await reloadDataset(selectedProfile.id)
       setImportSummary(
-        `MS2 import: ${summary.evidenceAdded} evidence, ${summary.rawEventsAdded} events, ${summary.observationsAdded} observations, ${summary.loopsAdded} loops, ${summary.actionProposalsAdded} proposals.`
+        summary.blockedUnknownCapabilityIds.length > 0
+          ? `MS2 import blocked: unknown capabilities ${summary.blockedUnknownCapabilityIds.join(', ')}.`
+          : `MS2 import: ${summary.evidenceAdded} evidence, ${summary.rawEventsAdded} events, ${summary.observationsAdded} observations, ${summary.loopsAdded} loops, ${summary.actionProposalsAdded} proposals.`
       )
     } catch (err) {
       setError(getErrorMessage(err, 'MS2Scheduler import failed'))
@@ -409,10 +418,19 @@ export function CenterSurface() {
     setGithubImportSummary(null)
     try {
       const response = await requestJson(importCenterGithubContract, {})
-      const summary = await applyCenterProducerImport(storage, selectedProfile.id, response.packet)
+      const summary = await applyCenterProducerImport(
+        storage,
+        selectedProfile.id,
+        response.packet,
+        {
+          registeredCapabilityIds: response.capabilities.registeredIds,
+        }
+      )
       await reloadDataset(selectedProfile.id)
       setGithubImportSummary(
-        `GitHub import: ${summary.evidenceAdded} evidence, ${summary.rawEventsAdded} events, ${summary.observationsAdded} observations, ${summary.loopsAdded} loops from ${response.source.recordCount} records.`
+        summary.blockedUnknownCapabilityIds.length > 0
+          ? `GitHub import blocked: unknown capabilities ${summary.blockedUnknownCapabilityIds.join(', ')}.`
+          : `GitHub import: ${summary.evidenceAdded} evidence, ${summary.rawEventsAdded} events, ${summary.observationsAdded} observations, ${summary.loopsAdded} loops from ${response.source.recordCount} records.`
       )
     } catch (err) {
       setError(getErrorMessage(err, 'GitHub import failed'))
@@ -428,10 +446,19 @@ export function CenterSurface() {
     setPlaneImportSummary(null)
     try {
       const response = await requestJson(importCenterPlaneContract, {})
-      const summary = await applyCenterProducerImport(storage, selectedProfile.id, response.packet)
+      const summary = await applyCenterProducerImport(
+        storage,
+        selectedProfile.id,
+        response.packet,
+        {
+          registeredCapabilityIds: response.capabilities.registeredIds,
+        }
+      )
       await reloadDataset(selectedProfile.id)
       setPlaneImportSummary(
-        `Plane import: ${summary.evidenceAdded} evidence, ${summary.rawEventsAdded} events, ${summary.observationsAdded} observations, ${summary.loopsAdded} loops from ${response.source.recordCount} records.`
+        summary.blockedUnknownCapabilityIds.length > 0
+          ? `Plane import blocked: unknown capabilities ${summary.blockedUnknownCapabilityIds.join(', ')}.`
+          : `Plane import: ${summary.evidenceAdded} evidence, ${summary.rawEventsAdded} events, ${summary.observationsAdded} observations, ${summary.loopsAdded} loops from ${response.source.recordCount} records.`
       )
     } catch (err) {
       setError(getErrorMessage(err, 'Plane import failed'))
@@ -454,7 +481,15 @@ export function CenterSurface() {
         loopsAdded: 0,
       }
       for (const packet of response.packets) {
-        const summary = await applyCenterProducerImport(storage, selectedProfile.id, packet)
+        const summary = await applyCenterProducerImport(storage, selectedProfile.id, packet, {
+          registeredCapabilityIds: response.capabilities.registeredIds,
+        })
+        if (summary.blockedUnknownCapabilityIds.length > 0) {
+          setKnowledgeImportSummary(
+            `Learn/Understand import blocked: unknown capabilities ${summary.blockedUnknownCapabilityIds.join(', ')}.`
+          )
+          return
+        }
         total.evidenceAdded += summary.evidenceAdded
         total.rawEventsAdded += summary.rawEventsAdded
         total.observationsAdded += summary.observationsAdded
@@ -478,10 +513,19 @@ export function CenterSurface() {
     setWorkerImportSummary(null)
     try {
       const response = await requestJson(importCenterWorkerLaneContract, {})
-      const summary = await applyCenterProducerImport(storage, selectedProfile.id, response.packet)
+      const summary = await applyCenterProducerImport(
+        storage,
+        selectedProfile.id,
+        response.packet,
+        {
+          registeredCapabilityIds: response.capabilities.registeredIds,
+        }
+      )
       await reloadDataset(selectedProfile.id)
       setWorkerImportSummary(
-        `Worker import: ${summary.evidenceAdded} evidence, ${summary.rawEventsAdded} events, ${summary.observationsAdded} observations, ${summary.loopsAdded} loops, ${summary.actionProposalsAdded} proposals from ${response.source.recordCount} records.`
+        summary.blockedUnknownCapabilityIds.length > 0
+          ? `Worker import blocked: unknown capabilities ${summary.blockedUnknownCapabilityIds.join(', ')}.`
+          : `Worker import: ${summary.evidenceAdded} evidence, ${summary.rawEventsAdded} events, ${summary.observationsAdded} observations, ${summary.loopsAdded} loops, ${summary.actionProposalsAdded} proposals from ${response.source.recordCount} records.`
       )
     } catch (err) {
       setError(getErrorMessage(err, 'Worker lane import failed'))

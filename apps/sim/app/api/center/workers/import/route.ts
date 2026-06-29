@@ -3,6 +3,10 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { importCenterWorkerLaneContract } from '@/lib/api/contracts/center'
 import { parseRequest } from '@/lib/api/server'
+import {
+  getUnknownCenterCapabilityIds,
+  readCenterCapabilityRegistry,
+} from '@/lib/center/capability-registry'
 import { buildWorkerLaneImportPacket } from '@/lib/center/producers/worker-lane'
 import { readCenterWorkerLaneSnapshot } from '@/lib/center/producers/worker-lane-files'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
@@ -26,6 +30,14 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
 
   const snapshot = await readCenterWorkerLaneSnapshot()
   const packet = buildWorkerLaneImportPacket(snapshot)
+  const capabilities = await readCenterCapabilityRegistry()
+  const unknownCapabilityIds = getUnknownCenterCapabilityIds(packet, capabilities)
+  if (unknownCapabilityIds.length > 0) {
+    return NextResponse.json(
+      { error: 'Unknown Center capability ids', unknownCapabilityIds },
+      { status: 422 }
+    )
+  }
   logger.info('Prepared Worker Lane Center import packet', {
     filePath: snapshot.sourcePath,
     records: snapshot.records.length,
@@ -43,5 +55,6 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
       filePath: snapshot.sourcePath,
       recordCount: snapshot.records.length,
     },
+    capabilities,
   })
 })

@@ -2,12 +2,14 @@
 id: RP-20260629-003
 type: review-packet
 project: center
-status: draft
-round: 0
+status: converged
+round: 8
 max_rounds: 20
 created: 2026-06-29
 updated: 2026-06-29
 topic: Center dogfood readiness and runtime capability enforcement
+approval_state: approved-with-required-changes
+worker_gate: approved-for-execution
 links:
   - center-phase-0-12-integration-audit-20260629
   - center-roadmap-v1
@@ -34,9 +36,9 @@ Current rule: repository docs own stable system truth; `.ai-bridge` owns governa
 
 ## Status
 
-Draft review packet.
+Approved with required changes.
 
-No new feature phase should begin from this packet until it is reviewed and approved.
+No live integration expansion or autonomous worker execution should begin from this packet until runtime capability enforcement and import integrity accounting are tightened.
 
 ## Objective
 

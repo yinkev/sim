@@ -2,6 +2,15 @@ import { filterUndefined } from '@sim/utils/object'
 import type { CenterProducerImportPacket } from '@/lib/center/producer-import'
 
 export const WORKER_LANE_PRODUCER_ID = 'worker-lane'
+const WORKER_LANE_CAPABILITY_IDS = [
+  'emit.agent_run_started',
+  'emit.agent_run_completed',
+  'emit.agent_failure',
+  'emit.agent_diff',
+  'emit.agent_test_result',
+  'emit.agent_artifact',
+  'emit.agent_review_needed',
+] as const
 
 export type CenterWorkerLaneRecord =
   | CenterWorkerRunStartedRecord
@@ -102,6 +111,7 @@ export function buildWorkerLaneImportPacket(
   const packet: CenterProducerImportPacket = {
     producerId: WORKER_LANE_PRODUCER_ID,
     producerDisplayName: 'Worker Lane',
+    capabilityIds: [...WORKER_LANE_CAPABILITY_IDS],
     actor: {
       kind: 'agent',
       displayName: 'Worker Lane',

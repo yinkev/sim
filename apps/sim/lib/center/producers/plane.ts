@@ -2,6 +2,14 @@ import { filterUndefined } from '@sim/utils/object'
 import type { CenterProducerImportPacket } from '@/lib/center/producer-import'
 
 export const PLANE_PRODUCER_ID = 'plane'
+const PLANE_CAPABILITY_IDS = [
+  'emit.plane_project',
+  'emit.plane_cycle',
+  'emit.plane_module',
+  'emit.plane_issue',
+  'emit.plane_comment',
+  'emit.plane_status',
+] as const
 
 export type CenterPlaneRecord =
   | CenterPlaneProjectRecord
@@ -111,6 +119,7 @@ export function buildPlaneImportPacket(snapshot: CenterPlaneSnapshot): CenterPro
   const packet: CenterProducerImportPacket = {
     producerId: PLANE_PRODUCER_ID,
     producerDisplayName: 'Plane',
+    capabilityIds: [...PLANE_CAPABILITY_IDS],
     actor: {
       kind: 'integration',
       displayName: 'Plane',

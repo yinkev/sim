@@ -4,6 +4,10 @@ import { NextResponse } from 'next/server'
 import { importMs2SchedulerCenterContract } from '@/lib/api/contracts/center'
 import { parseRequest } from '@/lib/api/server'
 import {
+  getUnknownCenterCapabilityIds,
+  readCenterCapabilityRegistry,
+} from '@/lib/center/capability-registry'
+import {
   buildMs2SchedulerImportPacket,
   readMs2SchedulerSnapshot,
 } from '@/lib/center/producers/ms2scheduler'
@@ -28,6 +32,14 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
 
   const snapshot = await readMs2SchedulerSnapshot()
   const packet = buildMs2SchedulerImportPacket(snapshot)
+  const capabilities = await readCenterCapabilityRegistry()
+  const unknownCapabilityIds = getUnknownCenterCapabilityIds(packet, capabilities)
+  if (unknownCapabilityIds.length > 0) {
+    return NextResponse.json(
+      { error: 'Unknown Center capability ids', unknownCapabilityIds },
+      { status: 422 }
+    )
+  }
   logger.info('Prepared MS2Scheduler Center import packet', {
     dataDir: snapshot.dataDir,
     currentVersion: snapshot.currentVersion,
@@ -45,5 +57,6 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
       dataDir: snapshot.dataDir,
       currentVersion: snapshot.currentVersion,
     },
+    capabilities,
   })
 })

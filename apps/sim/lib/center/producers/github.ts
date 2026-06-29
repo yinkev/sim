@@ -2,6 +2,13 @@ import { filterUndefined } from '@sim/utils/object'
 import type { CenterProducerImportPacket } from '@/lib/center/producer-import'
 
 export const GITHUB_PRODUCER_ID = 'github'
+const GITHUB_CAPABILITY_IDS = [
+  'emit.github_commit',
+  'emit.github_issue',
+  'emit.github_pull_request',
+  'emit.github_pr_review',
+  'emit.github_ci_run',
+] as const
 
 export type CenterGithubRecord =
   | CenterGithubCommitRecord
@@ -89,6 +96,7 @@ export function buildGithubImportPacket(
   const packet: CenterProducerImportPacket = {
     producerId: GITHUB_PRODUCER_ID,
     producerDisplayName: 'GitHub',
+    capabilityIds: [...GITHUB_CAPABILITY_IDS],
     actor: {
       kind: 'integration',
       displayName: 'GitHub',

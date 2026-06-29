@@ -154,7 +154,7 @@ Smallest relevant checks for Center documentation and runtime boundaries:
 ```text
 bun run check:center-boundary
 bun run check:api-validation
-bun --cwd apps/sim test lib/center/local-spine.test.ts lib/center/producer-import.test.ts lib/center/baseline-prediction.test.ts lib/center/review-packets.test.ts
+bun --cwd apps/sim test lib/center/local-spine.test.ts lib/center/producer-import.test.ts lib/center/baseline-prediction.test.ts lib/center/review-packets.test.ts lib/center/all-producer-smoke.test.ts
 ```
 
 Add producer-specific tests when changing a producer:
@@ -178,11 +178,10 @@ Do not treat Center as live-dogfood ready until these review packets are resolve
 
 Current blockers:
 
-- Capability metadata is not enforced at runtime.
 - Profile export/delete exists in the local spine but is not exposed in UI.
 - Live external producers are not connected.
 - Baseline prediction is not outcome-scored.
-- Morning dogfood flow needs an evidence-backed runbook and smoke evidence before autonomous worker execution.
+- Full authority/truth-impact/policy capability enforcement is not implemented beyond registered-id import gating.
 
 First-use runbook:
 
@@ -211,6 +210,7 @@ Minimum expected evidence:
 - Browser-local profile persists after refresh.
 - `bun run check:center-boundary` passes.
 - Import summary reports added/skipped counts.
+- `apps/sim/lib/center/all-producer-smoke.test.ts` proves current producer imports have zero unresolved refs and are idempotent.
 - No unexpected telemetry, workflow editor, block registry, Monaco, or Mermaid imports appear in Center route analysis.
 
 ## Troubleshooting

@@ -1,0 +1,31 @@
+{
+  "id": "emit.ms2.study_activity",
+  "version": "1.0.0",
+  "producerId": "ms2scheduler",
+  "kind": "emit",
+  "inputs": [
+    {
+      "id": "ms2scheduler-data-dir",
+      "version": "1.0.0",
+      "uri": "/Users/kyin/Projects/MS2Scheduler/app/data"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "center-producer-import-packet",
+      "version": "1.0.0",
+      "uri": "apps/sim/lib/center/producer-import.ts"
+    }
+  ],
+  "authorityRequired": "A1",
+  "truthImpact": "T2",
+  "policyRequirements": ["profile-scope", "explicit-local-import", "evidence-required"],
+  "evidenceProduced": ["MS2Scheduler plan, activity, completion, or calibration receipt"],
+  "failureModes": [
+    "local data dir missing",
+    "activity rows omit task/date refs",
+    "plan version stale"
+  ],
+  "requires": [],
+  "lifecycle": "available"
+}

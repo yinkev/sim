@@ -32,6 +32,7 @@ const producerActorSchema = z.object({
 
 const producerEvidenceSchema = z.object({
   sourceRef: z.string(),
+  capabilityId: z.string().optional(),
   subjectType: z.string(),
   subjectId: z.string(),
   kind: z.enum([
@@ -52,6 +53,7 @@ const producerEvidenceSchema = z.object({
 
 const producerRawEventSchema = z.object({
   sourceRef: z.string(),
+  capabilityId: z.string().optional(),
   occurredAt: z.string(),
   eventType: z.string(),
   subjectType: z.string(),
@@ -62,6 +64,7 @@ const producerRawEventSchema = z.object({
 
 const producerObservationSchema = z.object({
   sourceRef: z.string(),
+  capabilityId: z.string().optional(),
   observedAt: z.string().optional(),
   observationType: z.string(),
   subjectType: z.string(),
@@ -73,6 +76,7 @@ const producerObservationSchema = z.object({
 
 const producerLoopSchema = z.object({
   sourceRef: z.string(),
+  capabilityId: z.string().optional(),
   title: z.string(),
   domain: z.string(),
   status: z.enum(['active', 'paused', 'blocked', 'done', 'archived']).optional(),
@@ -83,6 +87,7 @@ const producerLoopSchema = z.object({
 
 const producerRecommendationSchema = z.object({
   sourceRef: z.string(),
+  capabilityId: z.string().optional(),
   targetType: z.string(),
   targetId: z.string(),
   title: z.string(),
@@ -93,6 +98,7 @@ const producerRecommendationSchema = z.object({
 
 const producerActionProposalSchema = z.object({
   sourceRef: z.string(),
+  capabilityId: z.string().optional(),
   recommendationRef: z.string().optional(),
   actionType: z.string(),
   targetType: z.string(),
@@ -137,6 +143,7 @@ const reviewPacketRecordSchema = z.object({
 export const centerProducerImportPacketSchema = z.object({
   producerId: z.string(),
   producerDisplayName: z.string(),
+  capabilityIds: z.array(z.string()),
   actor: producerActorSchema,
   evidence: z.array(producerEvidenceSchema),
   rawEvents: z.array(producerRawEventSchema),
@@ -147,6 +154,10 @@ export const centerProducerImportPacketSchema = z.object({
 })
 
 export type CenterProducerImportPacketResponse = z.output<typeof centerProducerImportPacketSchema>
+
+const centerCapabilityRegistrySchema = z.object({
+  registeredIds: z.array(z.string()),
+})
 
 export const importMs2SchedulerCenterContract = defineRouteContract({
   method: 'GET',
@@ -159,6 +170,7 @@ export const importMs2SchedulerCenterContract = defineRouteContract({
         dataDir: z.string(),
         currentVersion: z.string().nullable(),
       }),
+      capabilities: centerCapabilityRegistrySchema,
     }),
   },
 })
@@ -178,6 +190,7 @@ export const importCenterGithubContract = defineRouteContract({
         filePath: z.string(),
         recordCount: z.number().int().min(0),
       }),
+      capabilities: centerCapabilityRegistrySchema,
     }),
   },
 })
@@ -195,6 +208,7 @@ export const importCenterPlaneContract = defineRouteContract({
         filePath: z.string(),
         recordCount: z.number().int().min(0),
       }),
+      capabilities: centerCapabilityRegistrySchema,
     }),
   },
 })
@@ -212,6 +226,7 @@ export const importCenterLearnUnderstandContract = defineRouteContract({
         filePath: z.string(),
         recordCount: z.number().int().min(0),
       }),
+      capabilities: centerCapabilityRegistrySchema,
     }),
   },
 })
@@ -231,6 +246,7 @@ export const importCenterWorkerLaneContract = defineRouteContract({
         filePath: z.string(),
         recordCount: z.number().int().min(0),
       }),
+      capabilities: centerCapabilityRegistrySchema,
     }),
   },
 })

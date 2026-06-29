@@ -1,10 +1,18 @@
-# Current Plan - Documentation Governor Complete
+# Current Plan - Center Production Readiness
 
-Status: complete.
+Status: active.
 
 ## Objective
 
-Make the repository the primary source of truth for Center system understanding, with `.ai-bridge` limited to governance, decisions, audits, reviews, current plans, and cross-project coordination.
+Close remaining Center production-readiness gaps without adding new product scope.
+
+## Active Slice
+
+Runtime producer hardening from:
+
+```text
+.ai-bridge/projects/center/reviews/RP-20260629-004-pre-dogfood-overnight-hardening.md
+```
 
 ## Canonical System Docs
 
@@ -35,7 +43,7 @@ Read for decisions, reviews, audits, and gates:
 .ai-bridge/projects/center/reviews/RP-20260629-004-pre-dogfood-overnight-hardening.md
 ```
 
-## Completed Changes
+## Completed Earlier
 
 - Added canonical Center docs under `apps/sim/docs/center/`.
 - Added repository documentation guide and repository map under `docs/`.
@@ -46,17 +54,24 @@ Read for decisions, reviews, audits, and gates:
 - Recorded the documentation-placement decision in `.ai-bridge/projects/center/decisions.md`.
 - Recorded the documentation-governor audit in `.ai-bridge/projects/center/audits/repository-documentation-governor-20260629.md`.
 
+## Completed In Current Slice
+
+- Added a first runtime capability boundary for producer imports.
+- Producer import packets now declare capability ids.
+- Center import API routes read `.ai-bridge/capabilities/*.json` and reject unknown declared capability ids.
+- Browser-local import applies the returned registry before mutating profile data.
+- Import summaries now report blocked capability ids and unresolved evidence/source-event/recommendation refs.
+- Review packet parsing now prefers explicit `approval_state` and `worker_gate` frontmatter over prose inference.
+- Added all-producer smoke coverage that imports MS2, GitHub, Plane, Learn/Understand, Workers, review packets, and baseline prediction twice.
+
 ## Verification
 
-Passed:
+Passed for current slice:
 
 ```text
-Markdown relative links OK (52 files)
-Explicit canonical paths OK
-git diff --check
 bun run check:center-boundary
 bun run check:api-validation
-bun --cwd apps/sim test lib/center/local-spine.test.ts lib/center/producer-import.test.ts lib/center/baseline-prediction.test.ts lib/center/review-packets.test.ts lib/center/producers/ms2scheduler.test.ts lib/center/producers/github.test.ts lib/center/producers/plane.test.ts lib/center/producers/learn-understand.test.ts lib/center/producers/worker-lane.test.ts
+bun --cwd apps/sim test lib/center/producer-import.test.ts lib/center/review-packets.test.ts lib/center/all-producer-smoke.test.ts lib/center/producers/ms2scheduler.test.ts lib/center/producers/github.test.ts lib/center/producers/plane.test.ts lib/center/producers/learn-understand.test.ts lib/center/producers/worker-lane.test.ts
 ```
 
 ## Remaining Gates
@@ -65,11 +80,11 @@ Center is documented as the implemented local system, not as production-complete
 
 Required implementation gaps remain:
 
-- Runtime capability enforcement.
 - Production storage/sync decision and implementation.
 - Live producer connectors.
 - Prediction outcome scoring.
 - Profile export/delete UI.
+- Full authority/truth-impact/policy capability enforcement beyond unknown-id import gating.
 
 These are documented in:
 

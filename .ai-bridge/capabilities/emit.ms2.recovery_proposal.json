@@ -1,0 +1,36 @@
+{
+  "id": "emit.ms2.recovery_proposal",
+  "version": "1.0.0",
+  "producerId": "ms2scheduler",
+  "kind": "emit",
+  "inputs": [
+    {
+      "id": "ms2scheduler-recovery-candidate",
+      "version": "1.0.0",
+      "uri": "/Users/kyin/Projects/MS2Scheduler/app/data/plans"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "center-producer-import-packet",
+      "version": "1.0.0",
+      "uri": "apps/sim/lib/center/producer-import.ts"
+    }
+  ],
+  "authorityRequired": "A2",
+  "truthImpact": "T2",
+  "policyRequirements": [
+    "profile-scope",
+    "explicit-local-import",
+    "review-before-execution",
+    "evidence-required"
+  ],
+  "evidenceProduced": ["MS2Scheduler recovery candidate plan receipt"],
+  "failureModes": [
+    "candidate plan stale",
+    "candidate evidence missing",
+    "proposal applied without review"
+  ],
+  "requires": ["emit.ms2.study_activity"],
+  "lifecycle": "available"
+}

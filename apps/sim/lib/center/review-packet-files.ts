@@ -14,6 +14,8 @@ const FRONTMATTER_KEYS = new Set([
   'created',
   'updated',
   'topic',
+  'approval_state',
+  'worker_gate',
 ])
 
 interface ParsedFrontmatter {
@@ -26,6 +28,8 @@ interface ParsedFrontmatter {
   created?: string
   updated?: string
   topic?: string
+  approval_state?: string
+  worker_gate?: string
 }
 
 export async function readCenterReviewPacketRecords(
@@ -49,8 +53,9 @@ export async function parseCenterReviewPacketFile(
   if (frontmatter.type !== 'review-packet' || !frontmatter.id) return null
 
   const verdict = extractVerdict(text)
-  const approvalState = getApprovalState(frontmatter.status, verdict)
-  const workerGate = getWorkerGate(approvalState)
+  const inferredApprovalState = getApprovalState(frontmatter.status, verdict)
+  const approvalState = normalizeApprovalState(frontmatter.approval_state) ?? inferredApprovalState
+  const workerGate = normalizeWorkerGate(frontmatter.worker_gate) ?? getWorkerGate(approvalState)
   const title = extractTitle(text) ?? frontmatter.topic ?? frontmatter.id
 
   return {
@@ -69,6 +74,9 @@ export async function parseCenterReviewPacketFile(
     uri: filePath,
     payload: {
       status: frontmatter.status,
+      approvalState: frontmatter.approval_state,
+      workerGate: frontmatter.worker_gate,
+      inferredApprovalState,
       verdict,
     },
   }
@@ -129,6 +137,30 @@ function getWorkerGate(
   }
   if (approvalState === 'rejected' || approvalState === 'deadlocked') return 'blocked'
   return 'review-required'
+}
+
+function normalizeApprovalState(
+  approvalState: string | undefined
+): CenterReviewPacket['approvalState'] | null {
+  if (approvalState === 'draft') return 'draft'
+  if (approvalState === 'in-review') return 'in-review'
+  if (approvalState === 'approved') return 'approved'
+  if (approvalState === 'approved-with-required-changes') {
+    return 'approved-with-required-changes'
+  }
+  if (approvalState === 'rejected') return 'rejected'
+  if (approvalState === 'deadlocked') return 'deadlocked'
+  if (approvalState === 'superseded') return 'superseded'
+  return null
+}
+
+function normalizeWorkerGate(
+  workerGate: string | undefined
+): CenterReviewPacket['workerGate'] | null {
+  if (workerGate === 'blocked') return 'blocked'
+  if (workerGate === 'review-required') return 'review-required'
+  if (workerGate === 'approved-for-execution') return 'approved-for-execution'
+  return null
 }
 
 function extractVerdict(text: string): string | null {

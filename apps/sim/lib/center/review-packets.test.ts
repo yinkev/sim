@@ -26,6 +26,8 @@ max_rounds: 20
 created: 2026-01-01T00:00:00Z
 updated: 2026-01-02T00:00:00Z
 topic: Architecture review
+approval_state: approved-with-required-changes
+worker_gate: approved-for-execution
 ---
 
 # Review Packet - Architecture Review
@@ -48,6 +50,49 @@ APPROVE WITH REQUIRED CHANGES.
       round: 2,
       maxRounds: 20,
       uri: filePath,
+      payload: {
+        approvalState: 'approved-with-required-changes',
+        workerGate: 'approved-for-execution',
+      },
+    })
+  })
+
+  it('lets explicit gate frontmatter override stale verdict prose', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'center-review-'))
+    const filePath = path.join(dir, 'RP-2.md')
+    await writeFile(
+      filePath,
+      `---
+id: RP-2
+type: review-packet
+project: center
+status: converged
+round: 8
+max_rounds: 20
+topic: Worker gate review
+approval_state: rejected
+worker_gate: blocked
+---
+
+# Review Packet - Worker Gate Review
+
+## Verdict
+
+APPROVE.
+`
+    )
+
+    const record = await parseCenterReviewPacketFile(filePath)
+
+    expect(record).toMatchObject({
+      packetId: 'RP-2',
+      approvalState: 'rejected',
+      workerGate: 'blocked',
+      payload: {
+        approvalState: 'rejected',
+        workerGate: 'blocked',
+        inferredApprovalState: 'approved',
+      },
     })
   })
 

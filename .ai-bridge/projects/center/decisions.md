@@ -112,3 +112,20 @@ New Center architecture, ontology, producer, capability, operation, and dogfood 
 
 Revisit if:
 Center is extracted from `apps/sim` into another package or app; move the canonical docs with the owning project.
+
+## 2026-06-29 — Producer imports fail closed on unknown capability ids
+
+Decision:
+Center producer import packets must declare capability ids. Local import routes read the registered capability ids from `.ai-bridge/capabilities/*.json`, reject packets with unknown declared ids, and return the registry to the browser-local importer. The local importer also checks packet-level and record-level capability ids before mutating profile data.
+
+Reason:
+Producer discovery is not execution authority. The first runtime boundary must prevent unregistered producer abilities from silently entering Center profile state.
+
+Rejected:
+Do not build the full authority/truth-impact/policy enforcement engine in this slice. The current boundary only proves that producer import capability ids are registered and visible.
+
+Consequence:
+Current producers must keep their declared capability ids synchronized with `.ai-bridge/capabilities/*.json`. Unknown ids block the import and appear in `CenterProducerImportSummary.blockedUnknownCapabilityIds`. Unresolved producer references are reported in the same summary instead of being silently dropped.
+
+Revisit if:
+Capabilities move from `.ai-bridge` files into a durable local-server registry, or when A2/A3/A4 action execution is connected.

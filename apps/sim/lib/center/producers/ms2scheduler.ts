@@ -4,6 +4,10 @@ import type { CenterProducerImportPacket } from '@/lib/center/producer-import'
 
 export const MS2SCHEDULER_PRODUCER_ID = 'ms2scheduler'
 export const DEFAULT_MS2SCHEDULER_DATA_DIR = '/Users/kyin/Projects/MS2Scheduler/app/data'
+const MS2SCHEDULER_CAPABILITY_IDS = [
+  'emit.ms2.study_activity',
+  'emit.ms2.recovery_proposal',
+] as const
 
 interface Ms2Task {
   id: string
@@ -107,6 +111,7 @@ export function buildMs2SchedulerImportPacket(
   const packet: CenterProducerImportPacket = {
     producerId: MS2SCHEDULER_PRODUCER_ID,
     producerDisplayName: 'MS2Scheduler',
+    capabilityIds: [...MS2SCHEDULER_CAPABILITY_IDS],
     actor: {
       kind: 'scheduler',
       displayName: 'MS2Scheduler',

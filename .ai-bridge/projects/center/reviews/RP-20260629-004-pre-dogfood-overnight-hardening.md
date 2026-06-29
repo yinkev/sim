@@ -2,12 +2,14 @@
 id: RP-20260629-004
 type: review-packet
 project: center
-status: draft
-round: 0
+status: converged
+round: 8
 max_rounds: 20
 created: 2026-06-29
 updated: 2026-06-29
 topic: Pre-dogfood overnight hardening
+approval_state: approved-with-required-changes
+worker_gate: approved-for-execution
 links:
   - RP-20260629-003
   - center-phase-0-12-integration-audit-20260629
@@ -33,6 +35,36 @@ Reason: dogfood operating guidance is stable project documentation, not governan
 Prepare Center for Kevin's first morning dogfood session without adding new product scope.
 
 This packet exists because it is currently too late for Kevin to dogfood manually, but the worker can still harden the system before use.
+
+## Implementation Evidence
+
+Current implementation evidence:
+
+```text
+apps/sim/lib/center/all-producer-smoke.test.ts
+apps/sim/lib/center/producer-import.test.ts
+apps/sim/lib/center/review-packets.test.ts
+apps/sim/lib/center/capability-registry.ts
+apps/sim/lib/center/producer-import.ts
+```
+
+Verified checks:
+
+```text
+bun --cwd apps/sim test lib/center/producer-import.test.ts lib/center/review-packets.test.ts lib/center/all-producer-smoke.test.ts lib/center/producers/ms2scheduler.test.ts lib/center/producers/github.test.ts lib/center/producers/plane.test.ts lib/center/producers/learn-understand.test.ts lib/center/producers/worker-lane.test.ts
+bun run check:center-boundary
+bun run check:api-validation
+```
+
+Result:
+
+```text
+All current producer imports declare registered capability ids.
+All-producer smoke import returns zero unresolved refs.
+Repeated all-producer import is idempotent.
+Unknown capability ids block import before profile mutation.
+Review packet frontmatter is the explicit worker gate source of truth.
+```
 
 ## Rule
 

@@ -3,6 +3,16 @@ import type { CenterProducerImportPacket } from '@/lib/center/producer-import'
 
 export const LEARN_PRODUCER_ID = 'learn'
 export const UNDERSTAND_PRODUCER_ID = 'understand'
+const LEARN_CAPABILITY_IDS = [
+  'emit.learn_learning_gap',
+  'emit.learn_practice_task',
+  'emit.learn_review_evidence',
+] as const
+const UNDERSTAND_CAPABILITY_IDS = [
+  'emit.understand_system_map',
+  'emit.understand_dependency_observation',
+  'emit.understand_risk_evidence',
+] as const
 
 export type CenterLearnUnderstandRecord =
   | CenterLearningGapRecord
@@ -134,6 +144,8 @@ function createPacket(producerId: string, displayName: string): CenterProducerIm
   return {
     producerId,
     producerDisplayName: displayName,
+    capabilityIds:
+      producerId === LEARN_PRODUCER_ID ? [...LEARN_CAPABILITY_IDS] : [...UNDERSTAND_CAPABILITY_IDS],
     actor: {
       kind: 'system',
       displayName,
