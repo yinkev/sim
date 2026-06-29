@@ -84,4 +84,5 @@ launcher executable: yes
 launcher smoke: exit 0
 Center route: HTTP/1.1 200 OK
 Center import boundary OK
+fresh Center route request audit: 0 /api/telemetry or telemetry.simstudio.ai requests
 ```

@@ -258,6 +258,7 @@ Evidence:
 - `bunx biome check scripts/package-center-app.ts package.json` passed.
 - `bun run check:center-boundary` passed.
 - `git diff --check` passed.
+- Fresh Center route request audit saw 0 `/api/telemetry` or `telemetry.simstudio.ai` requests.
 
 ## Objective
 
