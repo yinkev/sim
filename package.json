@@ -11,8 +11,8 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "dev:lite": "bun --cwd apps/sim run dev:capped",
-    "dev:center": "bun --cwd apps/sim run dev:center",
+    "dev:lite": "cd apps/sim && bun run dev:capped",
+    "dev:center": "cd apps/sim && bun run dev:center",
     "dev:sockets": "cd apps/realtime && bun run dev",
     "dev:full": "bunx concurrently -n \"App,Realtime\" -c \"cyan,magenta\" \"cd apps/sim && bun run dev\" \"cd apps/realtime && PORT=6887 bun --env-file=../sim/.env run dev\"",
     "dev:full:capped": "bunx concurrently -n \"App,Realtime\" -c \"cyan,magenta\" \"cd apps/sim && bun run dev:capped\" \"cd apps/realtime && PORT=6887 bun --env-file=../sim/.env run dev\"",

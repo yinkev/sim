@@ -37,6 +37,21 @@ apps/sim/app/workspace/layout.tsx
 
 `apps/sim/blocks/registry.ts` imports hundreds of block modules at top level. This is the module graph Center must avoid.
 
+Phase 0 patch applied:
+
+- `apps/sim/app/workspace/providers/socket-provider.tsx` lazy-loads `@/stores/workflows/registry/store` instead of importing it at module top level.
+- `apps/sim/app/workspace/[workspaceId]/providers/workspace-scope-sync.tsx` lazy-loads `@/stores/workflows/registry/store` inside the sync effect.
+- `apps/sim/next.config.ts` sets `turbopack.root` to the repo root so Next does not infer `/Users/kyin` because of home-level lockfiles.
+
+Remaining known direct path:
+
+```text
+apps/sim/app/workspace/[workspaceId]/providers/workspace-permissions-provider.tsx
+  -> @/stores/operation-queue/store
+```
+
+That store uses guarded runtime `require(...)` calls for workflow stores, not a top-level block registry import.
+
 ## Boundary for Center route
 
 Route:
@@ -71,8 +86,8 @@ Forbidden top-level imports in this route and its default providers:
 
 ## Required code-level work before Center UI
 
-1. Decide whether Center can bypass `SocketProvider` or whether `SocketProvider` can lazy-load workflow registry sync.
-2. Decide whether `WorkspacePermissionsProvider` needs workflow registry access for every route.
+1. Decide whether Center can bypass `SocketProvider` entirely or keep the lazy-load behavior.
+2. Decide whether `WorkspacePermissionsProvider` needs operation queue state for every route.
 3. Break blocks/triggers module-eval cycle before store-level `getBlock` decoupling.
 4. Add an import-boundary check once the Center route exists.
 

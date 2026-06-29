@@ -3,15 +3,12 @@
 import { useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { usePostHog } from 'posthog-js/react'
-import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 
 /**
  * Keeps workflow registry workspace scope synchronized with the current route.
  */
 export function WorkspaceScopeSync() {
   const { workspaceId } = useParams<{ workspaceId: string }>()
-  const hydrationWorkspaceId = useWorkflowRegistry((state) => state.hydration.workspaceId)
-  const switchToWorkspace = useWorkflowRegistry((state) => state.switchToWorkspace)
   const posthog = usePostHog()
 
   useEffect(() => {
@@ -20,12 +17,26 @@ export function WorkspaceScopeSync() {
   }, [posthog, workspaceId])
 
   useEffect(() => {
-    if (!workspaceId || hydrationWorkspaceId === workspaceId) {
-      return
+    let cancelled = false
+
+    async function syncWorkspaceScope() {
+      if (!workspaceId) return
+
+      const { useWorkflowRegistry } = await import('@/stores/workflows/registry/store')
+
+      if (cancelled || useWorkflowRegistry.getState().hydration.workspaceId === workspaceId) {
+        return
+      }
+
+      useWorkflowRegistry.getState().switchToWorkspace(workspaceId)
     }
 
-    switchToWorkspace(workspaceId)
-  }, [hydrationWorkspaceId, switchToWorkspace, workspaceId])
+    void syncWorkspaceScope()
+
+    return () => {
+      cancelled = true
+    }
+  }, [workspaceId])
 
   return null
 }

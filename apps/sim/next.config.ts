@@ -1,3 +1,4 @@
+import path from 'node:path'
 import type { NextConfig } from 'next'
 import { env, isTruthy } from './lib/core/config/env'
 import { isDev } from './lib/core/config/env-flags'
@@ -7,7 +8,12 @@ import {
   getWorkflowExecutionCSPPolicy,
 } from './lib/core/security/csp'
 
+const repoRoot = path.resolve(process.cwd(), '../..')
+
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: repoRoot,
+  },
   devIndicators: false,
   poweredByHeader: false,
   images: {

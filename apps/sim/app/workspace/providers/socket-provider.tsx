@@ -30,7 +30,6 @@ import type {
   VariableUpdateEmit,
   WorkflowOperationEmit,
 } from '@/stores/operation-queue/types'
-import { useWorkflowRegistry as useWorkflowRegistryStore } from '@/stores/workflows/registry/store'
 
 const logger = createLogger('SocketContext')
 
@@ -157,6 +156,7 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
   const [authFailed, setAuthFailed] = useState(false)
   const [blockedJoinWorkflowId, setBlockedJoinWorkflowId] = useState<string | null>(null)
   const [explicitWorkflowId, setExplicitWorkflowId] = useState<string | null>(null)
+  const [workflowHydrationPhase, setWorkflowHydrationPhase] = useState<string | null>(null)
   const initializedRef = useRef(false)
   const socketRef = useRef<Socket | null>(null)
   const currentWorkflowIdRef = useRef<string | null>(null)
@@ -796,10 +796,33 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
     }
   }, [user?.id, authFailed])
 
-  const hydrationPhase = useWorkflowRegistryStore((s) => s.hydration.phase)
+  useEffect(() => {
+    let unsubscribed = false
+    let unsubscribe: (() => void) | undefined
+
+    async function subscribeToWorkflowHydration() {
+      const { useWorkflowRegistry } = await import('@/stores/workflows/registry/store')
+
+      if (unsubscribed) return
+
+      setWorkflowHydrationPhase(useWorkflowRegistry.getState().hydration.phase)
+      unsubscribe = useWorkflowRegistry.subscribe((state, previousState) => {
+        if (state.hydration.phase !== previousState.hydration.phase) {
+          setWorkflowHydrationPhase(state.hydration.phase)
+        }
+      })
+    }
+
+    void subscribeToWorkflowHydration()
+
+    return () => {
+      unsubscribed = true
+      unsubscribe?.()
+    }
+  }, [])
 
   useEffect(() => {
-    if (hydrationPhase === 'creating') {
+    if (workflowHydrationPhase === null || workflowHydrationPhase === 'creating') {
       return
     }
 
@@ -810,7 +833,7 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
   }, [
     explicitWorkflowId,
     getRequestedWorkflowId,
-    hydrationPhase,
+    workflowHydrationPhase,
     urlWorkflowId,
     executeJoinCommands,
   ])

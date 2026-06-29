@@ -35,7 +35,7 @@ workspace shell/layout
   -> hundreds of block modules
 ```
 
-Additional current hot path found during Phase 0 inspection:
+Additional hot path found during Phase 0 inspection and reduced in this phase:
 
 ```text
 apps/sim/app/workspace/layout.tsx
@@ -45,6 +45,13 @@ apps/sim/app/workspace/layout.tsx
   -> @/blocks
   -> @/blocks/registry
 ```
+
+Patch applied:
+
+- `SocketProvider` now lazy-loads `@/stores/workflows/registry/store` for hydration phase subscription.
+- `WorkspaceScopeSync` now lazy-loads `@/stores/workflows/registry/store` inside its effect.
+- Existing workflow behavior is preserved by still syncing workspace scope and hydration state after mount.
+- `apps/sim/next.config.ts` sets `turbopack.root` to the repo root so Next does not infer `/Users/kyin` because of home-level lockfiles.
 
 ## Center import boundary
 
@@ -74,7 +81,7 @@ Do not attempt the registry decoupling as a quick fix. `DEV_COMPILE_PERF.md` doc
 
 Next code-level fix should be a deliberate import-boundary refactor:
 
-1. Move socket/workflow registry wiring out of the root workspace layout hot path where possible.
-2. Keep workflow editor route imports under `/workspace/[workspaceId]/w/**`.
-3. Make Center route use Center-owned providers instead of workspace-global workflow providers.
-4. Break blocks/triggers module-eval cycle before changing `getBlock` access in stores.
+1. Keep workflow editor route imports under `/workspace/[workspaceId]/w/**`.
+2. Make Center route use Center-owned providers instead of workspace-global workflow providers.
+3. Break blocks/triggers module-eval cycle before changing `getBlock` access in stores.
+4. Add a Center import-boundary check when the Center route exists.
