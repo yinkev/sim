@@ -146,6 +146,13 @@ bun run dev:full  # Starts Next.js app and realtime socket server
 
 Or run separately: `bun run dev` (Next.js) and `cd apps/sim && bun run dev:sockets` (realtime).
 
+## Repository Documentation
+
+- [Repository map](docs/REPOSITORY_MAP.md)
+- [Repository documentation guide](docs/DOCUMENTATION_GUIDE.md)
+- [Sim app local docs](apps/sim/docs/)
+- [Center docs](apps/sim/docs/center/README.md)
+
 ## Chat API Keys
 
 Chat is a Sim-managed service. To use Chat on a self-hosted instance:

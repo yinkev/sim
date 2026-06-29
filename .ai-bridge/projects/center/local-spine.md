@@ -1,62 +1,35 @@
 ---
 id: center-local-spine-v1
-type: implementation-note
+type: governance-pointer
 project: center
-status: implemented-initial
-updated: 2026-06-28
+status: redirected
+updated: 2026-06-29
 links:
-  - center-governing-spec-v1
-  - center-ontology-freeze-v1
-  - center-ontology-schema-v1
+  - center-documentation-governor-20260629
+  - center-ontology-local-spine
+  - center-architecture
 ---
 
 # Center Local Spine v1
 
-## Implemented files
+## Canonical Location
+
+The canonical local spine documentation now lives at:
+
+```text
+apps/sim/docs/center/ontology-and-local-spine.md
+```
+
+Exact implementation lives at:
 
 ```text
 apps/sim/lib/center/types.ts
 apps/sim/lib/center/local-spine.ts
-apps/sim/lib/center/index.ts
 apps/sim/lib/center/local-spine.test.ts
 ```
 
-## Scope
+## Why This File Remains
 
-This is the first local substrate, not UI.
+This file remains as a governance pointer because older roadmap and review records reference `.ai-bridge/projects/center/local-spine.md`.
 
-Implemented:
-
-- profile creation
-- actor creation
-- raw event append
-- observation derivation from source events
-- evidence attachment
-- loop creation
-- decision recording
-- profile export
-- profile delete
-- memory storage adapter for tests
-- browser-local storage adapter for first local use
-
-Not implemented yet:
-
-- Center route
-- server-backed storage
-- producer registry execution
-- prediction scoring
-- review packet UI
-
-## Safety properties
-
-- Every profile-scoped write verifies the profile exists.
-- Actor, evidence, and raw-event references must belong to the same profile.
-- Profile export returns only the selected profile's records.
-- Profile delete removes all profile-scoped records and preserves other profiles.
-
-## Validation
-
-```text
-bun --cwd apps/sim test lib/center/local-spine.test.ts
-bun --cwd apps/sim type-check
-```
+Do not add new local spine implementation truth here. Keep implementation documentation under `apps/sim/docs/center/` and use `.ai-bridge` for decisions, audits, and review history.

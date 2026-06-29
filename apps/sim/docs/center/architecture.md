@@ -1,0 +1,206 @@
+# Center Architecture
+
+## Purpose
+
+This document explains what Center is, where it runs, which modules own it, and which dependency boundaries protect it.
+
+Repository path: `apps/sim/docs/center/architecture.md`  
+Owning project: Center  
+Owner: Sim maintainers  
+Current status: Initial local implementation complete through Phase 12; dogfood hardening remains gated by `.ai-bridge/projects/center/reviews/RP-20260629-004-pre-dogfood-overnight-hardening.md`.
+
+## Product Boundary
+
+Center is the operating surface for personal execution inside Sim. It turns events, observations, evidence, loops, predictions, recommendations, action proposals, decisions, outcomes, and review packets into one local working surface.
+
+Center is not:
+
+- The workflow editor.
+- A block graph.
+- A generic task manager.
+- A chatbot.
+- MS2Scheduler.
+- A telemetry surface.
+
+## Runtime Shape
+
+Public route:
+
+```text
+/workspace/[workspaceId]/center
+```
+
+Standalone app route:
+
+```text
+apps/sim/app/center/[workspaceId]/
+```
+
+The workspace URL is rewritten by `apps/sim/proxy.ts` to the standalone route before the normal workspace layout loads. This is the CPU/RAM stabilization boundary: Center can be opened without pulling the workflow editor hot path.
+
+Primary UI file:
+
+```text
+apps/sim/app/center/[workspaceId]/center-surface.tsx
+```
+
+Current UI panels:
+
+- Today.
+- Next Actions.
+- Active Loops.
+- Blocked Loops.
+- Engineering.
+- Project State.
+- Knowledge State.
+- Agent Work.
+- Recent Observations.
+- Evidence.
+- Prediction Summary.
+- Review Needed.
+- Review Packets.
+- Manual Capture.
+
+## Core Modules
+
+Center runtime modules:
+
+- `apps/sim/lib/center/types.ts` defines the runtime data model.
+- `apps/sim/lib/center/local-spine.ts` owns local writes, profile isolation, export, and delete.
+- `apps/sim/lib/center/producer-import.ts` applies typed producer packets into a profile.
+- `apps/sim/lib/center/baseline-prediction.ts` derives baseline prediction features and a prediction summary.
+- `apps/sim/lib/center/review-packets.ts` imports review packet records.
+- `apps/sim/lib/center/producers/` maps producer-specific records into Center import packets.
+- `apps/sim/lib/api/contracts/center.ts` defines Center import route contracts.
+
+Support scripts:
+
+- `scripts/check-center-import-boundary.ts` enforces the Center import boundary.
+- `scripts/package-center-app.ts` generates the local `Center.app` launcher.
+
+## Data Flow
+
+Manual capture:
+
+```text
+Center UI
+  -> CenterLocalSpine
+  -> browser-local storage key sim.center.local-spine.v1
+  -> Center panels
+```
+
+Producer import:
+
+```text
+local source file or MS2 data dir
+  -> local development API route under apps/sim/app/api/center/
+  -> typed CenterProducerImportPacket
+  -> applyCenterProducerImport
+  -> browser-local profile dataset
+  -> Center panels
+```
+
+Review packet import:
+
+```text
+.ai-bridge/projects/center/reviews/*.md
+  -> apps/sim/lib/center/review-packet-files.ts
+  -> CenterReviewPacketImportRecord[]
+  -> applyCenterReviewPacketImport
+  -> Center Review Packets panel
+```
+
+Baseline prediction:
+
+```text
+profile dataset
+  -> deriveCenterBaselinePrediction
+  -> feature projections
+  -> prediction summary
+  -> Center Prediction Summary panel
+```
+
+## Dependency Boundary
+
+Center route defaults may import:
+
+- React and small UI primitives.
+- `@sim/utils`.
+- `@/lib/api/client/request`.
+- `@/lib/api/contracts/center`.
+- `@/lib/center`.
+- Local component styling utilities.
+
+Center route defaults must not top-level import:
+
+- Workflow editor stores.
+- Block registry.
+- Connector registry.
+- Monaco.
+- Mermaid.
+- Document parsers.
+- Execution sandbox.
+- Provider SDK registries.
+
+Verification:
+
+```text
+bun run check:center-boundary
+```
+
+## Local-First Boundary
+
+Current profile data is stored in browser-local storage through `createBrowserCenterStorage()` in `apps/sim/lib/center/local-spine.ts`.
+
+The storage key is:
+
+```text
+sim.center.local-spine.v1
+```
+
+The current local implementation does not send profile data to telemetry. `CenterSurface` displays `telemetry off`, profile records have `telemetry: 'off'`, and the local dev profile sets `NEXT_TELEMETRY_DISABLED=1` through the app launcher path.
+
+## API Boundary
+
+Center import APIs are contract-bound and wrapped with `withRouteHandler`:
+
+- `apps/sim/app/api/center/ms2scheduler/import/route.ts`
+- `apps/sim/app/api/center/github/import/route.ts`
+- `apps/sim/app/api/center/plane/import/route.ts`
+- `apps/sim/app/api/center/learn-understand/import/route.ts`
+- `apps/sim/app/api/center/review-packets/import/route.ts`
+- `apps/sim/app/api/center/workers/import/route.ts`
+
+Each route parses its request with `parseRequest()` and a contract from `apps/sim/lib/api/contracts/center.ts`.
+
+These routes are local-development import routes. They are enabled when `CENTER_DEV=1` or when `NODE_ENV` is not production.
+
+## Extension Points
+
+Use these extension seams:
+
+- Add a new producer mapper under `apps/sim/lib/center/producers/`.
+- Add route contracts in `apps/sim/lib/api/contracts/center.ts`.
+- Add local import routes under `apps/sim/app/api/center/<producer>/import/route.ts`.
+- Add capability metadata under `.ai-bridge/capabilities/`.
+- Add Center UI projection only after the data exists in the local spine.
+
+Do not extend Center by importing producer private state into the route.
+
+## Limitations
+
+- Browser-local storage is the only user-facing storage adapter today.
+- Profile export/delete exists in `CenterLocalSpine` but is not exposed in the current UI.
+- GitHub, Plane, Learn/Understand, and Worker imports read local sample/event files, not live external services.
+- Capability metadata is documented and stored but not yet enforced during import.
+- Prediction is a baseline heuristic, not a calibrated probability model.
+
+## Related Documents
+
+- `apps/sim/docs/center/ontology-and-local-spine.md`
+- `apps/sim/docs/center/producer-model.md`
+- `apps/sim/docs/center/capability-system.md`
+- `apps/sim/docs/center/operations-and-dogfood.md`
+- `apps/sim/docs/LOCAL_DEV_PROFILES.md`
+- `.ai-bridge/projects/center/roadmap.md`
+- `.ai-bridge/projects/center/audits/phase-0-12-integration-audit-20260629.md`

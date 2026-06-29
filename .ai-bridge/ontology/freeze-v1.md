@@ -2,7 +2,7 @@
 id: center-ontology-freeze-v1
 type: ontology-freeze
 status: frozen
-updated: 2026-06-28
+updated: 2026-06-29
 links:
   - center-interfaces
   - ai-bridge-global-decisions
@@ -36,7 +36,14 @@ Workflow = automation feature
 MS2Scheduler = first mature producer
 Hermes / Codex / workers = execution producers
 GitHub / Plane / Calendar / etc. = external state producers
-.ai-bridge = project knowledge / governance system
+repository docs = stable project/system documentation
+.ai-bridge = governance/evolution system
+```
+
+Canonical Center system documentation:
+
+```text
+apps/sim/docs/center/README.md
 ```
 
 ## Long-term flow
@@ -187,3 +194,5 @@ Derived but stored because it closes the learning loop.
 ## Freeze rule
 
 This file is frozen as ontology v1. Do not silently mutate these definitions. If implementation evidence requires a change, create a new decision that supersedes v1 and state the migration impact.
+
+This file is a governance freeze record. Runtime schema and local-spine documentation live in `apps/sim/docs/center/ontology-and-local-spine.md`.

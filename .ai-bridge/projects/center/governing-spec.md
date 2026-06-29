@@ -3,7 +3,7 @@ id: center-governing-spec-v1
 type: governing-spec
 project: center
 status: approved-with-required-changes-encoded
-updated: 2026-06-28
+updated: 2026-06-29
 links:
   - execution-authority-v1
   - center-ontology-freeze-v1
@@ -51,7 +51,14 @@ Center owns operating surface, ontology contracts, profile isolation, observatio
 MS2Scheduler owns deterministic study planning, recovery, calibration, receipts.
 Workflow owns automation graph editing/execution.
 Hermes / Codex / workers own agent execution attempts and artifacts.
-.ai-bridge owns project knowledge, governance, decisions, protocols, review packets.
+Repository docs own stable system knowledge.
+.ai-bridge owns evolution knowledge: governance, decisions, protocols, review packets, audits, current plans, and cross-project coordination.
+```
+
+Canonical Center system documentation:
+
+```text
+apps/sim/docs/center/README.md
 ```
 
 ## Dependency direction

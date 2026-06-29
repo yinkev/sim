@@ -17,6 +17,18 @@ links:
 
 # Center Phase 0-12 Integration Audit — 2026-06-29
 
+## Supersession Note
+
+The knowledge-system followup in this audit was superseded by:
+
+```text
+.ai-bridge/projects/center/audits/repository-documentation-governor-20260629.md
+docs/DOCUMENTATION_GUIDE.md
+apps/sim/docs/center/README.md
+```
+
+Current rule: repository docs own stable system truth; `.ai-bridge` owns governance and evolution truth. Do not create a second documentation site inside `.ai-bridge`.
+
 ## Verdict
 
 SAFE TO DOGFOOD WITH REQUIRED FOLLOWUPS.
@@ -137,21 +149,9 @@ OKF-like structure: partial / good enough for this stage
 llm-wiki style: partial / project docs are structured, not a full generated code wiki
 ```
 
-Required followup:
+Superseded followup:
 
-If we want true llm-wiki/OKF discipline, create an explicit `.ai-bridge/projects/knowledge-system/` spec that defines:
-
-```text
-entity pages
-schema pages
-module pages
-invariant pages
-ADR/index policy
-source-of-truth rules
-artifact retention rules
-```
-
-Do not block Center dogfooding on this. Do block future multi-agent expansion if `.ai-bridge` starts becoming a junk drawer.
+The repository now uses `docs/DOCUMENTATION_GUIDE.md` and project-local docs instead of a new documentation site inside `.ai-bridge`. Useful OKF/llm-wiki ideas are adapted as source-of-truth rules, explicit ownership, and backlinks.
 
 ## Architecture graph
 

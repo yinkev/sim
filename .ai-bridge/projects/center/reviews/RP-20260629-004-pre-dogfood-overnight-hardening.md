@@ -16,6 +16,18 @@ links:
 
 # RP-20260629-004 — Pre-Dogfood Overnight Hardening
 
+## Supersession Note
+
+The morning dogfood runbook location was superseded by the 2026-06-29 documentation governor decision.
+
+Canonical runbook:
+
+```text
+apps/sim/docs/center/morning-dogfood-runbook.md
+```
+
+Reason: dogfood operating guidance is stable project documentation, not governance history.
+
 ## Objective
 
 Prepare Center for Kevin's first morning dogfood session without adding new product scope.
@@ -141,7 +153,7 @@ what to report back
 Put it at:
 
 ```text
-.ai-bridge/projects/center/dogfood/morning-runbook-20260629.md
+apps/sim/docs/center/morning-dogfood-runbook.md
 ```
 
 Keep it short and practical.

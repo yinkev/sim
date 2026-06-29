@@ -19,6 +19,19 @@ links:
 
 # RP-20260629-003 — Center Dogfood Readiness / Capability Enforcement
 
+## Supersession Note
+
+The knowledge-system question in this packet was superseded by the 2026-06-29 documentation governor decision:
+
+```text
+.ai-bridge/projects/center/decisions.md
+.ai-bridge/projects/center/audits/repository-documentation-governor-20260629.md
+docs/DOCUMENTATION_GUIDE.md
+apps/sim/docs/center/README.md
+```
+
+Current rule: repository docs own stable system truth; `.ai-bridge` owns governance and evolution truth.
+
 ## Status
 
 Draft review packet.
@@ -147,22 +160,22 @@ Every imported event/observation should be traceable to a registered capability 
 
 ### 6. Knowledge system / OKF / llm-wiki
 
-Current state:
+Superseded current state:
 
 ```text
-.ai-bridge is functioning as a lightweight project knowledge system.
-There is no separate explicit OKF or llm-wiki implementation directory.
+repository docs own stable system truth
+.ai-bridge owns governance/evolution truth
 ```
 
-Decision needed:
+Settled by:
 
 ```text
-Keep .ai-bridge only for now
-or
-create .ai-bridge/projects/knowledge-system/ with OKF/llm-wiki conventions
+docs/DOCUMENTATION_GUIDE.md
+.ai-bridge/projects/center/decisions.md
+.ai-bridge/projects/center/audits/repository-documentation-governor-20260629.md
 ```
 
-Default answer: keep `.ai-bridge` as source of truth now, but add a knowledge-system spec before further multi-agent expansion.
+Do not create a second documentation site inside `.ai-bridge`.
 
 ## Acceptance criteria
 

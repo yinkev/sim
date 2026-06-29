@@ -6,6 +6,12 @@ Use a low-resource Sim command by default while Center is being developed.
 
 Phase 0 rule: do not start Center UI implementation until local CPU/RAM behavior is handled or explicitly waived.
 
+Canonical Center operations documentation:
+
+```text
+apps/sim/docs/center/operations-and-dogfood.md
+```
+
 ## Commands
 
 | Command | Processes | Use when | Notes |

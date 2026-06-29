@@ -95,3 +95,20 @@ Review packet imports are explicit local actions. Imported packets preserve `.ai
 
 Revisit if:
 Review packet state moves to a durable local server store and Center no longer needs browser-local imports.
+
+## 2026-06-29 — Center system documentation belongs in repo-local project docs
+
+Decision:
+Stable Center system documentation lives under `apps/sim/docs/center/`. `.ai-bridge` remains the evolution ledger for decisions, reviews, audits, current plans, protocols, and cross-project coordination.
+
+Reason:
+Future engineers and agents should be able to understand Center from repository documentation without chat history. Keeping system docs inside `.ai-bridge` was creating a second documentation site and mixing stable implementation truth with governance history.
+
+Rejected:
+Do not keep `.ai-bridge/projects/center/interfaces.md`, `.ai-bridge/projects/center/local-spine.md`, `.ai-bridge/schemas/center-ontology-v1.md`, or `.ai-bridge/capabilities/metadata-contract.md` as competing explanatory sources. They now redirect to canonical project docs or machine-readable schemas.
+
+Consequence:
+New Center architecture, ontology, producer, capability, operation, and dogfood documentation must be added under `apps/sim/docs/center/`. `.ai-bridge` documents may link to those files but must not duplicate their system explanations.
+
+Revisit if:
+Center is extracted from `apps/sim` into another package or app; move the canonical docs with the owning project.

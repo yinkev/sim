@@ -4,7 +4,9 @@
 
 `.ai-bridge/` is the local coordination layer between ChatGPT/CodexPro/Pro/Codex/local workers.
 
-It is not source code. It is the agent workbench: active plan, project context, decisions, open questions, status, diffs, logs, and archived missions.
+It is not source code and it is not a second documentation site. It is the agent workbench: active plan, decisions, open questions, status, diffs, logs, review packets, audits, and archived missions.
+
+Repository project docs own stable system truth. `.ai-bridge` owns evolution truth.
 
 ## Core rule
 
@@ -24,7 +26,13 @@ Use:
 .ai-bridge/projects/<project>/
 ```
 
-for durable context, design notes, roadmaps, prior reasoning, future phases, and project-specific decisions.
+for governance context, roadmaps, prior reasoning, future phases, review packets, audits, and project-specific decisions.
+
+Use project-owned doc paths for system documentation. For Center, that canonical path is:
+
+```text
+apps/sim/docs/center/
+```
 
 Do not overload `current-plan.md` with the whole strategy. It should point to the relevant project context and define exactly what to execute now.
 
@@ -41,7 +49,7 @@ Do not overload `current-plan.md` with the whole strategy. It should point to th
 ├── implementation-diff.patch         # latest diff snapshot if produced by a worker
 ├── projects/
 │   └── <project-slug>/
-│       ├── brief.md                  # durable context packet
+│       ├── brief.md                  # durable governance context packet
 │       ├── roadmap.md                # phased plan
 │       ├── decisions.md              # project-specific decisions
 │       ├── open-questions.md         # project-specific blockers
@@ -60,7 +68,13 @@ Do not overload `current-plan.md` with the whole strategy. It should point to th
 projects/center/
 ```
 
-Center is the approved operating surface. Phase 0 CPU/RAM stabilization is handled, and implementation is now proceeding through the approved producer sequence.
+Center is the approved operating surface. Phase 0 CPU/RAM stabilization is handled, and implementation has proceeded through the approved producer sequence.
+
+Canonical Center system documentation:
+
+```text
+apps/sim/docs/center/README.md
+```
 
 Current active plan:
 
@@ -185,7 +199,9 @@ Example:
 
 ## Philosophy
 
-`projects/` is memory and strategy.
+Project docs own system truth.
+
+`projects/` is governance memory and strategy.
 
 `current-plan.md` is execution.
 
