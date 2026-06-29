@@ -1,0 +1,27 @@
+{
+  "id": "emit.github_commit",
+  "version": "1.0.0",
+  "producerId": "github",
+  "kind": "emit",
+  "inputs": [
+    {
+      "id": "github-snapshot-record",
+      "version": "1.0.0",
+      "uri": ".ai-bridge/projects/github-producer/sample-events.json"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "center-producer-import-packet",
+      "version": "1.0.0",
+      "uri": "apps/sim/lib/center/producer-import.ts"
+    }
+  ],
+  "authorityRequired": "A1",
+  "truthImpact": "T2",
+  "policyRequirements": ["profile-scope", "explicit-local-import", "evidence-required"],
+  "evidenceProduced": ["GitHub commit link or diff source"],
+  "failureModes": ["snapshot is stale", "commit payload omits changed-file evidence"],
+  "requires": [],
+  "lifecycle": "available"
+}

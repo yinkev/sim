@@ -10,6 +10,7 @@ import {
   CircleDot,
   ClipboardList,
   FileText,
+  GitBranch,
   GitPullRequestArrow,
   Lightbulb,
   ListChecks,
@@ -19,6 +20,7 @@ import {
 import { Button, ChipInput, ChipTag, ChipTextarea } from '@/components/emcn'
 import { requestJson } from '@/lib/api/client/request'
 import {
+  importCenterGithubContract,
   importCenterReviewPacketsContract,
   importMs2SchedulerCenterContract,
 } from '@/lib/api/contracts/center'
@@ -203,9 +205,11 @@ export function CenterSurface() {
   const [decisionRevisitIf, setDecisionRevisitIf] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [importSummary, setImportSummary] = useState<string | null>(null)
+  const [githubImportSummary, setGithubImportSummary] = useState<string | null>(null)
   const [reviewImportSummary, setReviewImportSummary] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
+  const [isImportingGithub, setIsImportingGithub] = useState(false)
   const [isImportingReviews, setIsImportingReviews] = useState(false)
 
   useEffect(() => {
@@ -258,6 +262,16 @@ export function CenterSurface() {
   const recentEvidence = useMemo(
     () => newestFirst(scoped.evidence, (evidence) => evidence.createdAt).slice(0, 5),
     [scoped.evidence]
+  )
+  const engineeringObservations = useMemo(
+    () =>
+      newestFirst(
+        scoped.observations.filter((observation) =>
+          observation.observationType.startsWith('engineering.')
+        ),
+        (observation) => observation.observedAt
+      ).slice(0, 5),
+    [scoped.observations]
   )
   const todayEvents = useMemo(
     () =>
@@ -341,6 +355,25 @@ export function CenterSurface() {
       setError(getErrorMessage(err, 'MS2Scheduler import failed'))
     } finally {
       setIsImporting(false)
+    }
+  }
+
+  const importGithub = async () => {
+    if (!storage || !selectedProfile) return
+    setIsImportingGithub(true)
+    setError(null)
+    setGithubImportSummary(null)
+    try {
+      const response = await requestJson(importCenterGithubContract, {})
+      const summary = await applyCenterProducerImport(storage, selectedProfile.id, response.packet)
+      await reloadDataset(selectedProfile.id)
+      setGithubImportSummary(
+        `GitHub import: ${summary.evidenceAdded} evidence, ${summary.rawEventsAdded} events, ${summary.observationsAdded} observations, ${summary.loopsAdded} loops from ${response.source.recordCount} records.`
+      )
+    } catch (err) {
+      setError(getErrorMessage(err, 'GitHub import failed'))
+    } finally {
+      setIsImportingGithub(false)
     }
   }
 
@@ -513,6 +546,13 @@ export function CenterSurface() {
               </Button>
               <Button
                 type='button'
+                disabled={!selectedProfile || isImportingGithub}
+                onClick={importGithub}
+              >
+                Import GitHub
+              </Button>
+              <Button
+                type='button'
                 disabled={!selectedProfile || isImportingReviews}
                 onClick={importReviewPackets}
               >
@@ -530,6 +570,12 @@ export function CenterSurface() {
           {importSummary ? (
             <div className='rounded-[8px] border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-[var(--text-muted)] text-sm'>
               {importSummary}
+            </div>
+          ) : null}
+
+          {githubImportSummary ? (
+            <div className='rounded-[8px] border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-[var(--text-muted)] text-sm'>
+              {githubImportSummary}
             </div>
           ) : null}
 
@@ -607,6 +653,29 @@ export function CenterSurface() {
                         meta='blocked'
                         detail={loop.blockedBy?.join(', ')}
                         tone='text-[var(--text-error)]'
+                      />
+                    ))
+                  )}
+                </div>
+              </Section>
+
+              <Section title='Engineering' count={engineeringObservations.length} icon={GitBranch}>
+                <div className='flex flex-col gap-2'>
+                  {engineeringObservations.length === 0 ? (
+                    <EmptyState label='No engineering observations' />
+                  ) : (
+                    engineeringObservations.map((observation) => (
+                      <RecordRow
+                        key={observation.id}
+                        title={String(observation.payload.summary ?? observation.observationType)}
+                        meta={String(observation.payload.repo ?? observation.observationType)}
+                        detail={String(observation.payload.url ?? observation.observationType)}
+                        tone={
+                          observation.observationType === 'engineering.ci_failed' ||
+                          observation.observationType === 'engineering.review_blocking'
+                            ? 'text-[var(--text-error)]'
+                            : undefined
+                        }
                       />
                     ))
                   )}

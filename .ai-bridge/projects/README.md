@@ -102,6 +102,7 @@ Center should not depend on MS2Scheduler's internal implementation details unles
 ```text
 center/                    # product surface and operating graph
 cpu-ram-stabilization/     # performance/dev usability blocker
+github-producer/           # engineering-state producer input for Center
 ms2scheduler-integration/  # scheduler as first mature producer/module
 pro-review-workflow/       # review packets + governor process
 daily-cockpit/             # legacy staging folder until migration is complete

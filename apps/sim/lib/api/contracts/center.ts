@@ -167,6 +167,23 @@ export type ImportMs2SchedulerCenterResponse = z.output<
   typeof importMs2SchedulerCenterContract.response.schema
 >
 
+export const importCenterGithubContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/center/github/import',
+  response: {
+    mode: 'json',
+    schema: z.object({
+      packet: centerProducerImportPacketSchema,
+      source: z.object({
+        filePath: z.string(),
+        recordCount: z.number().int().min(0),
+      }),
+    }),
+  },
+})
+
+export type ImportCenterGithubResponse = z.output<typeof importCenterGithubContract.response.schema>
+
 export const importCenterReviewPacketsContract = defineRouteContract({
   method: 'GET',
   path: '/api/center/review-packets/import',

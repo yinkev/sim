@@ -1,0 +1,57 @@
+{
+  "records": [
+    {
+      "kind": "commit",
+      "repo": "kyin/sim",
+      "sha": "abcdef1234567890",
+      "message": "Add Center GitHub producer\n\nMap commits, issues, PRs, reviews, and CI into Center.",
+      "committedAt": "2026-06-29T01:00:00Z",
+      "author": "kyin",
+      "branch": "main",
+      "url": "https://github.com/kyin/sim/commit/abcdef1234567890"
+    },
+    {
+      "kind": "issue",
+      "repo": "kyin/sim",
+      "number": 42,
+      "title": "Center import needs GitHub evidence",
+      "state": "open",
+      "updatedAt": "2026-06-29T01:10:00Z",
+      "labels": ["center"],
+      "assignees": ["kyin"],
+      "url": "https://github.com/kyin/sim/issues/42"
+    },
+    {
+      "kind": "pull_request",
+      "repo": "kyin/sim",
+      "number": 17,
+      "title": "Wire Center GitHub producer",
+      "state": "open",
+      "updatedAt": "2026-06-29T01:20:00Z",
+      "headSha": "abcdef1234567890",
+      "baseRef": "main",
+      "url": "https://github.com/kyin/sim/pull/17"
+    },
+    {
+      "kind": "review",
+      "repo": "kyin/sim",
+      "pullNumber": 17,
+      "reviewId": "9001",
+      "state": "CHANGES_REQUESTED",
+      "submittedAt": "2026-06-29T01:30:00Z",
+      "author": "reviewer",
+      "url": "https://github.com/kyin/sim/pull/17#pullrequestreview-9001"
+    },
+    {
+      "kind": "ci_run",
+      "repo": "kyin/sim",
+      "runId": "1234",
+      "workflowName": "Center Checks",
+      "status": "completed",
+      "conclusion": "failure",
+      "updatedAt": "2026-06-29T01:40:00Z",
+      "headSha": "abcdef1234567890",
+      "url": "https://github.com/kyin/sim/actions/runs/1234"
+    }
+  ]
+}

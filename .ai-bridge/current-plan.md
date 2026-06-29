@@ -1,4 +1,4 @@
-# Current Plan — Phase 8 GitHub Producer
+# Current Plan — Phase 9 Plane Producer
 
 Status: active.
 
@@ -111,9 +111,38 @@ Evidence:
 - `bun run check:center-boundary` passed.
 - `bun run check:boundaries` passed.
 
+## Phase 8 result
+
+Handled. GitHub-shaped engineering state now feeds Center through a typed producer import packet and explicit local import action.
+
+Implemented:
+
+- `apps/sim/lib/center/producers/github.ts`
+- `apps/sim/lib/center/producers/github-files.ts`
+- `apps/sim/app/api/center/github/import/route.ts`
+- `apps/sim/lib/api/contracts/center.ts`
+- Center UI `Import GitHub` action and Engineering projection
+- `.ai-bridge/projects/github-producer/sample-events.json`
+- `.ai-bridge/capabilities/emit.github_commit.json`
+- `.ai-bridge/capabilities/emit.github_issue.json`
+- `.ai-bridge/capabilities/emit.github_pull_request.json`
+- `.ai-bridge/capabilities/emit.github_pr_review.json`
+- `.ai-bridge/capabilities/emit.github_ci_run.json`
+
+Evidence:
+
+- Import route produced 5 evidence records, 5 raw events, 5 observations, and 1 blocked engineering loop from 5 sample GitHub records.
+- Browser smoke created a profile, clicked `Import GitHub`, persisted the imported records, and rendered `Inspect failing CI run Center Checks in kyin/sim`.
+- Targeted Center boundary checks still passed.
+- `bun --cwd apps/sim test lib/center/producers/github.test.ts lib/center/producer-import.test.ts lib/center/producers/ms2scheduler.test.ts` passed.
+- `bun --cwd apps/sim type-check` passed.
+- `bun run check:api-validation` passed.
+- `bun run check:center-boundary` passed.
+- `bun run check:boundaries` passed.
+
 ## Objective
 
-Bring engineering reality into Center through the first GitHub producer shape.
+Bring project/task reality into Center through the first Plane producer shape.
 
 Center remains the working name for the daily operating surface. Workflow remains a feature module, not the operating surface.
 
@@ -127,6 +156,8 @@ Center remains the working name for the daily operating surface. Workflow remain
 - `.ai-bridge/projects/center/decisions.md`
 - `.ai-bridge/projects/center/phase-6-implementation.md`
 - `.ai-bridge/projects/center/phase-7-implementation.md`
+- `.ai-bridge/projects/center/phase-8-implementation.md`
+- `.ai-bridge/projects/github-producer/index.md`
 - `.ai-bridge/projects/center/reviews/RP-20260628-002-v1.md`
 - `.ai-bridge/projects/cpu-ram-stabilization/index.md`
 - `.ai-bridge/projects/ms2scheduler-integration/index.md`
@@ -216,9 +247,9 @@ Authority and truth impact are defined in:
 
 Build:
 
-- GitHub producer contract for commits, issues, PRs, reviews, and CI failures
-- local/manual import or fixture path that maps GitHub-shaped data into Center events, observations, evidence, loops, and next actions
-- Center UI projection for engineering state without loading provider SDK registries
+- Plane producer contract for projects, cycles, modules, issues, comments, and statuses
+- local/manual import or fixture path that maps Plane-shaped data into Center events, observations, evidence, loops, and next actions
+- Center UI projection for project/task state without loading workflow or connector registries
 
 Guardrail:
 
@@ -226,8 +257,8 @@ Guardrail:
 
 ## Acceptance criteria
 
-- GitHub-shaped engineering activity can be represented without bespoke Center architecture.
-- Evidence links back to commits, PRs, issues, reviews, or CI output.
+- Plane-shaped project activity can be represented without bespoke Center architecture.
+- Evidence links back to projects, cycles, modules, issues, comments, or status changes.
 - Center route remains free of heavy workflow/provider imports.
 - No telemetry.
 - Targeted type/lint/boundary checks pass.

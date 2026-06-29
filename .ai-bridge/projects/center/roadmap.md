@@ -9,6 +9,7 @@ links:
   - current-plan
   - center-phase-6-implementation
   - center-phase-7-implementation
+  - center-phase-8-implementation
 ---
 
 # Center Implementation Roadmap
@@ -186,11 +187,26 @@ Verified:
 
 ## Phase 8 - GitHub Producer
 
-Status: active.
+Status: initial implementation complete.
 
 Map commits, issues, PRs, reviews, and CI failures to events, observations, evidence, loops, and next actions.
 
+Implementation:
+
+- Local GitHub-shaped snapshot reader.
+- GitHub producer import packet mapper.
+- Local-development import API route.
+- Center UI `Import GitHub` action and Engineering projection.
+- Registered capability metadata for commits, issues, PRs, reviews, and CI runs.
+
+Verified:
+
+- Sample snapshot imports 5 records into 5 evidence, 5 raw events, 5 observations, and 1 blocked engineering loop.
+- Center UI persists and renders GitHub next action, blocker state, and engineering observations.
+
 ## Phase 9 - Plane Producer
+
+Status: active.
 
 Map projects, cycles, modules, issues, comments, and statuses to Center loops/tasks/evidence.
 
