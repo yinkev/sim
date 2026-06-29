@@ -1,7 +1,9 @@
 export {
   CENTER_BASELINE_MODEL_VERSION,
   type CenterBaselinePredictionProjection,
+  type CenterPredictionOutcomeScore,
   deriveCenterBaselinePrediction,
+  scoreCenterPredictionOutcomes,
 } from '@/lib/center/baseline-prediction'
 export {
   CenterLocalSpine,
@@ -34,4 +36,6 @@ export type {
   CenterRawEvent,
   CenterRecommendation,
   CenterReviewPacket,
+  CenterStorageMode,
 } from '@/lib/center/types'
+export { createWorkspaceCenterStorage } from '@/lib/center/workspace-storage'

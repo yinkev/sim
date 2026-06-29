@@ -129,3 +129,37 @@ Current producers must keep their declared capability ids synchronized with `.ai
 
 Revisit if:
 Capabilities move from `.ai-bridge` files into a durable local-server registry, or when A2/A3/A4 action execution is connected.
+
+## 2026-06-29 — Center workspace storage uses local JSON with browser fallback
+
+Decision:
+Use workspace-scoped local-server JSON storage under `.ai-bridge/artifacts/center-storage/<workspaceId>.json` as the first non-browser Center storage adapter. The Center UI uses the workspace storage route first and falls back to workspace-scoped browser-local storage if the route is unavailable.
+
+Reason:
+Center needs a conservative local-first storage path that survives browser storage loss without adding DB migrations, sync, auth policy, or remote telemetry scope.
+
+Rejected:
+Do not introduce cloud sync, database-backed Center storage, or multi-user shared state in this slice.
+
+Consequence:
+Profile data remains local. Workspace storage is contract-bound through `apps/sim/app/api/center/storage/[workspaceId]/route.ts`, and profile export/delete works against the active storage adapter.
+
+Revisit if:
+Center needs authenticated sync, multi-device access, team visibility, or stronger filesystem encryption guarantees.
+
+## 2026-06-29 — Prediction outcome scoring is explicit and derived
+
+Decision:
+Score prediction outcomes only when an outcome payload provides an explicit actual value, score, observed value, occurrence flag, or loop-drift occurrence flag. Ambiguous outcomes remain `unscored`.
+
+Reason:
+Baseline prediction must stay honest. Scoring inferred from vague outcome text would create fake precision and undermine trust.
+
+Rejected:
+Do not infer success/failure from arbitrary strings, loop status, recommendation status, or action status in this slice.
+
+Consequence:
+`scoreCenterPredictionOutcomes()` returns absolute error and Brier score for explicit outcomes, and the Center UI surfaces scored/unscored outcome state in the Prediction Summary panel.
+
+Revisit if:
+Outcome records gain typed schemas per prediction type or enough dogfood data exists to calibrate richer prediction models.

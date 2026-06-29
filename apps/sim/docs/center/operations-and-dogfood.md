@@ -75,7 +75,34 @@ These actions call local-development routes under:
 apps/sim/app/api/center/
 ```
 
-They persist imported records into the selected browser-local profile.
+They persist imported records into the selected workspace-backed local profile. If the workspace storage route is unavailable, Center falls back to workspace-scoped browser-local storage.
+
+The Center UI also exposes explicit profile actions:
+
+- Export selected profile.
+- Delete selected profile.
+
+## Local Workspace Storage
+
+Default path:
+
+```text
+.ai-bridge/artifacts/center-storage/<workspaceId>.json
+```
+
+Override:
+
+```text
+CENTER_WORKSPACE_STORAGE_DIR=/path/to/storage
+```
+
+Route and adapters:
+
+```text
+apps/sim/app/api/center/storage/[workspaceId]/route.ts
+apps/sim/lib/center/file-storage.ts
+apps/sim/lib/center/workspace-storage.ts
+```
 
 ## Local Source Overrides
 
@@ -178,10 +205,9 @@ Do not treat Center as live-dogfood ready until these review packets are resolve
 
 Current blockers:
 
-- Profile export/delete exists in the local spine but is not exposed in UI.
 - Live external producers are not connected.
-- Baseline prediction is not outcome-scored.
 - Full authority/truth-impact/policy capability enforcement is not implemented beyond registered-id import gating.
+- Production sync beyond local workspace JSON storage is not implemented.
 
 First-use runbook:
 

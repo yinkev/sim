@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   CircleDot,
   ClipboardList,
+  Download,
   FileText,
   GitBranch,
   GitPullRequestArrow,
@@ -19,6 +20,7 @@ import {
   ListChecks,
   Plus,
   ShieldCheck,
+  Trash2,
 } from 'lucide-react'
 import { Button, ChipInput, ChipTag, ChipTextarea } from '@/components/emcn'
 import { requestJson } from '@/lib/api/client/request'
@@ -39,8 +41,11 @@ import {
   type CenterLoop,
   type CenterProfile,
   type CenterStorageAdapter,
+  type CenterStorageMode,
   createBrowserCenterStorage,
+  createWorkspaceCenterStorage,
   deriveCenterBaselinePrediction,
+  scoreCenterPredictionOutcomes,
 } from '@/lib/center'
 import { cn } from '@/lib/core/utils/cn'
 
@@ -69,9 +74,19 @@ const CAPTURE_MODES: Array<{ id: CaptureMode; label: string }> = [
   { id: 'decision', label: 'Decision' },
 ]
 
-function createCenterStorage(): CenterStorageAdapter | null {
+function createCenterStorage(
+  workspaceId: string,
+  onModeChange: (mode: CenterStorageMode) => void
+): CenterStorageAdapter | null {
   if (typeof window === 'undefined') return null
-  return createBrowserCenterStorage()
+  return createWorkspaceCenterStorage({
+    workspaceId,
+    fallbackStorage: createBrowserCenterStorage(
+      window.localStorage,
+      `sim.center.local-spine.v1.${workspaceId}`
+    ),
+    onModeChange,
+  })
 }
 
 function profileDataset(dataset: CenterDataset, profileId: string | null): CenterDataset {
@@ -129,6 +144,15 @@ function newestFirst<T>(items: T[], getDate: (item: T) => string): T[] {
 
 function findHumanActor(dataset: CenterDataset, profileId: string): CenterActor | undefined {
   return dataset.actors.find((actor) => actor.profileId === profileId && actor.kind === 'human')
+}
+
+function safeFileSegment(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60)
 }
 
 function Section({
@@ -192,8 +216,13 @@ function RecordRow({
   )
 }
 
-export function CenterSurface() {
+interface CenterSurfaceProps {
+  workspaceId: string
+}
+
+export function CenterSurface({ workspaceId }: CenterSurfaceProps) {
   const [storage, setStorage] = useState<CenterStorageAdapter | null>(null)
+  const [storageMode, setStorageMode] = useState<CenterStorageMode>('browser-local')
   const [dataset, setDataset] = useState<CenterDataset>(EMPTY_CENTER_DATASET)
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null)
   const [captureMode, setCaptureMode] = useState<CaptureMode>('event')
@@ -216,7 +245,10 @@ export function CenterSurface() {
   const [planeImportSummary, setPlaneImportSummary] = useState<string | null>(null)
   const [reviewImportSummary, setReviewImportSummary] = useState<string | null>(null)
   const [workerImportSummary, setWorkerImportSummary] = useState<string | null>(null)
+  const [profileActionSummary, setProfileActionSummary] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [isExportingProfile, setIsExportingProfile] = useState(false)
+  const [isDeletingProfile, setIsDeletingProfile] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [isImportingGithub, setIsImportingGithub] = useState(false)
   const [isImportingKnowledge, setIsImportingKnowledge] = useState(false)
@@ -225,8 +257,8 @@ export function CenterSurface() {
   const [isImportingWorkers, setIsImportingWorkers] = useState(false)
 
   useEffect(() => {
-    setStorage(createCenterStorage())
-  }, [])
+    setStorage(createCenterStorage(workspaceId, setStorageMode))
+  }, [workspaceId])
 
   const spine = useMemo(() => (storage ? new CenterLocalSpine(storage) : null), [storage])
 
@@ -235,11 +267,14 @@ export function CenterSurface() {
       if (!storage) return
       const nextDataset = await storage.load()
       setDataset(nextDataset)
+      const requestedProfileId = nextProfileId ?? selectedProfileId
       const preferredProfileId =
-        nextProfileId ??
-        selectedProfileId ??
-        nextDataset.profiles.find((profile) => profile.status === 'active')?.id ??
-        null
+        requestedProfileId &&
+        nextDataset.profiles.some(
+          (profile) => profile.id === requestedProfileId && profile.status === 'active'
+        )
+          ? requestedProfileId
+          : (nextDataset.profiles.find((profile) => profile.status === 'active')?.id ?? null)
       setSelectedProfileId(preferredProfileId)
     },
     [selectedProfileId, storage]
@@ -351,6 +386,10 @@ export function CenterSurface() {
     [scoped, selectedProfile]
   )
   const predictionState = baselineProjection?.prediction
+  const predictionOutcomeScores = useMemo(
+    () => (selectedProfile ? scoreCenterPredictionOutcomes(scoped, selectedProfile.id) : []),
+    [scoped, selectedProfile]
+  )
 
   const ensureHumanActor = async (profile: CenterProfile): Promise<CenterActor> => {
     const existing = findHumanActor(dataset, profile.id)
@@ -372,7 +411,7 @@ export function CenterSurface() {
     setIsSaving(true)
     setError(null)
     try {
-      const profile = await spine.createProfile({ displayName })
+      const profile = await spine.createProfile({ displayName, storageMode })
       await spine.createActor({ profileId: profile.id, kind: 'human', displayName })
       setProfileName('')
       await reloadDataset(profile.id)
@@ -380,6 +419,50 @@ export function CenterSurface() {
       setError(getErrorMessage(err, 'Failed to create profile'))
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const exportSelectedProfile = async () => {
+    if (!spine || !selectedProfile || typeof window === 'undefined') return
+    setIsExportingProfile(true)
+    setError(null)
+    setProfileActionSummary(null)
+    try {
+      const exported = await spine.exportProfile(selectedProfile.id)
+      const blob = new Blob([JSON.stringify(exported, null, 2)], {
+        type: 'application/json',
+      })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      const fileSegment = safeFileSegment(selectedProfile.displayName) || selectedProfile.id
+      link.href = url
+      link.download = `center-profile-${fileSegment}.json`
+      link.click()
+      URL.revokeObjectURL(url)
+      setProfileActionSummary(`Exported ${selectedProfile.displayName}.`)
+    } catch (err) {
+      setError(getErrorMessage(err, 'Profile export failed'))
+    } finally {
+      setIsExportingProfile(false)
+    }
+  }
+
+  const deleteSelectedProfile = async () => {
+    if (!spine || !selectedProfile || typeof window === 'undefined') return
+    const confirmed = window.confirm(`Delete Center profile "${selectedProfile.displayName}"?`)
+    if (!confirmed) return
+    setIsDeletingProfile(true)
+    setError(null)
+    setProfileActionSummary(null)
+    try {
+      await spine.deleteProfile(selectedProfile.id)
+      setSelectedProfileId(null)
+      await reloadDataset()
+      setProfileActionSummary(`Deleted ${selectedProfile.displayName}.`)
+    } catch (err) {
+      setError(getErrorMessage(err, 'Profile delete failed'))
+    } finally {
+      setIsDeletingProfile(false)
     }
   }
 
@@ -654,6 +737,9 @@ export function CenterSurface() {
               <ChipTag variant='gray' leftIcon={ShieldCheck}>
                 telemetry off
               </ChipTag>
+              <ChipTag variant='gray'>
+                {storageMode === 'browser-local' ? 'browser fallback' : 'workspace storage'}
+              </ChipTag>
             </div>
             <div className='mt-1 truncate text-[var(--text-muted)] text-small'>
               {selectedProfile ? selectedProfile.displayName : 'No profile selected'}
@@ -736,6 +822,22 @@ export function CenterSurface() {
               >
                 Import Workers
               </Button>
+              <Button
+                type='button'
+                disabled={!selectedProfile || isExportingProfile}
+                onClick={exportSelectedProfile}
+              >
+                <Download className='size-[14px]' />
+                Export
+              </Button>
+              <Button
+                type='button'
+                disabled={!selectedProfile || isDeletingProfile}
+                onClick={deleteSelectedProfile}
+              >
+                <Trash2 className='size-[14px]' />
+                Delete
+              </Button>
             </div>
           </section>
 
@@ -778,6 +880,12 @@ export function CenterSurface() {
           {workerImportSummary ? (
             <div className='rounded-[8px] border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-[var(--text-muted)] text-sm'>
               {workerImportSummary}
+            </div>
+          ) : null}
+
+          {profileActionSummary ? (
+            <div className='rounded-[8px] border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-[var(--text-muted)] text-sm'>
+              {profileActionSummary}
             </div>
           ) : null}
 
@@ -1042,6 +1150,22 @@ export function CenterSurface() {
                         .map((feature) => `${feature.featureName}=${String(feature.value)}`)
                         .join(', ')}
                     />
+                    {predictionOutcomeScores.slice(0, 3).map((score) => (
+                      <RecordRow
+                        key={`${score.predictionId}-${score.outcomeId}`}
+                        title={
+                          score.status === 'scored'
+                            ? `Outcome error ${Math.round((score.absoluteError ?? 0) * 100)}%`
+                            : 'Outcome unscored'
+                        }
+                        meta={score.status}
+                        detail={
+                          score.status === 'scored'
+                            ? `predicted ${Math.round((score.predictedScore ?? 0) * 100)}% · actual ${Math.round((score.actualValue ?? 0) * 100)}%`
+                            : score.reason
+                        }
+                      />
+                    ))}
                   </div>
                 ) : (
                   <EmptyState label='Create a profile to compute predictions' />

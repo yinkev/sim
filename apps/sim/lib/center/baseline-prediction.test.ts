@@ -2,7 +2,10 @@
  * @vitest-environment node
  */
 import { describe, expect, it } from 'vitest'
-import { deriveCenterBaselinePrediction } from '@/lib/center/baseline-prediction'
+import {
+  deriveCenterBaselinePrediction,
+  scoreCenterPredictionOutcomes,
+} from '@/lib/center/baseline-prediction'
 import type { CenterDataset } from '@/lib/center/types'
 
 const baseDataset: CenterDataset = {
@@ -128,5 +131,101 @@ describe('deriveCenterBaselinePrediction', () => {
         '1 evidence receipt',
       ])
     )
+  })
+
+  it('scores prediction outcomes only when the actual value is explicit', () => {
+    const now = new Date().toISOString()
+    const dataset: CenterDataset = {
+      ...baseDataset,
+      predictionSummaries: [
+        {
+          id: 'prediction-1',
+          profileId: 'profile-1',
+          targetType: 'profile',
+          targetId: 'profile-1',
+          predictionType: 'loop_drift',
+          status: 'baseline',
+          score: 0.7,
+          confidence: 0.45,
+          dataSufficiency: 'medium',
+          drivers: [],
+          featureRefs: [],
+          generatedAt: now,
+          modelVersion: 'center-baseline-v1',
+        },
+        {
+          id: 'prediction-2',
+          profileId: 'profile-1',
+          targetType: 'profile',
+          targetId: 'profile-1',
+          predictionType: 'loop_drift',
+          status: 'insufficient-data',
+          confidence: 0.2,
+          dataSufficiency: 'low',
+          drivers: [],
+          featureRefs: [],
+          generatedAt: now,
+          modelVersion: 'center-baseline-v1',
+        },
+      ],
+      outcomes: [
+        {
+          id: 'outcome-1',
+          profileId: 'profile-1',
+          subjectType: 'prediction',
+          subjectId: 'prediction-1',
+          outcomeType: 'observed',
+          observedAt: now,
+          payload: { driftOccurred: true },
+          evidenceRefs: [],
+        },
+        {
+          id: 'outcome-2',
+          profileId: 'profile-1',
+          subjectType: 'prediction',
+          subjectId: 'prediction-2',
+          outcomeType: 'observed',
+          observedAt: now,
+          payload: { driftOccurred: false },
+          evidenceRefs: [],
+        },
+        {
+          id: 'outcome-3',
+          profileId: 'profile-1',
+          subjectType: 'prediction',
+          subjectId: 'missing-prediction',
+          outcomeType: 'observed',
+          observedAt: now,
+          payload: { actualValue: 0.25 },
+          evidenceRefs: [],
+        },
+      ],
+    }
+
+    const scores = scoreCenterPredictionOutcomes(dataset, 'profile-1')
+
+    expect(scores).toMatchObject([
+      {
+        predictionId: 'prediction-1',
+        outcomeId: 'outcome-1',
+        predictedScore: 0.7,
+        actualValue: 1,
+        absoluteError: 0.3,
+        brierScore: 0.09,
+        status: 'scored',
+      },
+      {
+        predictionId: 'prediction-2',
+        outcomeId: 'outcome-2',
+        status: 'unscored',
+        reason: 'prediction has no score or probability',
+      },
+      {
+        predictionId: 'missing-prediction',
+        outcomeId: 'outcome-3',
+        status: 'unscored',
+        reason: 'prediction not found',
+      },
+    ])
   })
 })

@@ -74,9 +74,10 @@ local-server | browser-local | workspace
 Implemented storage adapters today:
 
 - `createMemoryCenterStorage()` for tests.
-- `createBrowserCenterStorage()` for local UI use.
+- `createBrowserCenterStorage()` for browser-local fallback.
+- `createWorkspaceCenterStorage()` for workspace-scoped local-server storage.
 
-`local-server` and `workspace` are declared storage modes, not implemented user-facing adapters.
+Workspace storage uses the local API route at `apps/sim/app/api/center/storage/[workspaceId]/route.ts` and stores JSON under `.ai-bridge/artifacts/center-storage/` by default. If the route is unavailable, the UI falls back to workspace-scoped browser-local storage.
 
 ### Actor
 
@@ -187,12 +188,14 @@ Purpose: probabilistic or heuristic estimate with data sufficiency, confidence, 
 
 Current implementation is baseline only. It reports `insufficient-data` when evidence is too thin and avoids fake precision.
 
+Derived outcome scoring lives in `scoreCenterPredictionOutcomes()` in `apps/sim/lib/center/baseline-prediction.ts`. It scores only outcomes that explicitly provide `actualValue`, `actualScore`, `observedValue`, `occurred`, or `driftOccurred`; ambiguous outcomes remain `unscored`.
+
 ### Outcome
 
 Runtime type: `CenterOutcome`  
 Purpose: observed result after a prediction, recommendation, action, loop, or task.
 
-Outcome scoring is not implemented beyond storing outcome records.
+Outcome records can close prediction loops when their payload contains explicit actual values. The scorer reports absolute error and Brier score for scored prediction outcomes.
 
 ### Review Packet
 
@@ -254,6 +257,8 @@ These approved primitives are not stored as ordinary `CenterDataset` arrays toda
 - review packets
 
 This is implemented in `apps/sim/lib/center/local-spine.ts` and tested in `apps/sim/lib/center/local-spine.test.ts`.
+
+The Center UI exposes profile export and delete actions in `apps/sim/app/center/[workspaceId]/center-surface.tsx`.
 
 ## Extension Rules
 

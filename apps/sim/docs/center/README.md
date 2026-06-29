@@ -27,6 +27,8 @@ Implementation truth lives in code:
 - `apps/sim/app/center/[workspaceId]/center-surface.tsx`
 - `apps/sim/lib/center/types.ts`
 - `apps/sim/lib/center/local-spine.ts`
+- `apps/sim/lib/center/file-storage.ts`
+- `apps/sim/lib/center/workspace-storage.ts`
 - `apps/sim/lib/center/producer-import.ts`
 - `apps/sim/lib/center/producers/`
 - `apps/sim/lib/api/contracts/center.ts`
@@ -73,14 +75,16 @@ Implemented:
 - Phase 10 Learn/Understand producer import.
 - Phase 11 Worker lane producer import.
 - Phase 12 local `Center.app` packaging.
+- Registered-id capability enforcement for producer imports.
+- Workspace-scoped local-server storage with browser-local fallback.
+- Profile export/delete actions in the Center UI.
+- Derived prediction outcome scoring for explicit prediction outcomes.
 
 Not complete:
 
-- Runtime capability enforcement against `.ai-bridge/capabilities/*.json`.
-- Production storage adapter beyond browser-local and in-memory test storage.
 - Real external API connectors for GitHub, Plane, Learn/Understand, and workers.
-- Prediction outcome scoring beyond baseline feature and summary projection.
-- Profile export/delete UI.
+- Production sync beyond local workspace JSON storage.
+- Full authority/truth-impact/policy capability enforcement beyond registered-id import gating.
 
 ## Dependencies
 

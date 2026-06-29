@@ -85,7 +85,8 @@ Manual capture:
 ```text
 Center UI
   -> CenterLocalSpine
-  -> browser-local storage key sim.center.local-spine.v1
+  -> workspace local-server storage
+  -> browser-local fallback if the local route is unavailable
   -> Center panels
 ```
 
@@ -96,7 +97,7 @@ local source file or MS2 data dir
   -> local development API route under apps/sim/app/api/center/
   -> typed CenterProducerImportPacket
   -> applyCenterProducerImport
-  -> browser-local profile dataset
+  -> workspace profile dataset
   -> Center panels
 ```
 
@@ -117,6 +118,15 @@ profile dataset
   -> deriveCenterBaselinePrediction
   -> feature projections
   -> prediction summary
+  -> Center Prediction Summary panel
+```
+
+Prediction outcome scoring:
+
+```text
+profile prediction outcomes
+  -> scoreCenterPredictionOutcomes
+  -> absolute error / Brier score when explicit actual values exist
   -> Center Prediction Summary panel
 ```
 
@@ -150,13 +160,27 @@ bun run check:center-boundary
 
 ## Local-First Boundary
 
-Current profile data is stored in browser-local storage through `createBrowserCenterStorage()` in `apps/sim/lib/center/local-spine.ts`.
-
-The storage key is:
+Current profile data is stored in workspace-scoped local-server JSON through:
 
 ```text
-sim.center.local-spine.v1
+apps/sim/app/api/center/storage/[workspaceId]/route.ts
+apps/sim/lib/center/file-storage.ts
+apps/sim/lib/center/workspace-storage.ts
 ```
+
+Default storage path:
+
+```text
+.ai-bridge/artifacts/center-storage/<workspaceId>.json
+```
+
+Override:
+
+```text
+CENTER_WORKSPACE_STORAGE_DIR=/path/to/storage
+```
+
+If the local route is unavailable, `createWorkspaceCenterStorage()` falls back to `createBrowserCenterStorage()` with a workspace-scoped browser key.
 
 The current local implementation does not send profile data to telemetry. `CenterSurface` displays `telemetry off`, profile records have `telemetry: 'off'`, and the local dev profile sets `NEXT_TELEMETRY_DISABLED=1` through the app launcher path.
 

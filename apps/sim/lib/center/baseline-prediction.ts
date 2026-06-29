@@ -12,6 +12,20 @@ export interface CenterBaselinePredictionProjection {
   prediction: CenterPredictionSummary
 }
 
+export interface CenterPredictionOutcomeScore {
+  predictionId: string
+  outcomeId: string
+  predictionType: string
+  modelVersion: string
+  predictedScore?: number
+  actualValue?: number
+  brierScore?: number
+  absoluteError?: number
+  status: 'scored' | 'unscored'
+  reason?: string
+  scoredAt: string
+}
+
 const BASELINE_WINDOW = '30d'
 
 export function deriveCenterBaselinePrediction(
@@ -103,6 +117,76 @@ export function deriveCenterBaselinePrediction(
   }
 }
 
+export function scoreCenterPredictionOutcomes(
+  dataset: CenterDataset,
+  profileId: string
+): CenterPredictionOutcomeScore[] {
+  const predictionsById = new Map(
+    dataset.predictionSummaries
+      .filter((prediction) => prediction.profileId === profileId)
+      .map((prediction) => [prediction.id, prediction])
+  )
+  const scoredAt = new Date().toISOString()
+
+  return dataset.outcomes
+    .filter((outcome) => outcome.profileId === profileId && outcome.subjectType === 'prediction')
+    .map((outcome) => {
+      const prediction = predictionsById.get(outcome.subjectId)
+      if (!prediction) {
+        return {
+          predictionId: outcome.subjectId,
+          outcomeId: outcome.id,
+          predictionType: 'unknown',
+          modelVersion: 'unknown',
+          status: 'unscored',
+          reason: 'prediction not found',
+          scoredAt,
+        }
+      }
+
+      const predictedScore = prediction.probability ?? prediction.score
+      if (predictedScore === undefined) {
+        return {
+          predictionId: prediction.id,
+          outcomeId: outcome.id,
+          predictionType: prediction.predictionType,
+          modelVersion: prediction.modelVersion,
+          status: 'unscored',
+          reason: 'prediction has no score or probability',
+          scoredAt,
+        }
+      }
+
+      const actualValue = readOutcomeActualValue(outcome.payload, prediction.predictionType)
+      if (actualValue === undefined) {
+        return {
+          predictionId: prediction.id,
+          outcomeId: outcome.id,
+          predictionType: prediction.predictionType,
+          modelVersion: prediction.modelVersion,
+          predictedScore,
+          status: 'unscored',
+          reason: 'outcome has no explicit actual value',
+          scoredAt,
+        }
+      }
+
+      const absoluteError = Number(Math.abs(predictedScore - actualValue).toFixed(4))
+      return {
+        predictionId: prediction.id,
+        outcomeId: outcome.id,
+        predictionType: prediction.predictionType,
+        modelVersion: prediction.modelVersion,
+        predictedScore,
+        actualValue,
+        brierScore: Number((absoluteError * absoluteError).toFixed(4)),
+        absoluteError,
+        status: 'scored',
+        scoredAt,
+      }
+    })
+}
+
 function buildDrivers(input: {
   blockedLoopCount: number
   openProposalCount: number
@@ -177,6 +261,52 @@ function getBaselineRiskScore(drivers: CenterPredictionDriver[]): number {
     return total + (driver.direction === 'up' ? weight : -weight)
   }, 0.5)
   return Math.max(0, Math.min(1, Number(risk.toFixed(2))))
+}
+
+function readOutcomeActualValue(
+  payload: Record<string, unknown>,
+  predictionType: string
+): number | undefined {
+  const numericActual = readBoundedNumber(
+    payload.actualValue ?? payload.actualScore ?? payload.observedValue
+  )
+  if (numericActual !== undefined) return numericActual
+
+  if (predictionType === 'loop_drift') {
+    const driftOccurred = readBoolean(payload.driftOccurred ?? payload.occurred)
+    if (driftOccurred !== undefined) return driftOccurred ? 1 : 0
+  }
+
+  const occurred = readBoolean(payload.occurred)
+  if (occurred !== undefined) return occurred ? 1 : 0
+
+  return readOutcomeResult(payload.result)
+}
+
+function readBoundedNumber(value: unknown): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1) {
+    return undefined
+  }
+  return value
+}
+
+function readBoolean(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined
+}
+
+function readOutcomeResult(value: unknown): number | undefined {
+  if (typeof value !== 'string') return undefined
+  const normalized = value.trim().toLowerCase()
+  if (normalized === 'occurred' || normalized === 'true' || normalized === 'yes') return 1
+  if (
+    normalized === 'not_occurred' ||
+    normalized === 'not occurred' ||
+    normalized === 'false' ||
+    normalized === 'no'
+  ) {
+    return 0
+  }
+  return undefined
 }
 
 function stableFeatureId(profileId: string, featureName: string): string {
