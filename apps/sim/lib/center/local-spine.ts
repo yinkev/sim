@@ -16,6 +16,7 @@ import type {
   CenterProfile,
   CenterRawEvent,
   CenterRecommendation,
+  CenterReviewPacket,
   CenterStorageMode,
 } from '@/lib/center/types'
 
@@ -32,6 +33,7 @@ const EMPTY_DATASET: CenterDataset = {
   featureProjections: [],
   predictionSummaries: [],
   outcomes: [],
+  reviewPackets: [],
 }
 
 const DEFAULT_STORAGE_KEY = 'sim.center.local-spine.v1'
@@ -171,6 +173,24 @@ export interface RecordCenterOutcomeInput {
   payload?: Record<string, unknown>
   evidenceRefs?: string[]
   observedAt?: string
+}
+
+export interface CreateCenterReviewPacketInput {
+  profileId: string
+  packetId: string
+  projectId?: string
+  title: string
+  topic?: string
+  status: CenterReviewPacket['status']
+  approvalState: CenterReviewPacket['approvalState']
+  workerGate: CenterReviewPacket['workerGate']
+  round: number
+  maxRounds: number
+  evidenceRefs?: string[]
+  decisionRefs?: string[]
+  createdAt?: string
+  updatedAt?: string
+  sourceRef?: string
 }
 
 export function createMemoryCenterStorage(initialDataset?: CenterDataset): CenterStorageAdapter {
@@ -502,6 +522,36 @@ export class CenterLocalSpine {
     return outcome
   }
 
+  async createReviewPacket(input: CreateCenterReviewPacketInput): Promise<CenterReviewPacket> {
+    const reviewPacket: CenterReviewPacket = {
+      id: generateId(),
+      profileId: input.profileId,
+      packetId: input.packetId,
+      projectId: input.projectId,
+      title: input.title,
+      topic: input.topic,
+      status: input.status,
+      approvalState: input.approvalState,
+      workerGate: input.workerGate,
+      round: input.round,
+      maxRounds: input.maxRounds,
+      evidenceRefs: input.evidenceRefs ?? [],
+      decisionRefs: input.decisionRefs ?? [],
+      createdAt: input.createdAt,
+      updatedAt: input.updatedAt,
+      sourceRef: input.sourceRef,
+    }
+
+    await this.update((dataset) => {
+      assertProfileExists(dataset, input.profileId)
+      assertEvidenceBelongsToProfile(dataset, reviewPacket.evidenceRefs, input.profileId)
+      assertDecisionsBelongToProfile(dataset, reviewPacket.decisionRefs, input.profileId)
+      dataset.reviewPackets.push(reviewPacket)
+    })
+
+    return reviewPacket
+  }
+
   async exportProfile(profileId: string): Promise<CenterDataset> {
     const dataset = await this.storage.load()
     assertProfileExists(dataset, profileId)
@@ -533,6 +583,9 @@ export class CenterLocalSpine {
         (prediction) => prediction.profileId !== profileId
       )
       dataset.outcomes = dataset.outcomes.filter((outcome) => outcome.profileId !== profileId)
+      dataset.reviewPackets = dataset.reviewPackets.filter(
+        (packet) => packet.profileId !== profileId
+      )
     })
   }
 
@@ -627,6 +680,21 @@ function assertFeatureProjectionsBelongToProfile(
   }
 }
 
+function assertDecisionsBelongToProfile(
+  dataset: CenterDataset,
+  decisionRefs: string[],
+  profileId: string
+) {
+  const invalidRef = decisionRefs.find((decisionId) => {
+    const decision = dataset.decisions.find((candidate) => candidate.id === decisionId)
+    return !decision || decision.profileId !== profileId
+  })
+
+  if (invalidRef) {
+    throw new Error(`Center decision ${invalidRef} does not belong to profile ${profileId}`)
+  }
+}
+
 function assertRecommendationBelongsToProfile(
   dataset: CenterDataset,
   recommendationId: string | undefined,
@@ -663,6 +731,7 @@ function filterDatasetByProfile(dataset: CenterDataset, profileId: string): Cent
       (prediction) => prediction.profileId === profileId
     ),
     outcomes: dataset.outcomes.filter((outcome) => outcome.profileId === profileId),
+    reviewPackets: dataset.reviewPackets.filter((packet) => packet.profileId === profileId),
   }
 }
 
@@ -684,5 +753,6 @@ function normalizeDataset(dataset: Partial<CenterDataset>): CenterDataset {
     featureProjections: dataset.featureProjections ?? [],
     predictionSummaries: dataset.predictionSummaries ?? [],
     outcomes: dataset.outcomes ?? [],
+    reviewPackets: dataset.reviewPackets ?? [],
   }
 }

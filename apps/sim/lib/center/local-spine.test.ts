@@ -216,4 +216,48 @@ describe('CenterLocalSpine', () => {
     expect(exported.predictionSummaries).toEqual([prediction])
     expect(exported.outcomes).toEqual([outcome])
   })
+
+  it('stores review packets with evidence and decision refs', async () => {
+    const spine = new CenterLocalSpine(createMemoryCenterStorage())
+    const profile = await spine.createProfile({ displayName: 'Kevin' })
+    const actor = await spine.createActor({
+      profileId: profile.id,
+      kind: 'human',
+      displayName: 'Kevin',
+    })
+    const evidence = await spine.attachEvidence({
+      profileId: profile.id,
+      producerId: 'ai-bridge',
+      subjectType: 'review-packet',
+      subjectId: 'RP-1',
+      kind: 'source',
+      title: 'Review source',
+    })
+    const decision = await spine.recordDecision({
+      profileId: profile.id,
+      actorId: actor.id,
+      title: 'Approve packet',
+      decision: 'Packet is approved for execution',
+      reason: 'Governor converged',
+      consequence: 'Workers may execute approved scope',
+    })
+    const packet = await spine.createReviewPacket({
+      profileId: profile.id,
+      packetId: 'RP-1',
+      projectId: 'center',
+      title: 'Review packet',
+      status: 'converged',
+      approvalState: 'approved-with-required-changes',
+      workerGate: 'approved-for-execution',
+      round: 2,
+      maxRounds: 20,
+      evidenceRefs: [evidence.id],
+      decisionRefs: [decision.id],
+      sourceRef: 'ai-bridge:review-packet:RP-1',
+    })
+
+    const exported = await spine.exportProfile(profile.id)
+
+    expect(exported.reviewPackets).toEqual([packet])
+  })
 })

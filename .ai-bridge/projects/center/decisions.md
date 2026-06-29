@@ -3,7 +3,7 @@ id: center-decisions
 type: decision-log
 project: center
 status: active
-updated: 2026-06-28
+updated: 2026-06-29
 links:
   - center-index
   - center-interfaces
@@ -81,3 +81,17 @@ Mahalanobis and richer models are deferred until enough baseline data exists.
 
 Revisit if:
 Sufficient data exists and evaluation metrics justify a richer model.
+
+## 2026-06-29 — Review packets become Center-visible worker gates
+
+Decision:
+Center stores review packet status, approval state, round count, source evidence, and worker gate state.
+
+Reason:
+Workers need to distinguish approved execution packets from drafts without relying on hidden chat context or prose-only handoffs.
+
+Consequence:
+Review packet imports are explicit local actions. Imported packets preserve `.ai-bridge` source evidence and expose `workerGate`.
+
+Revisit if:
+Review packet state moves to a durable local server store and Center no longer needs browser-local imports.

@@ -1,4 +1,4 @@
-# Current Plan — Phase 7 Review Packets Inside Center
+# Current Plan — Phase 8 GitHub Producer
 
 Status: active.
 
@@ -87,9 +87,33 @@ Evidence:
 - `bun run check:center-boundary` passed.
 - `bun run check:boundaries` passed.
 
+## Phase 7 result
+
+Handled. Center now imports `.ai-bridge` review packets through an explicit local route and displays worker gate status.
+
+Implemented:
+
+- `apps/sim/lib/center/review-packet-files.ts`
+- `apps/sim/lib/center/review-packets.ts`
+- `apps/sim/app/api/center/review-packets/import/route.ts`
+- Center local spine support for `ReviewPacket`
+- Center UI `Import Reviews` action and Review Packets panel
+
+Evidence:
+
+- Real source: `.ai-bridge/projects/center/reviews/RP-20260628-002-v1.md`
+- Import route produced 1 record: `RP-20260628-002`, `converged`, `approved-with-required-changes`, `approved-for-execution`, round `2/20`.
+- Browser smoke created a profile, clicked `Import Reviews`, persisted 1 review packet and 1 evidence source, and rendered `approved-for-execution`.
+- Targeted built Center page/API artifacts had no workflow, block, store, auth, provider, Monaco, or mermaid imports.
+- `bun --cwd apps/sim test lib/center/local-spine.test.ts lib/center/baseline-prediction.test.ts lib/center/producer-import.test.ts lib/center/producers/ms2scheduler.test.ts lib/center/review-packets.test.ts` passed.
+- `bun --cwd apps/sim type-check` passed.
+- `bun run check:api-validation` passed.
+- `bun run check:center-boundary` passed.
+- `bun run check:boundaries` passed.
+
 ## Objective
 
-Make governance review packets visible enough that workers can identify approved execution packets without hidden context.
+Bring engineering reality into Center through the first GitHub producer shape.
 
 Center remains the working name for the daily operating surface. Workflow remains a feature module, not the operating surface.
 
@@ -102,6 +126,7 @@ Center remains the working name for the daily operating surface. Workflow remain
 - `.ai-bridge/projects/center/interfaces.md`
 - `.ai-bridge/projects/center/decisions.md`
 - `.ai-bridge/projects/center/phase-6-implementation.md`
+- `.ai-bridge/projects/center/phase-7-implementation.md`
 - `.ai-bridge/projects/center/reviews/RP-20260628-002-v1.md`
 - `.ai-bridge/projects/cpu-ram-stabilization/index.md`
 - `.ai-bridge/projects/ms2scheduler-integration/index.md`
@@ -191,11 +216,9 @@ Authority and truth impact are defined in:
 
 Build:
 
-- review packet status projection
-- round count projection
-- approved/deadlocked state projection
-- decision links
-- worker gate signal that can distinguish approved packets from draft review
+- GitHub producer contract for commits, issues, PRs, reviews, and CI failures
+- local/manual import or fixture path that maps GitHub-shaped data into Center events, observations, evidence, loops, and next actions
+- Center UI projection for engineering state without loading provider SDK registries
 
 Guardrail:
 
@@ -203,9 +226,9 @@ Guardrail:
 
 ## Acceptance criteria
 
-- Center can show review packet status without loading unrelated heavy modules.
-- Workers can identify approved execution packets from Center-visible state.
-- Decisions link back to review evidence.
+- GitHub-shaped engineering activity can be represented without bespoke Center architecture.
+- Evidence links back to commits, PRs, issues, reviews, or CI output.
+- Center route remains free of heavy workflow/provider imports.
 - No telemetry.
 - Targeted type/lint/boundary checks pass.
 

@@ -8,6 +8,7 @@ links:
   - center-governing-spec-v1
   - current-plan
   - center-phase-6-implementation
+  - center-phase-7-implementation
 ---
 
 # Center Implementation Roadmap
@@ -164,7 +165,7 @@ Verified:
 
 ## Phase 7 - Review Packets Inside Center
 
-Status: active.
+Status: initial implementation complete.
 
 Build:
 
@@ -178,7 +179,14 @@ Acceptance:
 
 - workers can identify approved execution packets
 
+Verified:
+
+- `.ai-bridge/projects/center/reviews/RP-20260628-002-v1.md` imports as `approved-for-execution`.
+- Center UI persists and renders review packet status, approval state, round count, and worker gate.
+
 ## Phase 8 - GitHub Producer
+
+Status: active.
 
 Map commits, issues, PRs, reviews, and CI failures to events, observations, evidence, loops, and next actions.
 

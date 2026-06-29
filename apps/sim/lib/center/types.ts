@@ -186,6 +186,39 @@ export interface CenterOutcome {
   evidenceRefs: string[]
 }
 
+export interface CenterReviewPacket {
+  id: string
+  profileId: string
+  packetId: string
+  projectId?: string
+  title: string
+  topic?: string
+  status:
+    | 'draft'
+    | 'reviewing'
+    | 'converged'
+    | 'approved'
+    | 'rejected'
+    | 'deadlocked'
+    | 'superseded'
+  approvalState:
+    | 'draft'
+    | 'in-review'
+    | 'approved'
+    | 'approved-with-required-changes'
+    | 'rejected'
+    | 'deadlocked'
+    | 'superseded'
+  workerGate: 'blocked' | 'review-required' | 'approved-for-execution'
+  round: number
+  maxRounds: number
+  evidenceRefs: string[]
+  decisionRefs: string[]
+  createdAt?: string
+  updatedAt?: string
+  sourceRef?: string
+}
+
 export interface CenterDataset {
   profiles: CenterProfile[]
   actors: CenterActor[]
@@ -199,4 +232,5 @@ export interface CenterDataset {
   featureProjections: CenterFeatureProjection[]
   predictionSummaries: CenterPredictionSummary[]
   outcomes: CenterOutcome[]
+  reviewPackets: CenterReviewPacket[]
 }

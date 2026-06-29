@@ -101,6 +101,39 @@ const producerActionProposalSchema = z.object({
   evidenceRefs: z.array(z.string()).optional(),
 })
 
+const reviewPacketRecordSchema = z.object({
+  sourceRef: z.string(),
+  packetId: z.string(),
+  projectId: z.string().optional(),
+  title: z.string(),
+  topic: z.string().optional(),
+  status: z.enum([
+    'draft',
+    'reviewing',
+    'converged',
+    'approved',
+    'rejected',
+    'deadlocked',
+    'superseded',
+  ]),
+  approvalState: z.enum([
+    'draft',
+    'in-review',
+    'approved',
+    'approved-with-required-changes',
+    'rejected',
+    'deadlocked',
+    'superseded',
+  ]),
+  workerGate: z.enum(['blocked', 'review-required', 'approved-for-execution']),
+  round: z.number().int().min(0),
+  maxRounds: z.number().int().min(1),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+  uri: z.string(),
+  payload: payloadSchema,
+})
+
 export const centerProducerImportPacketSchema = z.object({
   producerId: z.string(),
   producerDisplayName: z.string(),
@@ -132,4 +165,22 @@ export const importMs2SchedulerCenterContract = defineRouteContract({
 
 export type ImportMs2SchedulerCenterResponse = z.output<
   typeof importMs2SchedulerCenterContract.response.schema
+>
+
+export const importCenterReviewPacketsContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/center/review-packets/import',
+  response: {
+    mode: 'json',
+    schema: z.object({
+      records: z.array(reviewPacketRecordSchema),
+      source: z.object({
+        reviewDir: z.string(),
+      }),
+    }),
+  },
+})
+
+export type ImportCenterReviewPacketsResponse = z.output<
+  typeof importCenterReviewPacketsContract.response.schema
 >

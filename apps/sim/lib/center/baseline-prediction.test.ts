@@ -18,6 +18,7 @@ const baseDataset: CenterDataset = {
   featureProjections: [],
   predictionSummaries: [],
   outcomes: [],
+  reviewPackets: [],
 }
 
 describe('deriveCenterBaselinePrediction', () => {

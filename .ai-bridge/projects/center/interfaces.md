@@ -9,6 +9,7 @@ links:
   - RP-20260628-002
   - ms2scheduler-integration-interfaces
   - center-phase-6-implementation
+  - center-phase-7-implementation
 ---
 
 # Center Interfaces
@@ -317,6 +318,30 @@ type CenterOutcome = {
   observedAt: string
   payload: Record<string, unknown>
   evidenceRefs: string[]
+}
+```
+
+## Review Packet
+
+Governance packet visible inside Center so worker gates are not hidden in prose.
+
+```ts
+type CenterReviewPacket = {
+  id: string
+  profileId: string
+  packetId: string
+  projectId?: string
+  title: string
+  topic?: string
+  status: 'draft' | 'reviewing' | 'converged' | 'approved' | 'rejected' | 'deadlocked' | 'superseded'
+  approvalState: 'draft' | 'in-review' | 'approved' | 'approved-with-required-changes' | 'rejected' | 'deadlocked' | 'superseded'
+  workerGate: 'blocked' | 'review-required' | 'approved-for-execution'
+  round: number
+  maxRounds: number
+  evidenceRefs: string[]
+  decisionRefs: string[]
+  createdAt?: string
+  updatedAt?: string
 }
 ```
 

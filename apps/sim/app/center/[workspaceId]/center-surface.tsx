@@ -18,9 +18,13 @@ import {
 } from 'lucide-react'
 import { Button, ChipInput, ChipTag, ChipTextarea } from '@/components/emcn'
 import { requestJson } from '@/lib/api/client/request'
-import { importMs2SchedulerCenterContract } from '@/lib/api/contracts/center'
+import {
+  importCenterReviewPacketsContract,
+  importMs2SchedulerCenterContract,
+} from '@/lib/api/contracts/center'
 import {
   applyCenterProducerImport,
+  applyCenterReviewPacketImport,
   type CenterActor,
   type CenterDataset,
   CenterLocalSpine,
@@ -47,6 +51,7 @@ const EMPTY_CENTER_DATASET: CenterDataset = {
   featureProjections: [],
   predictionSummaries: [],
   outcomes: [],
+  reviewPackets: [],
 }
 
 const CAPTURE_MODES: Array<{ id: CaptureMode; label: string }> = [
@@ -82,6 +87,7 @@ function profileDataset(dataset: CenterDataset, profileId: string | null): Cente
       (prediction) => prediction.profileId === profileId
     ),
     outcomes: dataset.outcomes.filter((outcome) => outcome.profileId === profileId),
+    reviewPackets: dataset.reviewPackets.filter((packet) => packet.profileId === profileId),
   }
 }
 
@@ -197,8 +203,10 @@ export function CenterSurface() {
   const [decisionRevisitIf, setDecisionRevisitIf] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [importSummary, setImportSummary] = useState<string | null>(null)
+  const [reviewImportSummary, setReviewImportSummary] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
+  const [isImportingReviews, setIsImportingReviews] = useState(false)
 
   useEffect(() => {
     setStorage(createCenterStorage())
@@ -271,6 +279,15 @@ export function CenterSurface() {
     () => scoped.actionProposals.filter((proposal) => proposal.status === 'proposed'),
     [scoped.actionProposals]
   )
+  const reviewPackets = useMemo(
+    () =>
+      [...scoped.reviewPackets].sort((left, right) => {
+        const leftUpdated = left.updatedAt ?? left.createdAt ?? ''
+        const rightUpdated = right.updatedAt ?? right.createdAt ?? ''
+        return rightUpdated.localeCompare(leftUpdated)
+      }),
+    [scoped.reviewPackets]
+  )
   const baselineProjection = useMemo(
     () => (selectedProfile ? deriveCenterBaselinePrediction(scoped, selectedProfile.id) : null),
     [scoped, selectedProfile]
@@ -324,6 +341,29 @@ export function CenterSurface() {
       setError(getErrorMessage(err, 'MS2Scheduler import failed'))
     } finally {
       setIsImporting(false)
+    }
+  }
+
+  const importReviewPackets = async () => {
+    if (!storage || !selectedProfile) return
+    setIsImportingReviews(true)
+    setError(null)
+    setReviewImportSummary(null)
+    try {
+      const response = await requestJson(importCenterReviewPacketsContract, {})
+      const summary = await applyCenterReviewPacketImport(
+        storage,
+        selectedProfile.id,
+        response.records
+      )
+      await reloadDataset(selectedProfile.id)
+      setReviewImportSummary(
+        `Review import: ${summary.reviewPacketsAdded} packets, ${summary.evidenceAdded} evidence.`
+      )
+    } catch (err) {
+      setError(getErrorMessage(err, 'Review packet import failed'))
+    } finally {
+      setIsImportingReviews(false)
     }
   }
 
@@ -434,6 +474,7 @@ export function CenterSurface() {
             <ChipTag variant='mono'>{scoped.evidence.length} evidence</ChipTag>
             <ChipTag variant='mono'>{scoped.loops.length} loops</ChipTag>
             <ChipTag variant='mono'>{scoped.actionProposals.length} proposals</ChipTag>
+            <ChipTag variant='mono'>{scoped.reviewPackets.length} reviews</ChipTag>
           </div>
         </div>
       </div>
@@ -470,6 +511,13 @@ export function CenterSurface() {
               >
                 Import MS2
               </Button>
+              <Button
+                type='button'
+                disabled={!selectedProfile || isImportingReviews}
+                onClick={importReviewPackets}
+              >
+                Import Reviews
+              </Button>
             </div>
           </section>
 
@@ -482,6 +530,12 @@ export function CenterSurface() {
           {importSummary ? (
             <div className='rounded-[8px] border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-[var(--text-muted)] text-sm'>
               {importSummary}
+            </div>
+          ) : null}
+
+          {reviewImportSummary ? (
+            <div className='rounded-[8px] border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-[var(--text-muted)] text-sm'>
+              {reviewImportSummary}
             </div>
           ) : null}
 
@@ -684,6 +738,30 @@ export function CenterSurface() {
                         />
                       ))}
                     </>
+                  )}
+                </div>
+              </Section>
+
+              <Section title='Review Packets' count={reviewPackets.length} icon={ShieldCheck}>
+                <div className='flex flex-col gap-2'>
+                  {reviewPackets.length === 0 ? (
+                    <EmptyState label='No review packets imported' />
+                  ) : (
+                    reviewPackets
+                      .slice(0, 5)
+                      .map((packet) => (
+                        <RecordRow
+                          key={packet.id}
+                          title={packet.title}
+                          meta={packet.workerGate}
+                          detail={`round ${packet.round}/${packet.maxRounds} · ${packet.approvalState}`}
+                          tone={
+                            packet.workerGate === 'approved-for-execution'
+                              ? 'text-[var(--text-success)]'
+                              : undefined
+                          }
+                        />
+                      ))
                   )}
                 </div>
               </Section>
