@@ -272,6 +272,7 @@ Draft review packet:
 
 ```text
 .ai-bridge/projects/center/reviews/RP-20260629-003-dogfood-readiness-capability-enforcement.md
+.ai-bridge/projects/center/reviews/RP-20260629-004-pre-dogfood-overnight-hardening.md
 ```
 
 Audit:

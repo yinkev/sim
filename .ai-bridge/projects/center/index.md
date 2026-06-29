@@ -10,6 +10,7 @@ links:
   - center-roadmap-v1
   - center-phase-0-12-integration-audit-20260629
   - RP-20260629-003
+  - RP-20260629-004
 ---
 
 # Center Project
@@ -26,6 +27,7 @@ Next gate:
 
 ```text
 .ai-bridge/projects/center/reviews/RP-20260629-003-dogfood-readiness-capability-enforcement.md
+.ai-bridge/projects/center/reviews/RP-20260629-004-pre-dogfood-overnight-hardening.md
 ```
 
 Resolve that dogfood-readiness review before live integrations or autonomous worker execution.
@@ -47,6 +49,7 @@ Center should not depend on random internal notes from those projects.
 - `roadmap.md`
 - `audits/phase-0-12-integration-audit-20260629.md`
 - `reviews/RP-20260629-003-dogfood-readiness-capability-enforcement.md`
+- `reviews/RP-20260629-004-pre-dogfood-overnight-hardening.md`
 - `phase-12-implementation.md`
 
 ## Near-term build constraint
