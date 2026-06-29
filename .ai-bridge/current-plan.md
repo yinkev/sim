@@ -1,6 +1,6 @@
-# Current Plan — Phase 0 Sim CPU/RAM Stabilization Before Center Implementation
+# Current Plan — Phase 4 Lightweight Center Surface
 
-Status: active and not waived.
+Status: active.
 
 Governing decision: Center / Sim / MS2Scheduler architecture is approved with required changes. Those required changes are now execution gates:
 
@@ -10,9 +10,28 @@ Governing decision: Center / Sim / MS2Scheduler architecture is approved with re
 4. Keep Phase 0 as Sim CPU/RAM stabilization.
 5. Do not start Center UI until Phase 0 is handled or explicitly waived.
 
+## Phase 0 result
+
+Handled. The repo now has low-resource dev commands, a documented process/import map, a Turbopack root fix, lazy workflow registry loads in workspace providers, a standalone Center route served through a `/workspace/[workspaceId]/center` proxy rewrite, proxy-level Center auth that avoids the full auth/billing/workflow graph in the Center route, and a Center route import-boundary check.
+
+Evidence:
+
+- `bun run dev:center` starts only `apps/sim` on port 6888.
+- Clean `/workspace/local-test/center` smoke returned `HTTP/1.1 200 OK` and compiled `/center/[workspaceId]` in `6.5s` total / `5.9s` Next compile.
+- Browser smoke created a profile, loop, and event using system Chrome at `/workspace/local-test/center`; the route stayed on the public workspace URL.
+- Center browser smoke did not request or compile `/api/auth/get-session`; Center auth stayed in `proxy.ts`.
+- Clean Center dev memory snapshots held at `rssMB: 2433` after one and two minutes.
+- Parsed Center server route bundle had no `apps_sim_tools`, `apps_sim_blocks`, `apps_sim_stores`, `apps_sim_triggers`, `apps_sim_lib_workflows`, `apps_sim_lib_auth`, `apps_sim_lib_billing`, or `apps_sim_lib_webhooks` entries.
+- Parsed Center page client entry had no tools, blocks, stores, workflows, auth, Monaco, or mermaid chunks.
+- `bun run check:center-boundary` passed.
+- `bun run check:api-validation` passed.
+- `bun run check:boundaries` passed.
+- `bun --cwd apps/sim type-check` passed.
+- `bun --cwd apps/sim test lib/center/local-spine.test.ts` passed.
+
 ## Objective
 
-Stop local Sim dev from burning extreme CPU/RAM before Center product work. Kevin reported extreme CPU and RAM usage.
+Build the first lightweight Center operating surface without pulling the workflow/block/editor hot path.
 
 Center remains the working name for the daily operating surface. Workflow remains a feature module, not the operating surface.
 
@@ -101,7 +120,6 @@ Authority and truth impact are defined in:
 
 ## Non-goals
 
-- Do not build Center UI yet.
 - Do not redesign product UI yet.
 - Do not pull/rebase upstream.
 - Do not overwrite Kevin's local commits.
@@ -109,85 +127,33 @@ Authority and truth impact are defined in:
 - Do not hide the issue by only increasing heap.
 - Do not remove workflow capability; isolate it.
 
-## Phase 0 — Protect branch state
+## Active implementation
 
-1. Run git status and recent commit inspection.
-2. Record current ahead/behind state.
-3. Confirm only `.ai-bridge/` is untracked before code changes.
+Build:
 
-## Phase 1 — Measure/process map
+- `/workspace/[workspaceId]/center`
+- standalone implementation under `apps/sim/app/center/[workspaceId]`
+- Today
+- active loops
+- blocked loops
+- recent observations
+- evidence
+- next actions
+- prediction summary with honest insufficient-data state
+- review-needed decisions
+- manual local capture for profile, event, loop, evidence, and decision
 
-Find what actually consumes CPU/RAM in Kevin's normal run path.
+Guardrail:
 
-Inspect:
-
-- root `dev`, `dev:full`, `dev:full:capped`, `dev:mothership`
-- app `dev`, `dev:capped`, `dev:webpack`
-- Turbo pipeline in `turbo.json`
-- Next config and instrumentation
-- local docs already present in `apps/sim/docs/DEV_COMPILE_PERF.md`
-- whether background jobs/realtime/mothership start during normal app dev
-
-Produce a short map:
-
-```text
-command -> processes -> watchers -> likely CPU/RAM causes
-```
-
-## Phase 2 — Low-risk script/profile fixes
-
-Implement explicit low-resource dev profiles.
-
-Expected shape:
-
-Root `package.json`:
-
-- `dev:lite`: app-only, capped heap, no realtime, no mothership, no background worker fanout
-- `dev:center`: app-only or app + only minimal services required for Center route
-- preserve `dev:full:capped`
-
-App `apps/sim/package.json`:
-
-- keep or refine `dev:capped`
-- add a documented low-resource app command if needed
-
-Add docs:
-
-- `apps/sim/docs/LOCAL_DEV_PROFILES.md` or similar
-- explain which command Kevin should use daily
-
-## Phase 3 — Import-boundary plan
-
-Do not blindly refactor the registry. First identify exact import chain with searches/reads.
-
-Target: prevent non-editor workspace routes from importing the full block registry.
-
-Likely work:
-
-- isolate workflow editor/block registry imports behind route-specific components
-- make workspace shell not import workflow editor stores unless editor route needs them
-- audit top-level `getBlock` / `getTrigger` calls that create circular module-eval dependency
-- document the registry cycle as a deliberate refactor, not a quick hack
-
-If a safe small patch exists, implement it. If not, write a precise follow-up plan with file-level targets and risk.
-
-## Phase 4 — Validation
-
-Run cheapest checks first:
-
-- package JSON/script validity
-- targeted lint/typecheck for touched files
-- optionally app boot smoke if available
-
-Do not run full monorepo test by default.
+- `bun run check:center-boundary` must pass.
 
 ## Acceptance criteria
 
-- Kevin has a clear low-resource daily dev command.
-- The repo documents when to use `dev:lite`, `dev:center`, and `dev:full:capped`.
-- No product behavior is changed by script/doc-only fixes.
-- Any code changes are targeted and justified by measured import/process evidence.
-- Center route constraints are explicit before Center UI implementation starts.
+- Center route loads without top-level workflow editor, block registry, connector registry, Monaco, mermaid, document parser, execution sandbox, or provider SDK registry imports.
+- Center surface is not graph-only.
+- Center can use the local spine through browser-local storage.
+- No telemetry.
+- Targeted type/lint/boundary checks pass.
 
 ## Final report format
 

@@ -2,12 +2,23 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createLogger } from '@sim/logger'
+import { usePathname } from 'next/navigation'
 import type { PostHog } from 'posthog-js'
 import { getEnv, isTruthy } from '@/lib/core/config/env'
 
 const logger = createLogger('PostHogProvider')
 
+function isCenterPath(pathname: string | null): boolean {
+  if (!pathname) return false
+  return (
+    pathname === '/center' ||
+    pathname.startsWith('/center/') ||
+    /^\/workspace\/[^/]+\/center(?:\/|$)/.test(pathname)
+  )
+}
+
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
   const [Provider, setProvider] = useState<React.ComponentType<{
     client: PostHog
     children: React.ReactNode
@@ -15,6 +26,8 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
   const clientRef = useRef<PostHog | null>(null)
 
   useEffect(() => {
+    if (isCenterPath(pathname)) return
+
     const posthogEnabled = getEnv('NEXT_PUBLIC_POSTHOG_ENABLED')
     const posthogKey = getEnv('NEXT_PUBLIC_POSTHOG_KEY')
 
@@ -55,7 +68,11 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
       .catch((err) => {
         logger.error('Failed to load PostHog', { error: err })
       })
-  }, [])
+  }, [pathname])
+
+  if (isCenterPath(pathname)) {
+    return <>{children}</>
+  }
 
   if (Provider && clientRef.current) {
     return <Provider client={clientRef.current}>{children}</Provider>

@@ -35,6 +35,31 @@ workspace shell/layout
   -> hundreds of block modules
 ```
 
+Center route boundary:
+
+```text
+/workspace/[workspaceId]/center
+  -> proxy rewrite to /center/[workspaceId]
+  -> apps/sim/app/center/**
+  -> apps/sim/lib/center/**
+```
+
+Validation:
+
+```text
+bun run check:center-boundary
+```
+
+Current clean smoke:
+
+- `GET /workspace/local-test/center` returned `HTTP/1.1 200 OK`.
+- Next compiled `/center/[workspaceId]` in `6.5s` total / `5.9s` Next compile.
+- Browser smoke created a profile, loop, and event using system Chrome at `/workspace/local-test/center`.
+- Center browser smoke did not request or compile `/api/auth/get-session`; Center auth stayed in `proxy.ts`.
+- Center dev memory snapshots held at `rssMB: 2433` after one and two minutes.
+- Parsed Center server route bundle had no tools, blocks, stores, triggers, workflow, auth, billing, or webhook chunks.
+- Parsed Center page client entry had no tools, blocks, stores, workflows, auth, Monaco, or mermaid chunks.
+
 Additional hot path found during Phase 0 inspection and reduced in this phase:
 
 ```text
@@ -52,6 +77,10 @@ Patch applied:
 - `WorkspaceScopeSync` now lazy-loads `@/stores/workflows/registry/store` inside its effect.
 - Existing workflow behavior is preserved by still syncing workspace scope and hydration state after mount.
 - `apps/sim/next.config.ts` sets `turbopack.root` to the repo root so Next does not infer `/Users/kyin` because of home-level lockfiles.
+- Workspace-level settings/permission queries import narrow contract files instead of the full API contract barrel.
+- `proxy.ts` rewrites `/workspace/[workspaceId]/center` to the standalone `/center/[workspaceId]` route before the workspace layout can load.
+- Center auth is enforced in `proxy.ts` with the Better Auth session cookie so the Center server route does not import the full auth/billing/webhook/workflow graph.
+- Root PostHog/session telemetry hooks skip the standalone Center path.
 
 ## Center import boundary
 

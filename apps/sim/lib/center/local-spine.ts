@@ -81,6 +81,7 @@ export interface CreateCenterLoopInput {
   profileId: string
   title: string
   domain: string
+  status?: CenterLoop['status']
   nextAction?: string
   blockedBy?: string[]
   evidenceRefs?: string[]
@@ -244,7 +245,7 @@ export class CenterLocalSpine {
       profileId: input.profileId,
       title: input.title,
       domain: input.domain,
-      status: 'active',
+      status: input.status ?? 'active',
       nextAction: input.nextAction,
       blockedBy: input.blockedBy,
       evidenceRefs: input.evidenceRefs ?? [],

@@ -77,10 +77,18 @@ Acceptance:
 
 ## Phase 4 - Lightweight Center Surface
 
+Status: initial implementation in progress.
+
 Route:
 
 ```text
 /workspace/[workspaceId]/center
+```
+
+Implementation path:
+
+```text
+apps/sim/app/center/[workspaceId]
 ```
 
 Shows:

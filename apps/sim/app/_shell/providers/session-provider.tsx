@@ -4,6 +4,7 @@ import type React from 'react'
 import { createContext, useCallback, useEffect, useMemo, useState } from 'react'
 import { createLogger } from '@sim/logger'
 import { useQueryClient } from '@tanstack/react-query'
+import { usePathname } from 'next/navigation'
 import { requestJson } from '@/lib/api/client/request'
 import { listCreatorOrganizationsContract } from '@/lib/api/contracts/organizations'
 import { client } from '@/lib/auth/auth-client'
@@ -39,7 +40,17 @@ export const SessionContext = createContext<SessionHookResult | null>(null)
 
 const logger = createLogger('SessionProvider')
 
+function isCenterPath(pathname: string | null): boolean {
+  if (!pathname) return false
+  return (
+    pathname === '/center' ||
+    pathname.startsWith('/center/') ||
+    /^\/workspace\/[^/]+\/center(?:\/|$)/.test(pathname)
+  )
+}
+
 export function SessionProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
   const [data, setData] = useState<AppSession>(null)
   const [isPending, setIsPending] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -65,6 +76,15 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let isCancelled = false
+
+    if (isCenterPath(pathname)) {
+      setData(null)
+      setError(null)
+      setIsPending(false)
+      return () => {
+        isCancelled = true
+      }
+    }
 
     // Check if user was redirected after plan upgrade
     const params = new URLSearchParams(window.location.search)
@@ -118,10 +138,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     return () => {
       isCancelled = true
     }
-  }, [loadSession, queryClient])
+  }, [loadSession, pathname, queryClient])
 
   useEffect(() => {
     if (isPending) return
+    if (isCenterPath(pathname)) return
 
     import('posthog-js')
       .then(({ default: posthog }) => {
@@ -148,7 +169,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         } catch {}
       })
       .catch(() => {})
-  }, [data, isPending])
+  }, [data, isPending, pathname])
 
   const refetch = useCallback(async () => {
     await loadSession()

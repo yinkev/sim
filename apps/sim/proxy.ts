@@ -228,6 +228,15 @@ function handleSecurityFiltering(request: NextRequest): NextResponse | null {
   return null
 }
 
+function rewriteCenterRoute(request: NextRequest): NextResponse | null {
+  const match = request.nextUrl.pathname.match(/^\/workspace\/([^/]+)\/center(?:\/.*)?$/)
+  if (!match) return null
+
+  const rewrittenUrl = request.nextUrl.clone()
+  rewrittenUrl.pathname = `/center/${match[1]}`
+  return NextResponse.rewrite(rewrittenUrl)
+}
+
 export async function proxy(request: NextRequest) {
   const url = request.nextUrl
 
@@ -263,11 +272,22 @@ export async function proxy(request: NextRequest) {
     return track(request, NextResponse.next())
   }
 
-  if (url.pathname.startsWith('/workspace')) {
+  if (url.pathname.startsWith('/center/')) {
     if (!hasActiveSession) {
       return track(request, NextResponse.redirect(new URL('/login', request.url)))
     }
     const response = NextResponse.next()
+    response.headers.set('Content-Security-Policy', generateRuntimeCSP())
+    response.headers.set('X-Content-Type-Options', 'nosniff')
+    response.headers.set('X-Frame-Options', 'SAMEORIGIN')
+    return track(request, response)
+  }
+
+  if (url.pathname.startsWith('/workspace')) {
+    if (!hasActiveSession) {
+      return track(request, NextResponse.redirect(new URL('/login', request.url)))
+    }
+    const response = rewriteCenterRoute(request) ?? NextResponse.next()
     response.headers.set('Content-Security-Policy', generateRuntimeCSP())
     response.headers.set('X-Content-Type-Options', 'nosniff')
     response.headers.set('X-Frame-Options', 'SAMEORIGIN')

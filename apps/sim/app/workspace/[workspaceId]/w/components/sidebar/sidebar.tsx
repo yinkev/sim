@@ -2,7 +2,7 @@
 
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createLogger } from '@sim/logger'
-import { MoreHorizontal, Pin } from 'lucide-react'
+import { Activity, MoreHorizontal, Pin } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import { usePostHog } from 'posthog-js/react'
@@ -730,6 +730,12 @@ export const Sidebar = memo(function Sidebar() {
   const workspaceNavItems = useMemo(
     () =>
       [
+        {
+          id: 'center',
+          label: 'Center',
+          icon: Activity,
+          href: `/workspace/${workspaceId}/center`,
+        },
         {
           id: 'tables',
           label: 'Tables',
