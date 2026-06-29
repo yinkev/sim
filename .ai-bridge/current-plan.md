@@ -1,4 +1,4 @@
-# Current Plan — Phase 6 Baseline Prediction
+# Current Plan — Phase 7 Review Packets Inside Center
 
 Status: active.
 
@@ -65,9 +65,31 @@ Evidence:
 - `bun run check:center-boundary` passed.
 - `bun run check:boundaries` passed.
 
+## Phase 6 result
+
+Handled. Center now derives an honest baseline prediction summary from local Center data without calling a model or reporting calibrated probability.
+
+Implemented:
+
+- `apps/sim/lib/center/baseline-prediction.ts`
+- `apps/sim/lib/center/baseline-prediction.test.ts`
+- Center local spine support for `FeatureProjection`, `PredictionSummary`, and `Outcome`
+- Center UI projection for data sufficiency, confidence, drivers, feature refs, and baseline risk score
+
+Evidence:
+
+- No-data Center profile shows `Insufficient data` with `confidence 0%`.
+- Three manual captures produce three raw events and three observations, then the UI shows `Baseline loop drift`, `confidence 45%`, and 8 feature refs.
+- Targeted built Center page/API artifacts had no workflow, block, store, auth, provider, Monaco, or mermaid imports.
+- `bun --cwd apps/sim test lib/center/local-spine.test.ts lib/center/baseline-prediction.test.ts lib/center/producer-import.test.ts lib/center/producers/ms2scheduler.test.ts` passed.
+- `bun --cwd apps/sim type-check` passed.
+- `bun run check:api-validation` passed.
+- `bun run check:center-boundary` passed.
+- `bun run check:boundaries` passed.
+
 ## Objective
 
-Build the first honest baseline prediction loop on top of the local Center spine and imported MS2Scheduler records.
+Make governance review packets visible enough that workers can identify approved execution packets without hidden context.
 
 Center remains the working name for the daily operating surface. Workflow remains a feature module, not the operating surface.
 
@@ -79,6 +101,7 @@ Center remains the working name for the daily operating surface. Workflow remain
 - `.ai-bridge/projects/center/index.md`
 - `.ai-bridge/projects/center/interfaces.md`
 - `.ai-bridge/projects/center/decisions.md`
+- `.ai-bridge/projects/center/phase-6-implementation.md`
 - `.ai-bridge/projects/center/reviews/RP-20260628-002-v1.md`
 - `.ai-bridge/projects/cpu-ram-stabilization/index.md`
 - `.ai-bridge/projects/ms2scheduler-integration/index.md`
@@ -168,11 +191,11 @@ Authority and truth impact are defined in:
 
 Build:
 
-- feature projection storage for deterministic derived signals
-- prediction summary storage with data sufficiency, confidence, drivers, and feature refs
-- baseline prediction derivation from Center events/observations
-- outcome tracking hook for later scoring
-- UI projection that never reports fake precision when data is insufficient
+- review packet status projection
+- round count projection
+- approved/deadlocked state projection
+- decision links
+- worker gate signal that can distinguish approved packets from draft review
 
 Guardrail:
 
@@ -180,9 +203,9 @@ Guardrail:
 
 ## Acceptance criteria
 
-- Insufficient-data state is explicit and remains the default until minimum evidence exists.
-- Prediction summaries include confidence, drivers, feature refs, and model version.
-- Prediction output can be evaluated later through outcomes.
+- Center can show review packet status without loading unrelated heavy modules.
+- Workers can identify approved execution packets from Center-visible state.
+- Decisions link back to review evidence.
 - No telemetry.
 - Targeted type/lint/boundary checks pass.
 

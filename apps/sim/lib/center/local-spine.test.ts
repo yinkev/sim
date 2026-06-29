@@ -145,4 +145,75 @@ describe('CenterLocalSpine', () => {
       `Center raw event ${secondEvent.id} does not belong to profile ${firstProfile.id}`
     )
   })
+
+  it('stores prediction features, summaries, and outcomes with profile-scoped refs', async () => {
+    const spine = new CenterLocalSpine(createMemoryCenterStorage())
+    const profile = await spine.createProfile({ displayName: 'Kevin' })
+    const actor = await spine.createActor({
+      profileId: profile.id,
+      kind: 'human',
+      displayName: 'Kevin',
+    })
+    const rawEvent = await spine.appendRawEvent({
+      profileId: profile.id,
+      producerId: 'manual',
+      actorId: actor.id,
+      eventType: 'manual.capture',
+      subjectType: 'loop',
+      subjectId: 'loop-1',
+    })
+    const observation = await spine.deriveObservation({
+      profileId: profile.id,
+      producerId: 'center',
+      actorId: actor.id,
+      observationType: 'manual.summary',
+      subjectType: 'loop',
+      subjectId: 'loop-1',
+      sourceEventRefs: [rawEvent.id],
+    })
+    const evidence = await spine.attachEvidence({
+      profileId: profile.id,
+      producerId: 'manual',
+      subjectType: 'prediction',
+      subjectId: 'prediction-1',
+      kind: 'receipt',
+      title: 'Prediction review receipt',
+    })
+    const feature = await spine.createFeatureProjection({
+      profileId: profile.id,
+      targetType: 'profile',
+      targetId: profile.id,
+      featureName: 'observation_count_30d',
+      value: 1,
+      window: '30d',
+      sourceObservationRefs: [observation.id],
+      version: 'center-baseline-v1',
+    })
+    const prediction = await spine.createPredictionSummary({
+      profileId: profile.id,
+      targetType: 'profile',
+      targetId: profile.id,
+      predictionType: 'loop_drift',
+      status: 'insufficient-data',
+      confidence: 0.2,
+      dataSufficiency: 'low',
+      drivers: [{ name: 'no closed outcomes yet', direction: 'up', weight: 0.1 }],
+      featureRefs: [feature.id],
+      modelVersion: 'center-baseline-v1',
+    })
+    const outcome = await spine.recordOutcome({
+      profileId: profile.id,
+      subjectType: 'prediction',
+      subjectId: prediction.id,
+      outcomeType: 'reviewed',
+      payload: { accepted: true },
+      evidenceRefs: [evidence.id],
+    })
+
+    const exported = await spine.exportProfile(profile.id)
+
+    expect(exported.featureProjections).toEqual([feature])
+    expect(exported.predictionSummaries).toEqual([prediction])
+    expect(exported.outcomes).toEqual([outcome])
+  })
 })

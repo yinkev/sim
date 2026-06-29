@@ -7,8 +7,12 @@ import type {
   CenterDecision,
   CenterEvidence,
   CenterEvidenceKind,
+  CenterFeatureProjection,
   CenterLoop,
   CenterObservation,
+  CenterOutcome,
+  CenterPredictionDriver,
+  CenterPredictionSummary,
   CenterProfile,
   CenterRawEvent,
   CenterRecommendation,
@@ -25,6 +29,9 @@ const EMPTY_DATASET: CenterDataset = {
   decisions: [],
   recommendations: [],
   actionProposals: [],
+  featureProjections: [],
+  predictionSummaries: [],
+  outcomes: [],
 }
 
 const DEFAULT_STORAGE_KEY = 'sim.center.local-spine.v1'
@@ -128,6 +135,42 @@ export interface CreateCenterActionProposalInput {
   payload?: Record<string, unknown>
   evidenceRefs?: string[]
   sourceRef?: string
+}
+
+export interface CreateCenterFeatureProjectionInput {
+  profileId: string
+  targetType: string
+  targetId: string
+  featureName: string
+  value: number | string | boolean | null
+  window?: string
+  sourceObservationRefs?: string[]
+  version: string
+}
+
+export interface CreateCenterPredictionSummaryInput {
+  profileId: string
+  targetType: string
+  targetId: string
+  predictionType: string
+  status: CenterPredictionSummary['status']
+  probability?: number
+  score?: number
+  confidence: number
+  dataSufficiency: CenterPredictionSummary['dataSufficiency']
+  drivers?: CenterPredictionDriver[]
+  featureRefs?: string[]
+  modelVersion: string
+}
+
+export interface RecordCenterOutcomeInput {
+  profileId: string
+  subjectType: CenterOutcome['subjectType']
+  subjectId: string
+  outcomeType: string
+  payload?: Record<string, unknown>
+  evidenceRefs?: string[]
+  observedAt?: string
 }
 
 export function createMemoryCenterStorage(initialDataset?: CenterDataset): CenterStorageAdapter {
@@ -376,6 +419,89 @@ export class CenterLocalSpine {
     return actionProposal
   }
 
+  async createFeatureProjection(
+    input: CreateCenterFeatureProjectionInput
+  ): Promise<CenterFeatureProjection> {
+    const featureProjection: CenterFeatureProjection = {
+      id: generateId(),
+      profileId: input.profileId,
+      targetType: input.targetType,
+      targetId: input.targetId,
+      featureName: input.featureName,
+      value: input.value,
+      window: input.window,
+      sourceObservationRefs: input.sourceObservationRefs ?? [],
+      computedAt: new Date().toISOString(),
+      version: input.version,
+    }
+
+    await this.update((dataset) => {
+      assertProfileExists(dataset, input.profileId)
+      assertObservationsBelongToProfile(
+        dataset,
+        featureProjection.sourceObservationRefs,
+        input.profileId
+      )
+      dataset.featureProjections.push(featureProjection)
+    })
+
+    return featureProjection
+  }
+
+  async createPredictionSummary(
+    input: CreateCenterPredictionSummaryInput
+  ): Promise<CenterPredictionSummary> {
+    const predictionSummary: CenterPredictionSummary = {
+      id: generateId(),
+      profileId: input.profileId,
+      targetType: input.targetType,
+      targetId: input.targetId,
+      predictionType: input.predictionType,
+      status: input.status,
+      probability: input.probability,
+      score: input.score,
+      confidence: input.confidence,
+      dataSufficiency: input.dataSufficiency,
+      drivers: input.drivers ?? [],
+      featureRefs: input.featureRefs ?? [],
+      generatedAt: new Date().toISOString(),
+      modelVersion: input.modelVersion,
+    }
+
+    await this.update((dataset) => {
+      assertProfileExists(dataset, input.profileId)
+      assertFeatureProjectionsBelongToProfile(
+        dataset,
+        predictionSummary.featureRefs,
+        input.profileId
+      )
+      dataset.predictionSummaries.push(predictionSummary)
+    })
+
+    return predictionSummary
+  }
+
+  async recordOutcome(input: RecordCenterOutcomeInput): Promise<CenterOutcome> {
+    const outcome: CenterOutcome = {
+      id: generateId(),
+      profileId: input.profileId,
+      subjectType: input.subjectType,
+      subjectId: input.subjectId,
+      outcomeType: input.outcomeType,
+      observedAt: input.observedAt ?? new Date().toISOString(),
+      payload: input.payload ?? {},
+      evidenceRefs: input.evidenceRefs ?? [],
+    }
+
+    await this.update((dataset) => {
+      assertProfileExists(dataset, input.profileId)
+      assertEvidenceBelongsToProfile(dataset, outcome.evidenceRefs, input.profileId)
+      dataset.outcomes.push(outcome)
+    })
+
+    return outcome
+  }
+
   async exportProfile(profileId: string): Promise<CenterDataset> {
     const dataset = await this.storage.load()
     assertProfileExists(dataset, profileId)
@@ -400,6 +526,13 @@ export class CenterLocalSpine {
       dataset.actionProposals = dataset.actionProposals.filter(
         (proposal) => proposal.profileId !== profileId
       )
+      dataset.featureProjections = dataset.featureProjections.filter(
+        (projection) => projection.profileId !== profileId
+      )
+      dataset.predictionSummaries = dataset.predictionSummaries.filter(
+        (prediction) => prediction.profileId !== profileId
+      )
+      dataset.outcomes = dataset.outcomes.filter((outcome) => outcome.profileId !== profileId)
     })
   }
 
@@ -462,6 +595,38 @@ function assertRawEventsBelongToProfile(
   }
 }
 
+function assertObservationsBelongToProfile(
+  dataset: CenterDataset,
+  observationRefs: string[],
+  profileId: string
+) {
+  const invalidRef = observationRefs.find((observationId) => {
+    const observation = dataset.observations.find((candidate) => candidate.id === observationId)
+    return !observation || observation.profileId !== profileId
+  })
+
+  if (invalidRef) {
+    throw new Error(`Center observation ${invalidRef} does not belong to profile ${profileId}`)
+  }
+}
+
+function assertFeatureProjectionsBelongToProfile(
+  dataset: CenterDataset,
+  featureRefs: string[],
+  profileId: string
+) {
+  const invalidRef = featureRefs.find((featureId) => {
+    const feature = dataset.featureProjections.find((candidate) => candidate.id === featureId)
+    return !feature || feature.profileId !== profileId
+  })
+
+  if (invalidRef) {
+    throw new Error(
+      `Center feature projection ${invalidRef} does not belong to profile ${profileId}`
+    )
+  }
+}
+
 function assertRecommendationBelongsToProfile(
   dataset: CenterDataset,
   recommendationId: string | undefined,
@@ -491,6 +656,13 @@ function filterDatasetByProfile(dataset: CenterDataset, profileId: string): Cent
       (recommendation) => recommendation.profileId === profileId
     ),
     actionProposals: dataset.actionProposals.filter((proposal) => proposal.profileId === profileId),
+    featureProjections: dataset.featureProjections.filter(
+      (projection) => projection.profileId === profileId
+    ),
+    predictionSummaries: dataset.predictionSummaries.filter(
+      (prediction) => prediction.profileId === profileId
+    ),
+    outcomes: dataset.outcomes.filter((outcome) => outcome.profileId === profileId),
   }
 }
 
@@ -509,5 +681,8 @@ function normalizeDataset(dataset: Partial<CenterDataset>): CenterDataset {
     decisions: dataset.decisions ?? [],
     recommendations: dataset.recommendations ?? [],
     actionProposals: dataset.actionProposals ?? [],
+    featureProjections: dataset.featureProjections ?? [],
+    predictionSummaries: dataset.predictionSummaries ?? [],
+    outcomes: dataset.outcomes ?? [],
   }
 }

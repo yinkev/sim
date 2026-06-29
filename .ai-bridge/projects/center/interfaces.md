@@ -3,11 +3,12 @@ id: center-interfaces
 type: interface
 project: center
 status: active
-updated: 2026-06-28
+updated: 2026-06-29
 links:
   - center-index
   - RP-20260628-002
   - ms2scheduler-integration-interfaces
+  - center-phase-6-implementation
 ---
 
 # Center Interfaces
@@ -241,6 +242,8 @@ type CenterFeatureProjection = {
 ## Prediction Summary
 
 Transparent, uncertainty-aware estimate. LLMs may explain but do not own the prediction source of truth.
+
+Initial implementation: `center-baseline-v1` derives a profile-level `loop_drift` summary from local Center events, observations, loops, evidence, action proposals, and outcomes. It stays `insufficient-data` until at least medium signal exists and does not emit calibrated probability.
 
 ```ts
 type CenterPredictionSummary = {

@@ -7,6 +7,7 @@ updated: 2026-06-29
 links:
   - center-governing-spec-v1
   - current-plan
+  - center-phase-6-implementation
 ---
 
 # Center Implementation Roadmap
@@ -139,6 +140,8 @@ Verified:
 
 ## Phase 6 - Baseline Prediction
 
+Status: initial implementation complete.
+
 Build:
 
 - insufficient-data state
@@ -153,7 +156,15 @@ Acceptance:
 - no fake precision
 - predictions can be evaluated later
 
+Verified:
+
+- No-data profile shows insufficient data with confidence 0%.
+- Three manual observations produce a baseline loop-drift summary with 45% confidence and feature refs.
+- Prediction support stores feature projections, prediction summaries, and outcomes in the local spine.
+
 ## Phase 7 - Review Packets Inside Center
+
+Status: active.
 
 Build:
 

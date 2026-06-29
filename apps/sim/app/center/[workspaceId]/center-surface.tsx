@@ -28,6 +28,7 @@ import {
   type CenterProfile,
   type CenterStorageAdapter,
   createBrowserCenterStorage,
+  deriveCenterBaselinePrediction,
 } from '@/lib/center'
 import { cn } from '@/lib/core/utils/cn'
 
@@ -43,6 +44,9 @@ const EMPTY_CENTER_DATASET: CenterDataset = {
   decisions: [],
   recommendations: [],
   actionProposals: [],
+  featureProjections: [],
+  predictionSummaries: [],
+  outcomes: [],
 }
 
 const CAPTURE_MODES: Array<{ id: CaptureMode; label: string }> = [
@@ -71,6 +75,13 @@ function profileDataset(dataset: CenterDataset, profileId: string | null): Cente
       (recommendation) => recommendation.profileId === profileId
     ),
     actionProposals: dataset.actionProposals.filter((proposal) => proposal.profileId === profileId),
+    featureProjections: dataset.featureProjections.filter(
+      (projection) => projection.profileId === profileId
+    ),
+    predictionSummaries: dataset.predictionSummaries.filter(
+      (prediction) => prediction.profileId === profileId
+    ),
+    outcomes: dataset.outcomes.filter((outcome) => outcome.profileId === profileId),
   }
 }
 
@@ -260,17 +271,11 @@ export function CenterSurface() {
     () => scoped.actionProposals.filter((proposal) => proposal.status === 'proposed'),
     [scoped.actionProposals]
   )
-
-  const predictionState =
-    scoped.observations.length < 3
-      ? {
-          label: 'Insufficient data',
-          detail: 'Waiting for at least 3 observations before producing baseline predictions.',
-        }
-      : {
-          label: 'Baseline pending',
-          detail: 'Events are captured. Phase 6 will attach model version, drivers, and outcomes.',
-        }
+  const baselineProjection = useMemo(
+    () => (selectedProfile ? deriveCenterBaselinePrediction(scoped, selectedProfile.id) : null),
+    [scoped, selectedProfile]
+  )
+  const predictionState = baselineProjection?.prediction
 
   const ensureHumanActor = async (profile: CenterProfile): Promise<CenterActor> => {
     const existing = findHumanActor(dataset, profile.id)
@@ -593,7 +598,55 @@ export function CenterSurface() {
               </Section>
 
               <Section title='Prediction Summary' icon={GitPullRequestArrow}>
-                <RecordRow title={predictionState.label} detail={predictionState.detail} />
+                {predictionState ? (
+                  <div className='flex flex-col gap-2'>
+                    <RecordRow
+                      title={
+                        predictionState.status === 'insufficient-data'
+                          ? 'Insufficient data'
+                          : 'Baseline loop drift'
+                      }
+                      meta={predictionState.dataSufficiency}
+                      detail={`confidence ${Math.round(predictionState.confidence * 100)}% · model ${predictionState.modelVersion}`}
+                    />
+                    {predictionState.score === undefined ? null : (
+                      <RecordRow
+                        title={`Risk score ${Math.round(predictionState.score * 100)}%`}
+                        detail='Baseline heuristic from visible Center features; not a calibrated probability.'
+                      />
+                    )}
+                    {predictionState.drivers.length === 0 ? (
+                      <RecordRow
+                        title='No drivers yet'
+                        detail='Capture events, observations, evidence, or outcomes before producing baseline drivers.'
+                      />
+                    ) : (
+                      predictionState.drivers
+                        .slice(0, 4)
+                        .map((driver) => (
+                          <RecordRow
+                            key={`${driver.name}-${driver.direction}`}
+                            title={driver.name}
+                            meta={driver.direction}
+                            detail={
+                              driver.weight === undefined
+                                ? undefined
+                                : `weight ${Math.round(driver.weight * 100)}%`
+                            }
+                          />
+                        ))
+                    )}
+                    <RecordRow
+                      title={`${baselineProjection.features.length} feature refs`}
+                      detail={baselineProjection.features
+                        .slice(0, 3)
+                        .map((feature) => `${feature.featureName}=${String(feature.value)}`)
+                        .join(', ')}
+                    />
+                  </div>
+                ) : (
+                  <EmptyState label='Create a profile to compute predictions' />
+                )}
               </Section>
 
               <Section

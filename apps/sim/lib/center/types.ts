@@ -139,6 +139,53 @@ export interface CenterActionProposal {
   sourceRef?: string
 }
 
+export interface CenterFeatureProjection {
+  id: string
+  profileId: string
+  targetType: string
+  targetId: string
+  featureName: string
+  value: number | string | boolean | null
+  window?: string
+  sourceObservationRefs: string[]
+  computedAt: string
+  version: string
+}
+
+export interface CenterPredictionDriver {
+  name: string
+  direction: 'up' | 'down'
+  weight?: number
+}
+
+export interface CenterPredictionSummary {
+  id: string
+  profileId: string
+  targetType: string
+  targetId: string
+  predictionType: string
+  status: 'insufficient-data' | 'baseline' | 'calibrated'
+  probability?: number
+  score?: number
+  confidence: number
+  dataSufficiency: 'none' | 'low' | 'medium' | 'high'
+  drivers: CenterPredictionDriver[]
+  featureRefs: string[]
+  generatedAt: string
+  modelVersion: string
+}
+
+export interface CenterOutcome {
+  id: string
+  profileId: string
+  subjectType: 'prediction' | 'recommendation' | 'action' | 'loop' | 'task'
+  subjectId: string
+  outcomeType: string
+  observedAt: string
+  payload: Record<string, unknown>
+  evidenceRefs: string[]
+}
+
 export interface CenterDataset {
   profiles: CenterProfile[]
   actors: CenterActor[]
@@ -149,4 +196,7 @@ export interface CenterDataset {
   decisions: CenterDecision[]
   recommendations: CenterRecommendation[]
   actionProposals: CenterActionProposal[]
+  featureProjections: CenterFeatureProjection[]
+  predictionSummaries: CenterPredictionSummary[]
+  outcomes: CenterOutcome[]
 }

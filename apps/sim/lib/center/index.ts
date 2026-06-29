@@ -1,4 +1,9 @@
 export {
+  CENTER_BASELINE_MODEL_VERSION,
+  type CenterBaselinePredictionProjection,
+  deriveCenterBaselinePrediction,
+} from '@/lib/center/baseline-prediction'
+export {
   CenterLocalSpine,
   type CenterStorageAdapter,
   createBrowserCenterStorage,
@@ -15,8 +20,11 @@ export type {
   CenterDataset,
   CenterDecision,
   CenterEvidence,
+  CenterFeatureProjection,
   CenterLoop,
   CenterObservation,
+  CenterOutcome,
+  CenterPredictionSummary,
   CenterProfile,
   CenterRawEvent,
   CenterRecommendation,
