@@ -41,6 +41,7 @@ Read for decisions, reviews, audits, and gates:
 - Added repository documentation guide and repository map under `docs/`.
 - Updated root and docs navigation.
 - Redirected duplicate `.ai-bridge` system-doc files to canonical repo docs.
+- Redirected touched producer/MS2/CPU-RAM project indexes to canonical Center docs.
 - Added supersession notes to older knowledge-system and dogfood-runbook governance guidance.
 - Recorded the documentation-placement decision in `.ai-bridge/projects/center/decisions.md`.
 - Recorded the documentation-governor audit in `.ai-bridge/projects/center/audits/repository-documentation-governor-20260629.md`.
@@ -50,7 +51,7 @@ Read for decisions, reviews, audits, and gates:
 Passed:
 
 ```text
-Markdown relative links OK (42 files)
+Markdown relative links OK (52 files)
 Explicit canonical paths OK
 git diff --check
 bun run check:center-boundary

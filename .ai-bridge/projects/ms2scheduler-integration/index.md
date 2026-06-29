@@ -1,47 +1,27 @@
 ---
 id: ms2scheduler-integration-index
-type: index
+type: governance-pointer
 project: ms2scheduler-integration
 status: active
 updated: 2026-06-29
 links:
-  - ai-bridge-projects-index
-  - ms2scheduler-integration-interfaces
+  - center-producer-model
+  - center-operations-dogfood
   - ms2scheduler-phase-5-implementation
-  - daily-cockpit-existing-assets-map
 ---
 
 # MS2Scheduler Integration Project
 
-## Objective
+## Canonical Location
 
-Reuse MS2Scheduler as the first mature producer/module feeding Center.
-
-## Call
-
-Do not rebuild scheduler concepts inside Center.
-
-MS2Scheduler already has deterministic planning, activity capture, calibration, recovery, receipts, trust governance, tests, ADRs, and local-first design.
-
-## Source workspace
+Stable MS2Scheduler-to-Center integration documentation lives at:
 
 ```text
-/Users/kyin/Projects/MS2Scheduler
+apps/sim/docs/center/producer-model.md
+apps/sim/docs/center/operations-and-dogfood.md
 ```
 
-## Center relationship
-
-```text
-MS2Scheduler -> raw events / observations / recommendations / action proposals / evidence receipts -> Center
-```
-
-MS2Scheduler remains a module/producer. Center remains the cross-domain operating surface.
-
-## Initial implementation
-
-The first adapter is local and read-only against MS2Scheduler data files. Center does not execute scheduler code during discovery/import.
-
-Implemented paths:
+Implementation:
 
 ```text
 apps/sim/lib/center/producers/ms2scheduler.ts
@@ -50,30 +30,18 @@ apps/sim/lib/center/producer-import.ts
 apps/sim/lib/api/contracts/center.ts
 ```
 
-Live source:
+External source workspace:
+
+```text
+/Users/kyin/Projects/MS2Scheduler
+```
+
+Local data source:
 
 ```text
 /Users/kyin/Projects/MS2Scheduler/app/data
 ```
 
-Current verified import:
+## Why This File Remains
 
-```text
-currentVersion: v001
-evidence: 6
-rawEvents: 1
-observations: 0
-loops: 1
-recommendations: 5
-actionProposals: 5
-```
-
-## Read first
-
-- `interfaces.md`
-- `phase-5-implementation.md`
-- `.ai-bridge/projects/daily-cockpit/research/existing-assets-map.md`
-- `/Users/kyin/Projects/MS2Scheduler/docs/VISION.md`
-- `/Users/kyin/Projects/MS2Scheduler/docs/wiki/Architecture.md`
-- `/Users/kyin/Projects/MS2Scheduler/docs/wiki/Surfaces.md`
-- `/Users/kyin/Projects/MS2Scheduler/engine/README.md`
+This project folder remains as governance/evolution context for the MS2Scheduler integration. Do not duplicate producer mapping truth here.

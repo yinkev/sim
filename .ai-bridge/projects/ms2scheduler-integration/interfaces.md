@@ -1,131 +1,35 @@
 ---
 id: ms2scheduler-integration-interfaces
-type: interface
+type: governance-pointer
 project: ms2scheduler-integration
-status: active
+status: redirected
 updated: 2026-06-29
 links:
-  - ms2scheduler-integration-index
-  - center-interfaces
+  - center-producer-model
+  - center-ontology-local-spine
 ---
 
 # MS2Scheduler Integration Interfaces
 
-## Producer contract
+## Canonical Location
 
-MS2Scheduler feeds Center through normalized observations, evidence receipts, and recovery proposals.
-
-Center should not depend on MS2Scheduler internals directly.
-
-## Emits: study observations
-
-Map MS2Scheduler activity/capture rows to `CenterObservation`.
-
-Existing source:
+The canonical MS2Scheduler integration interface documentation now lives at:
 
 ```text
-/Users/kyin/Projects/MS2Scheduler/app/capture.py
+apps/sim/docs/center/producer-model.md
+apps/sim/docs/center/ontology-and-local-spine.md
 ```
 
-Existing events:
+Exact implementation lives at:
 
 ```text
-start | pause | resume | end
+apps/sim/lib/center/producers/ms2scheduler.ts
+apps/sim/lib/center/producer-import.ts
+apps/sim/lib/api/contracts/center.ts
 ```
 
-Mapped form:
+## Why This File Remains
 
-```ts
-CenterObservation {
-  producer: 'ms2scheduler'
-  producerType: 'scheduler'
-  subjectType: 'session' | 'task'
-  eventType: 'study.start' | 'study.pause' | 'study.resume' | 'study.end'
-}
-```
+This file remains as a governance pointer because older Center phase records reference `.ai-bridge/projects/ms2scheduler-integration/interfaces.md`.
 
-## Emits: calibration observations
-
-Map MS2Scheduler actual-minute calibration to Center observations.
-
-Existing source:
-
-```text
-/Users/kyin/Projects/MS2Scheduler/app/calibrate.py
-```
-
-Mapped form:
-
-```ts
-CenterObservation {
-  producer: 'ms2scheduler'
-  producerType: 'scheduler'
-  subjectType: 'task'
-  eventType: 'study.estimate_calibrated'
-}
-```
-
-## Emits: recovery proposals
-
-Map MS2Scheduler recovery/replan proposals into `CenterRecommendation` plus `CenterActionProposal`.
-
-Existing sources:
-
-```text
-/Users/kyin/Projects/MS2Scheduler/engine/resilience.py
-/Users/kyin/Projects/MS2Scheduler/app/recovery.py
-```
-
-Mapped form:
-
-```ts
-CenterRecommendation {
-  producer: 'ms2scheduler'
-  targetType: 'study-plan'
-  reason: '<calm recovery reason>'
-  evidenceRefs: [...]
-  status: 'proposed'
-}
-
-CenterActionProposal {
-  producer: 'ms2scheduler'
-  actionType: 'ms2scheduler.review_recovery_candidate'
-  targetType: 'study-plan'
-  evidenceRefs: [...]
-  status: 'proposed'
-}
-```
-
-## Emits: evidence receipts
-
-Map plan diffs, input hashes, flow certificates, and completion receipts into `CenterEvidence`.
-
-Existing sources:
-
-```text
-/Users/kyin/Projects/MS2Scheduler/engine/README.md
-/Users/kyin/Projects/MS2Scheduler/app/evidence.py
-```
-
-Mapped forms:
-
-```ts
-CenterEvidence.kind = 'diff' | 'test' | 'source' | 'run-output' | 'note'
-```
-
-## Imports from Center
-
-Initial integration should not require Center to drive MS2Scheduler.
-
-Later Center may send:
-
-- approved recovery proposal
-- profile identity
-- external evidence references
-- display preferences
-
-## Boundary
-
-MS2Scheduler owns deterministic study planning.
-
-Center owns cross-domain operating view, profile isolation, multi-producer observation store, and visual surface.
+Do not add new stable interface truth here.

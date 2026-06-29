@@ -137,6 +137,13 @@ The older `.ai-bridge` files were converted to governance pointers:
 .ai-bridge/projects/center/local-spine.md
 .ai-bridge/schemas/center-ontology-v1.md
 .ai-bridge/capabilities/metadata-contract.md
+.ai-bridge/projects/github-producer/index.md
+.ai-bridge/projects/plane-producer/index.md
+.ai-bridge/projects/learn-understand-producers/index.md
+.ai-bridge/projects/worker-lane/index.md
+.ai-bridge/projects/ms2scheduler-integration/index.md
+.ai-bridge/projects/ms2scheduler-integration/interfaces.md
+.ai-bridge/projects/cpu-ram-stabilization/index.md
 ```
 
 ### Documentation Merged
@@ -165,6 +172,13 @@ Competing system explanations were removed from these files and replaced with ca
 .ai-bridge/projects/center/local-spine.md
 .ai-bridge/schemas/center-ontology-v1.md
 .ai-bridge/capabilities/metadata-contract.md
+.ai-bridge/projects/github-producer/index.md
+.ai-bridge/projects/plane-producer/index.md
+.ai-bridge/projects/learn-understand-producers/index.md
+.ai-bridge/projects/worker-lane/index.md
+.ai-bridge/projects/ms2scheduler-integration/index.md
+.ai-bridge/projects/ms2scheduler-integration/interfaces.md
+.ai-bridge/projects/cpu-ram-stabilization/index.md
 ```
 
 ### Documentation Reorganized
@@ -198,6 +212,12 @@ apps/sim/docs/center/
 apps/sim/docs/LOCAL_DEV_PROFILES.md
 .ai-bridge/README.md
 .ai-bridge/projects/center/
+.ai-bridge/projects/github-producer/
+.ai-bridge/projects/plane-producer/
+.ai-bridge/projects/learn-understand-producers/
+.ai-bridge/projects/worker-lane/
+.ai-bridge/projects/ms2scheduler-integration/
+.ai-bridge/projects/cpu-ram-stabilization/
 .ai-bridge/schemas/center-ontology-v1.md
 .ai-bridge/capabilities/metadata-contract.md
 .ai-bridge/ontology/freeze-v1.md
@@ -206,7 +226,7 @@ apps/sim/docs/LOCAL_DEV_PROFILES.md
 Result:
 
 ```text
-Markdown relative links OK (42 files)
+Markdown relative links OK (52 files)
 Explicit canonical paths OK
 ```
 
@@ -225,6 +245,13 @@ Eliminated duplicate system-truth ownership by redirecting:
 .ai-bridge/projects/center/local-spine.md
 .ai-bridge/schemas/center-ontology-v1.md
 .ai-bridge/capabilities/metadata-contract.md
+.ai-bridge/projects/github-producer/index.md
+.ai-bridge/projects/plane-producer/index.md
+.ai-bridge/projects/learn-understand-producers/index.md
+.ai-bridge/projects/worker-lane/index.md
+.ai-bridge/projects/ms2scheduler-integration/index.md
+.ai-bridge/projects/ms2scheduler-integration/interfaces.md
+.ai-bridge/projects/cpu-ram-stabilization/index.md
 ```
 
 These files now point to:
@@ -359,7 +386,7 @@ Machine-readable capability schema remains in:
 | Dimension | Grade | Evidence |
 | --- | --- | --- |
 | Discoverability | A- | Root README links `docs/REPOSITORY_MAP.md`, `docs/DOCUMENTATION_GUIDE.md`, and `apps/sim/docs/center/README.md`. Center docs have a read order. |
-| Navigation | A- | New docs use explicit repository paths. Relative Markdown link check passed across 39 docs. Older unrelated docs still contain some future-migration notes. |
+| Navigation | A- | New docs use explicit repository paths. Relative Markdown link check passed across 52 docs. Older unrelated docs still contain some future-migration notes. |
 | Ownership | A | Center docs declare repository path, owning project, owner, and status. `.ai-bridge` documents now state governance/evolution ownership. |
 | Source-of-truth correctness | A- | System truth is in `apps/sim/docs/center/`; `.ai-bridge` duplicate system docs are now pointers. Historical phase files still contain evidence details by design. |
 | Project boundaries | A- | Center, Sim, producer, capability, and governance boundaries are documented. Production connector and storage boundaries remain future implementation gaps. |
@@ -377,7 +404,7 @@ bun -e '<Markdown relative link checker>'
 Result:
 
 ```text
-Markdown relative links OK (42 files)
+Markdown relative links OK (52 files)
 ```
 
 ```text
