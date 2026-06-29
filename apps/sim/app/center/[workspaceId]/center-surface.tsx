@@ -6,6 +6,7 @@ import {
   Activity,
   AlertTriangle,
   Archive,
+  Bot,
   Brain,
   CheckCircle2,
   CircleDot,
@@ -26,6 +27,7 @@ import {
   importCenterLearnUnderstandContract,
   importCenterPlaneContract,
   importCenterReviewPacketsContract,
+  importCenterWorkerLaneContract,
   importMs2SchedulerCenterContract,
 } from '@/lib/api/contracts/center'
 import {
@@ -213,12 +215,14 @@ export function CenterSurface() {
   const [knowledgeImportSummary, setKnowledgeImportSummary] = useState<string | null>(null)
   const [planeImportSummary, setPlaneImportSummary] = useState<string | null>(null)
   const [reviewImportSummary, setReviewImportSummary] = useState<string | null>(null)
+  const [workerImportSummary, setWorkerImportSummary] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [isImportingGithub, setIsImportingGithub] = useState(false)
   const [isImportingKnowledge, setIsImportingKnowledge] = useState(false)
   const [isImportingPlane, setIsImportingPlane] = useState(false)
   const [isImportingReviews, setIsImportingReviews] = useState(false)
+  const [isImportingWorkers, setIsImportingWorkers] = useState(false)
 
   useEffect(() => {
     setStorage(createCenterStorage())
@@ -298,6 +302,16 @@ export function CenterSurface() {
           (observation) =>
             observation.observationType.startsWith('learning.') ||
             observation.observationType.startsWith('understanding.')
+        ),
+        (observation) => observation.observedAt
+      ).slice(0, 5),
+    [scoped.observations]
+  )
+  const agentObservations = useMemo(
+    () =>
+      newestFirst(
+        scoped.observations.filter((observation) =>
+          observation.observationType.startsWith('agent.')
         ),
         (observation) => observation.observedAt
       ).slice(0, 5),
@@ -454,6 +468,25 @@ export function CenterSurface() {
       setError(getErrorMessage(err, 'Learn/Understand import failed'))
     } finally {
       setIsImportingKnowledge(false)
+    }
+  }
+
+  const importWorkerLane = async () => {
+    if (!storage || !selectedProfile) return
+    setIsImportingWorkers(true)
+    setError(null)
+    setWorkerImportSummary(null)
+    try {
+      const response = await requestJson(importCenterWorkerLaneContract, {})
+      const summary = await applyCenterProducerImport(storage, selectedProfile.id, response.packet)
+      await reloadDataset(selectedProfile.id)
+      setWorkerImportSummary(
+        `Worker import: ${summary.evidenceAdded} evidence, ${summary.rawEventsAdded} events, ${summary.observationsAdded} observations, ${summary.loopsAdded} loops, ${summary.actionProposalsAdded} proposals from ${response.source.recordCount} records.`
+      )
+    } catch (err) {
+      setError(getErrorMessage(err, 'Worker lane import failed'))
+    } finally {
+      setIsImportingWorkers(false)
     }
   }
 
@@ -652,6 +685,13 @@ export function CenterSurface() {
               >
                 Import Reviews
               </Button>
+              <Button
+                type='button'
+                disabled={!selectedProfile || isImportingWorkers}
+                onClick={importWorkerLane}
+              >
+                Import Workers
+              </Button>
             </div>
           </section>
 
@@ -688,6 +728,12 @@ export function CenterSurface() {
           {reviewImportSummary ? (
             <div className='rounded-[8px] border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-[var(--text-muted)] text-sm'>
               {reviewImportSummary}
+            </div>
+          ) : null}
+
+          {workerImportSummary ? (
+            <div className='rounded-[8px] border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-[var(--text-muted)] text-sm'>
+              {workerImportSummary}
             </div>
           ) : null}
 
@@ -828,6 +874,37 @@ export function CenterSurface() {
                         tone={
                           observation.observationType === 'understanding.risk_detected' ||
                           observation.observationType === 'learning.gap_detected'
+                            ? 'text-[var(--text-error)]'
+                            : undefined
+                        }
+                      />
+                    ))
+                  )}
+                </div>
+              </Section>
+
+              <Section title='Agent Work' count={agentObservations.length} icon={Bot}>
+                <div className='flex flex-col gap-2'>
+                  {agentObservations.length === 0 ? (
+                    <EmptyState label='No agent work observations' />
+                  ) : (
+                    agentObservations.map((observation) => (
+                      <RecordRow
+                        key={observation.id}
+                        title={String(observation.payload.summary ?? observation.observationType)}
+                        meta={String(
+                          observation.payload.producerDisplayName ??
+                            observation.payload.status ??
+                            observation.observationType
+                        )}
+                        detail={String(
+                          observation.payload.taskTitle ?? observation.observationType
+                        )}
+                        tone={
+                          observation.observationType === 'agent.failure' ||
+                          observation.observationType === 'agent.run_failed' ||
+                          observation.observationType === 'agent.test_failed' ||
+                          observation.observationType === 'agent.review_needed'
                             ? 'text-[var(--text-error)]'
                             : undefined
                         }

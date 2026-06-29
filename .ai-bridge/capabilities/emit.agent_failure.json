@@ -1,0 +1,27 @@
+{
+  "id": "emit.agent_failure",
+  "version": "1.0.0",
+  "producerId": "worker-lane",
+  "kind": "emit",
+  "inputs": [
+    {
+      "id": "worker-lane-snapshot-record",
+      "version": "1.0.0",
+      "uri": ".ai-bridge/projects/worker-lane/sample-events.json"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "center-producer-import-packet",
+      "version": "1.0.0",
+      "uri": "apps/sim/lib/center/producer-import.ts"
+    }
+  ],
+  "authorityRequired": "A1",
+  "truthImpact": "T2",
+  "policyRequirements": ["profile-scope", "explicit-local-import", "evidence-required"],
+  "evidenceProduced": ["Worker failure log"],
+  "failureModes": ["snapshot is stale", "failure severity is misclassified"],
+  "requires": [],
+  "lifecycle": "available"
+}

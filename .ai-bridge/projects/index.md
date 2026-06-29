@@ -12,6 +12,7 @@ links:
   - ms2scheduler-integration-index
   - plane-producer-index
   - pro-review-workflow-index
+  - worker-lane-index
 ---
 
 # Projects Index
@@ -31,6 +32,7 @@ This folder separates durable project context by mission so `current-plan.md` ca
 | `ms2scheduler-integration/` | active | Reuse MS2Scheduler as the first mature producer/module feeding Center. |
 | `plane-producer/` | active | Plane-shaped project, cycle, module, issue, comment, and status records as Center producer input. |
 | `pro-review-workflow/` | active | Review packets, governor loop, decision capture, and cross-model relay. |
+| `worker-lane/` | active | Worker, Hermes, and Codex execution attempts as Center producer input. |
 | `daily-cockpit/` | legacy-active | Older working folder. Keep as source material until contents are migrated. |
 
 ## Rule

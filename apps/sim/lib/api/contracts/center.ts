@@ -220,6 +220,25 @@ export type ImportCenterLearnUnderstandResponse = z.output<
   typeof importCenterLearnUnderstandContract.response.schema
 >
 
+export const importCenterWorkerLaneContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/center/workers/import',
+  response: {
+    mode: 'json',
+    schema: z.object({
+      packet: centerProducerImportPacketSchema,
+      source: z.object({
+        filePath: z.string(),
+        recordCount: z.number().int().min(0),
+      }),
+    }),
+  },
+})
+
+export type ImportCenterWorkerLaneResponse = z.output<
+  typeof importCenterWorkerLaneContract.response.schema
+>
+
 export const importCenterReviewPacketsContract = defineRouteContract({
   method: 'GET',
   path: '/api/center/review-packets/import',

@@ -1,4 +1,4 @@
-# Current Plan — Phase 11 Worker / Hermes / Codex Lane
+# Current Plan — Phase 12 `.app` Packaging
 
 Status: active.
 
@@ -200,9 +200,40 @@ Evidence:
 - `bun run check:center-boundary` passed.
 - `bun run check:boundaries` passed.
 
+## Phase 11 result
+
+Handled. Worker, Hermes, and Codex-shaped execution state now feeds Center through a typed worker-lane producer import packet and explicit local import action.
+
+Implemented:
+
+- `apps/sim/lib/center/producers/worker-lane.ts`
+- `apps/sim/lib/center/producers/worker-lane-files.ts`
+- `apps/sim/app/api/center/workers/import/route.ts`
+- `apps/sim/lib/api/contracts/center.ts`
+- Center UI `Import Workers` action and Agent Work projection
+- `.ai-bridge/projects/worker-lane/sample-events.json`
+- `.ai-bridge/capabilities/emit.agent_run_started.json`
+- `.ai-bridge/capabilities/emit.agent_run_completed.json`
+- `.ai-bridge/capabilities/emit.agent_failure.json`
+- `.ai-bridge/capabilities/emit.agent_diff.json`
+- `.ai-bridge/capabilities/emit.agent_test_result.json`
+- `.ai-bridge/capabilities/emit.agent_artifact.json`
+- `.ai-bridge/capabilities/emit.agent_review_needed.json`
+
+Evidence:
+
+- Import route produced 7 evidence records, 7 raw events, 7 observations, 2 blocked loops, 1 recommendation, and 1 action proposal from 7 sample worker-lane records.
+- Browser smoke created a profile, clicked `Import Workers`, persisted the imported records, and rendered agent observations plus review-needed action state.
+- Targeted Center boundary checks still passed.
+- `bun --cwd apps/sim test lib/center/producers/worker-lane.test.ts lib/center/producers/learn-understand.test.ts lib/center/producer-import.test.ts` passed.
+- `bun --cwd apps/sim type-check` passed.
+- `bun run check:api-validation` passed.
+- `bun run check:center-boundary` passed.
+- `bun run check:boundaries` passed.
+
 ## Objective
 
-Bring Worker, Hermes, and Codex execution outputs into Center through local producer shapes.
+Define and implement the smallest local `.app` packaging path for Center without constraining the architecture or compromising profile privacy.
 
 Center remains the working name for the daily operating surface. Workflow remains a feature module, not the operating surface.
 
@@ -222,6 +253,8 @@ Center remains the working name for the daily operating surface. Workflow remain
 - `.ai-bridge/projects/plane-producer/index.md`
 - `.ai-bridge/projects/center/phase-10-implementation.md`
 - `.ai-bridge/projects/learn-understand-producers/index.md`
+- `.ai-bridge/projects/center/phase-11-implementation.md`
+- `.ai-bridge/projects/worker-lane/index.md`
 - `.ai-bridge/projects/center/reviews/RP-20260628-002-v1.md`
 - `.ai-bridge/projects/cpu-ram-stabilization/index.md`
 - `.ai-bridge/projects/ms2scheduler-integration/index.md`
@@ -311,10 +344,10 @@ Authority and truth impact are defined in:
 
 Build:
 
-- Worker/Hermes/Codex producer contract for run started, run completed, failure, diff, test result, artifact, and review-needed records
-- local/manual import or fixture path that maps worker-shaped data into Center events, observations, evidence, loops, and action/review state
-- Center UI projection for agent work without loading workflow, connector, provider SDK, block registry, or execution sandbox hot paths
-- capability metadata for worker execution event emission
+- packaging decision document for the first Center `.app` wrapper
+- local launch contract that starts the Center local service without changing Center storage semantics
+- privacy constraints for profile data and no-telemetry default
+- verification plan for app launch, Center route load, and profile isolation
 
 Guardrail:
 
@@ -322,10 +355,10 @@ Guardrail:
 
 ## Acceptance criteria
 
-- Worker, Hermes, and Codex-shaped outputs can be represented without bespoke Center architecture.
-- Agent run evidence links back to loops, action proposals, review-needed records, diffs, test results, and artifacts.
+- Center.app packaging does not force a storage/backend choice beyond the current local spine.
+- Packaged launch path can start the local Center service or clearly documents the remaining packaging gap.
+- Profile data remains private and no telemetry is introduced.
 - Center route remains free of heavy workflow/provider imports.
-- No telemetry.
 - Targeted type/lint/boundary checks pass.
 
 ## Final report format

@@ -12,6 +12,7 @@ links:
   - center-phase-8-implementation
   - center-phase-9-implementation
   - center-phase-10-implementation
+  - center-phase-11-implementation
 ---
 
 # Center Implementation Roadmap
@@ -248,16 +249,31 @@ Verified:
 
 ## Phase 11 - Worker / Hermes / Codex Lane
 
-Status: active.
+Status: initial implementation complete.
 
 Workers emit run started, run completed, failure, diff, test result, artifact, and review needed.
+
+Implementation:
+
+- Local worker-lane snapshot reader.
+- Worker/Hermes/Codex producer import packet mapper.
+- Local-development import API route.
+- Center UI `Import Workers` action and Agent Work projection.
+- Registered capability metadata for run starts, completions, failures, diffs, tests, artifacts, and review-needed records.
 
 Acceptance:
 
 - agent work is not invisible
 - evidence attaches to loops/actions
 
+Verified:
+
+- Sample snapshot imports 7 records into 7 evidence, 7 raw events, 7 observations, 2 blocked loops, 1 recommendation, and 1 action proposal.
+- Center UI persists and renders agent observations, review proposal state, and worker failure/next-action state.
+
 ## Phase 12 - `.app` Packaging
+
+Status: active.
 
 Only after spine and first producers work.
 
