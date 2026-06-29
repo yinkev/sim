@@ -17,7 +17,10 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { Button, ChipInput, ChipTag, ChipTextarea } from '@/components/emcn'
+import { requestJson } from '@/lib/api/client/request'
+import { importMs2SchedulerCenterContract } from '@/lib/api/contracts/center'
 import {
+  applyCenterProducerImport,
   type CenterActor,
   type CenterDataset,
   CenterLocalSpine,
@@ -38,6 +41,8 @@ const EMPTY_CENTER_DATASET: CenterDataset = {
   observations: [],
   loops: [],
   decisions: [],
+  recommendations: [],
+  actionProposals: [],
 }
 
 const CAPTURE_MODES: Array<{ id: CaptureMode; label: string }> = [
@@ -62,6 +67,10 @@ function profileDataset(dataset: CenterDataset, profileId: string | null): Cente
     observations: dataset.observations.filter((observation) => observation.profileId === profileId),
     loops: dataset.loops.filter((loop) => loop.profileId === profileId),
     decisions: dataset.decisions.filter((decision) => decision.profileId === profileId),
+    recommendations: dataset.recommendations.filter(
+      (recommendation) => recommendation.profileId === profileId
+    ),
+    actionProposals: dataset.actionProposals.filter((proposal) => proposal.profileId === profileId),
   }
 }
 
@@ -176,7 +185,9 @@ export function CenterSurface() {
   const [decisionConsequence, setDecisionConsequence] = useState('')
   const [decisionRevisitIf, setDecisionRevisitIf] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [importSummary, setImportSummary] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
 
   useEffect(() => {
     setStorage(createCenterStorage())
@@ -245,6 +256,10 @@ export function CenterSurface() {
     () => scoped.decisions.filter((decision) => decision.status === 'active' && decision.revisitIf),
     [scoped.decisions]
   )
+  const reviewActionProposals = useMemo(
+    () => scoped.actionProposals.filter((proposal) => proposal.status === 'proposed'),
+    [scoped.actionProposals]
+  )
 
   const predictionState =
     scoped.observations.length < 3
@@ -285,6 +300,25 @@ export function CenterSurface() {
       setError(getErrorMessage(err, 'Failed to create profile'))
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const importMs2Scheduler = async () => {
+    if (!storage || !selectedProfile) return
+    setIsImporting(true)
+    setError(null)
+    setImportSummary(null)
+    try {
+      const response = await requestJson(importMs2SchedulerCenterContract, {})
+      const summary = await applyCenterProducerImport(storage, selectedProfile.id, response.packet)
+      await reloadDataset(selectedProfile.id)
+      setImportSummary(
+        `MS2 import: ${summary.evidenceAdded} evidence, ${summary.rawEventsAdded} events, ${summary.observationsAdded} observations, ${summary.loopsAdded} loops, ${summary.actionProposalsAdded} proposals.`
+      )
+    } catch (err) {
+      setError(getErrorMessage(err, 'MS2Scheduler import failed'))
+    } finally {
+      setIsImporting(false)
     }
   }
 
@@ -394,6 +428,7 @@ export function CenterSurface() {
             <ChipTag variant='mono'>{scoped.rawEvents.length} events</ChipTag>
             <ChipTag variant='mono'>{scoped.evidence.length} evidence</ChipTag>
             <ChipTag variant='mono'>{scoped.loops.length} loops</ChipTag>
+            <ChipTag variant='mono'>{scoped.actionProposals.length} proposals</ChipTag>
           </div>
         </div>
       </div>
@@ -423,12 +458,25 @@ export function CenterSurface() {
                 <Plus className='size-[14px]' />
                 Create
               </Button>
+              <Button
+                type='button'
+                disabled={!selectedProfile || isImporting}
+                onClick={importMs2Scheduler}
+              >
+                Import MS2
+              </Button>
             </div>
           </section>
 
           {error ? (
             <div className='rounded-[8px] border border-[var(--text-error)] bg-[var(--badge-error-bg)] px-3 py-2 text-[var(--text-error)] text-sm'>
               {error}
+            </div>
+          ) : null}
+
+          {importSummary ? (
+            <div className='rounded-[8px] border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-[var(--text-muted)] text-sm'>
+              {importSummary}
             </div>
           ) : null}
 
@@ -548,19 +596,41 @@ export function CenterSurface() {
                 <RecordRow title={predictionState.label} detail={predictionState.detail} />
               </Section>
 
-              <Section title='Review Needed' count={reviewDecisions.length} icon={ClipboardList}>
+              <Section
+                title='Review Needed'
+                count={reviewDecisions.length + reviewActionProposals.length}
+                icon={ClipboardList}
+              >
                 <div className='flex flex-col gap-2'>
-                  {reviewDecisions.length === 0 ? (
+                  {reviewDecisions.length === 0 && reviewActionProposals.length === 0 ? (
                     <EmptyState label='No decisions need review' />
                   ) : (
-                    reviewDecisions.map((decision) => (
-                      <RecordRow
-                        key={decision.id}
-                        title={decision.title}
-                        meta='decision'
-                        detail={decision.revisitIf}
-                      />
-                    ))
+                    <>
+                      {reviewActionProposals.map((proposal) => {
+                        const recommendation = scoped.recommendations.find(
+                          (item) => item.id === proposal.recommendationId
+                        )
+                        return (
+                          <RecordRow
+                            key={proposal.id}
+                            title={recommendation?.title ?? proposal.actionType}
+                            meta='proposal'
+                            detail={
+                              recommendation?.reason ??
+                              String(proposal.payload.candidateVersion ?? '')
+                            }
+                          />
+                        )
+                      })}
+                      {reviewDecisions.map((decision) => (
+                        <RecordRow
+                          key={decision.id}
+                          title={decision.title}
+                          meta='decision'
+                          detail={decision.revisitIf}
+                        />
+                      ))}
+                    </>
                   )}
                 </div>
               </Section>

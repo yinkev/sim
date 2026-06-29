@@ -55,10 +55,14 @@ Current clean smoke:
 - `GET /workspace/local-test/center` returned `HTTP/1.1 200 OK`.
 - Next compiled `/center/[workspaceId]` in `6.5s` total / `5.9s` Next compile.
 - Browser smoke created a profile, loop, and event using system Chrome at `/workspace/local-test/center`.
+- Browser smoke created a profile and imported MS2Scheduler records through the explicit `Import MS2` action.
+- `GET /api/center/ms2scheduler/import` returned `v001`, 6 evidence receipts, 1 raw event, 1 loop, 5 recommendations, and 5 action proposals from `/Users/kyin/Projects/MS2Scheduler/app/data`.
 - Center browser smoke did not request or compile `/api/auth/get-session`; Center auth stayed in `proxy.ts`.
 - Center dev memory snapshots held at `rssMB: 2433` after one and two minutes.
+- Center dev with the MS2 import route loaded held at `rssMB: 1207` after one minute during smoke.
 - Parsed Center server route bundle had no tools, blocks, stores, triggers, workflow, auth, billing, or webhook chunks.
 - Parsed Center page client entry had no tools, blocks, stores, workflows, auth, Monaco, or mermaid chunks.
+- Targeted Center page/API artifacts after MS2 import had no workflow, block, store, auth, provider, Monaco, or mermaid imports.
 
 Additional hot path found during Phase 0 inspection and reduced in this phase:
 
@@ -101,6 +105,7 @@ Allowed Center defaults:
 - small UI primitives
 - profile/evidence/loop/query hooks that do not pull workflow editor graph
 - lazy imports behind explicit user action
+- local-development producer import routes that remain contract-bound and do not execute discovered producer code
 
 ## Phase 0 decision
 

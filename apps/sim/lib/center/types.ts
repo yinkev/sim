@@ -43,6 +43,7 @@ export interface CenterRawEvent {
   profileId: string
   producerId: string
   actorId?: string
+  sourceRef?: string
   occurredAt: string
   recordedAt: string
   eventType: string
@@ -63,6 +64,7 @@ export interface CenterEvidence {
   uri?: string
   payload?: Record<string, unknown>
   createdAt: string
+  sourceRef?: string
 }
 
 export interface CenterObservation {
@@ -77,6 +79,7 @@ export interface CenterObservation {
   sourceEventRefs: string[]
   payload: Record<string, unknown>
   confidence?: number
+  sourceRef?: string
 }
 
 export interface CenterLoop {
@@ -89,6 +92,7 @@ export interface CenterLoop {
   blockedBy?: string[]
   evidenceRefs: string[]
   updatedAt: string
+  sourceRef?: string
 }
 
 export interface CenterDecision {
@@ -106,6 +110,35 @@ export interface CenterDecision {
   revisitIf?: string
 }
 
+export interface CenterRecommendation {
+  id: string
+  profileId: string
+  targetType: string
+  targetId: string
+  title: string
+  reason: string
+  predictionRefs: string[]
+  evidenceRefs: string[]
+  createdAt: string
+  status: 'proposed' | 'accepted' | 'rejected' | 'superseded'
+  sourceRef?: string
+}
+
+export interface CenterActionProposal {
+  id: string
+  profileId: string
+  recommendationId?: string
+  producerId?: string
+  actionType: string
+  targetType: string
+  targetId: string
+  payload: Record<string, unknown>
+  evidenceRefs: string[]
+  status: 'proposed' | 'approved' | 'executed' | 'rejected' | 'superseded'
+  createdAt: string
+  sourceRef?: string
+}
+
 export interface CenterDataset {
   profiles: CenterProfile[]
   actors: CenterActor[]
@@ -114,4 +147,6 @@ export interface CenterDataset {
   observations: CenterObservation[]
   loops: CenterLoop[]
   decisions: CenterDecision[]
+  recommendations: CenterRecommendation[]
+  actionProposals: CenterActionProposal[]
 }

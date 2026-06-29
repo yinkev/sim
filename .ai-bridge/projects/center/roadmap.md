@@ -3,7 +3,7 @@ id: center-roadmap-v1
 type: roadmap
 project: center
 status: approved
-updated: 2026-06-28
+updated: 2026-06-29
 links:
   - center-governing-spec-v1
   - current-plan
@@ -77,7 +77,7 @@ Acceptance:
 
 ## Phase 4 - Lightweight Center Surface
 
-Status: initial implementation in progress.
+Status: initial implementation complete.
 
 Route:
 
@@ -110,6 +110,15 @@ Acceptance:
 
 ## Phase 5 - MS2Scheduler Adapter
 
+Status: initial implementation complete.
+
+Implementation:
+
+- Center producer import packet and idempotent local import application.
+- Local MS2Scheduler reader for `/Users/kyin/Projects/MS2Scheduler/app/data`.
+- Local-development import API route.
+- Center UI `Import MS2` action and review-needed proposal rendering.
+
 Map:
 
 - activity capture -> raw events / observations
@@ -122,6 +131,11 @@ Acceptance:
 - real study activity appears in Center
 - recovery proposals are reviewable
 - evidence links back to scheduler receipts
+
+Verified:
+
+- Current real MS2 plan `v001` imported as 6 evidence receipts, 1 raw event, 1 loop, 5 recommendations, and 5 action proposals.
+- Browser smoke created a profile, imported MS2, persisted the records, and rendered recovery candidates in Review Needed.
 
 ## Phase 6 - Baseline Prediction
 

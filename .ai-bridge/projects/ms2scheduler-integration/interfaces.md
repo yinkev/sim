@@ -3,7 +3,7 @@ id: ms2scheduler-integration-interfaces
 type: interface
 project: ms2scheduler-integration
 status: active
-updated: 2026-06-28
+updated: 2026-06-29
 links:
   - ms2scheduler-integration-index
   - center-interfaces
@@ -67,7 +67,7 @@ CenterObservation {
 
 ## Emits: recovery proposals
 
-Map MS2Scheduler recovery/replan proposals into `CenterRecoveryProposal`.
+Map MS2Scheduler recovery/replan proposals into `CenterRecommendation` plus `CenterActionProposal`.
 
 Existing sources:
 
@@ -79,11 +79,18 @@ Existing sources:
 Mapped form:
 
 ```ts
-CenterRecoveryProposal {
+CenterRecommendation {
   producer: 'ms2scheduler'
-  loopId: '<study-loop-id>'
+  targetType: 'study-plan'
   reason: '<calm recovery reason>'
-  changes: [...]
+  evidenceRefs: [...]
+  status: 'proposed'
+}
+
+CenterActionProposal {
+  producer: 'ms2scheduler'
+  actionType: 'ms2scheduler.review_recovery_candidate'
+  targetType: 'study-plan'
   evidenceRefs: [...]
   status: 'proposed'
 }

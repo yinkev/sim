@@ -1,4 +1,4 @@
-# Current Plan — Phase 4 Lightweight Center Surface
+# Current Plan — Phase 6 Baseline Prediction
 
 Status: active.
 
@@ -29,9 +29,45 @@ Evidence:
 - `bun --cwd apps/sim type-check` passed.
 - `bun --cwd apps/sim test lib/center/local-spine.test.ts` passed.
 
+## Phase 4 result
+
+Handled. Center now has a lightweight local operating surface at `/workspace/[workspaceId]/center`, implemented through the standalone `apps/sim/app/center/[workspaceId]` route.
+
+Evidence:
+
+- Manual browser smoke created a profile, loop, and event.
+- Center route persisted local spine data in browser-local storage.
+- Center route bundle stayed clear of workflow, block, store, auth, provider, Monaco, and mermaid imports.
+- `bun run check:center-boundary` passed.
+
+## Phase 5 result
+
+Handled. MS2Scheduler now feeds Center through a typed producer import packet and explicit local import action.
+
+Implemented:
+
+- `apps/sim/lib/center/producer-import.ts`
+- `apps/sim/lib/center/producers/ms2scheduler.ts`
+- `apps/sim/app/api/center/ms2scheduler/import/route.ts`
+- `apps/sim/lib/api/contracts/center.ts`
+- Center UI import button and review-needed proposal projection
+
+Evidence:
+
+- Real source: `/Users/kyin/Projects/MS2Scheduler/app/data`
+- Current MS2 plan: `v001`
+- Import route produced 6 evidence receipts, 1 raw current-plan event, 1 study loop, 5 recovery recommendations, and 5 action proposals.
+- Browser smoke created a Center profile, clicked `Import MS2`, persisted imported records, and rendered recovery candidates in Review Needed.
+- Targeted built Center page/API chunks had no workflow, block, store, auth, provider, Monaco, or mermaid imports.
+- `bun --cwd apps/sim test lib/center/local-spine.test.ts lib/center/producer-import.test.ts lib/center/producers/ms2scheduler.test.ts` passed.
+- `bun --cwd apps/sim type-check` passed.
+- `bun run check:api-validation` passed.
+- `bun run check:center-boundary` passed.
+- `bun run check:boundaries` passed.
+
 ## Objective
 
-Build the first lightweight Center operating surface without pulling the workflow/block/editor hot path.
+Build the first honest baseline prediction loop on top of the local Center spine and imported MS2Scheduler records.
 
 Center remains the working name for the daily operating surface. Workflow remains a feature module, not the operating surface.
 
@@ -47,6 +83,7 @@ Center remains the working name for the daily operating surface. Workflow remain
 - `.ai-bridge/projects/cpu-ram-stabilization/index.md`
 - `.ai-bridge/projects/ms2scheduler-integration/index.md`
 - `.ai-bridge/projects/ms2scheduler-integration/interfaces.md`
+- `.ai-bridge/projects/ms2scheduler-integration/phase-5-implementation.md`
 - `.ai-bridge/protocols/execution-authority.md`
 - `.ai-bridge/ontology/freeze-v1.md`
 - `.ai-bridge/capabilities/metadata-contract.md`
@@ -131,17 +168,11 @@ Authority and truth impact are defined in:
 
 Build:
 
-- `/workspace/[workspaceId]/center`
-- standalone implementation under `apps/sim/app/center/[workspaceId]`
-- Today
-- active loops
-- blocked loops
-- recent observations
-- evidence
-- next actions
-- prediction summary with honest insufficient-data state
-- review-needed decisions
-- manual local capture for profile, event, loop, evidence, and decision
+- feature projection storage for deterministic derived signals
+- prediction summary storage with data sufficiency, confidence, drivers, and feature refs
+- baseline prediction derivation from Center events/observations
+- outcome tracking hook for later scoring
+- UI projection that never reports fake precision when data is insufficient
 
 Guardrail:
 
@@ -149,9 +180,9 @@ Guardrail:
 
 ## Acceptance criteria
 
-- Center route loads without top-level workflow editor, block registry, connector registry, Monaco, mermaid, document parser, execution sandbox, or provider SDK registry imports.
-- Center surface is not graph-only.
-- Center can use the local spine through browser-local storage.
+- Insufficient-data state is explicit and remains the default until minimum evidence exists.
+- Prediction summaries include confidence, drivers, feature refs, and model version.
+- Prediction output can be evaluated later through outcomes.
 - No telemetry.
 - Targeted type/lint/boundary checks pass.
 

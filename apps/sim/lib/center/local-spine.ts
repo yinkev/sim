@@ -1,5 +1,6 @@
 import { generateId } from '@sim/utils/id'
 import type {
+  CenterActionProposal,
   CenterActor,
   CenterActorKind,
   CenterDataset,
@@ -10,6 +11,7 @@ import type {
   CenterObservation,
   CenterProfile,
   CenterRawEvent,
+  CenterRecommendation,
   CenterStorageMode,
 } from '@/lib/center/types'
 
@@ -21,6 +23,8 @@ const EMPTY_DATASET: CenterDataset = {
   observations: [],
   loops: [],
   decisions: [],
+  recommendations: [],
+  actionProposals: [],
 }
 
 const DEFAULT_STORAGE_KEY = 'sim.center.local-spine.v1'
@@ -46,6 +50,7 @@ export interface AppendCenterRawEventInput {
   profileId: string
   producerId: string
   actorId?: string
+  sourceRef?: string
   occurredAt?: string
   eventType: string
   subjectType: string
@@ -63,6 +68,7 @@ export interface AttachCenterEvidenceInput {
   title: string
   uri?: string
   payload?: Record<string, unknown>
+  sourceRef?: string
 }
 
 export interface DeriveCenterObservationInput {
@@ -75,6 +81,7 @@ export interface DeriveCenterObservationInput {
   sourceEventRefs: string[]
   payload?: Record<string, unknown>
   confidence?: number
+  sourceRef?: string
 }
 
 export interface CreateCenterLoopInput {
@@ -85,6 +92,7 @@ export interface CreateCenterLoopInput {
   nextAction?: string
   blockedBy?: string[]
   evidenceRefs?: string[]
+  sourceRef?: string
 }
 
 export interface RecordCenterDecisionInput {
@@ -97,6 +105,29 @@ export interface RecordCenterDecisionInput {
   consequence: string
   evidenceRefs?: string[]
   revisitIf?: string
+}
+
+export interface CreateCenterRecommendationInput {
+  profileId: string
+  targetType: string
+  targetId: string
+  title: string
+  reason: string
+  predictionRefs?: string[]
+  evidenceRefs?: string[]
+  sourceRef?: string
+}
+
+export interface CreateCenterActionProposalInput {
+  profileId: string
+  recommendationId?: string
+  producerId?: string
+  actionType: string
+  targetType: string
+  targetId: string
+  payload?: Record<string, unknown>
+  evidenceRefs?: string[]
+  sourceRef?: string
 }
 
 export function createMemoryCenterStorage(initialDataset?: CenterDataset): CenterStorageAdapter {
@@ -173,6 +204,7 @@ export class CenterLocalSpine {
       profileId: input.profileId,
       producerId: input.producerId,
       actorId: input.actorId,
+      sourceRef: input.sourceRef,
       occurredAt: input.occurredAt ?? now,
       recordedAt: now,
       eventType: input.eventType,
@@ -204,6 +236,7 @@ export class CenterLocalSpine {
       uri: input.uri,
       payload: input.payload,
       createdAt: new Date().toISOString(),
+      sourceRef: input.sourceRef,
     }
 
     await this.update((dataset) => {
@@ -227,6 +260,7 @@ export class CenterLocalSpine {
       sourceEventRefs: input.sourceEventRefs,
       payload: input.payload ?? {},
       confidence: input.confidence,
+      sourceRef: input.sourceRef,
     }
 
     await this.update((dataset) => {
@@ -250,6 +284,7 @@ export class CenterLocalSpine {
       blockedBy: input.blockedBy,
       evidenceRefs: input.evidenceRefs ?? [],
       updatedAt: new Date().toISOString(),
+      sourceRef: input.sourceRef,
     }
 
     await this.update((dataset) => {
@@ -287,6 +322,60 @@ export class CenterLocalSpine {
     return decision
   }
 
+  async createRecommendation(
+    input: CreateCenterRecommendationInput
+  ): Promise<CenterRecommendation> {
+    const recommendation: CenterRecommendation = {
+      id: generateId(),
+      profileId: input.profileId,
+      targetType: input.targetType,
+      targetId: input.targetId,
+      title: input.title,
+      reason: input.reason,
+      predictionRefs: input.predictionRefs ?? [],
+      evidenceRefs: input.evidenceRefs ?? [],
+      createdAt: new Date().toISOString(),
+      status: 'proposed',
+      sourceRef: input.sourceRef,
+    }
+
+    await this.update((dataset) => {
+      assertProfileExists(dataset, input.profileId)
+      assertEvidenceBelongsToProfile(dataset, recommendation.evidenceRefs, input.profileId)
+      dataset.recommendations.push(recommendation)
+    })
+
+    return recommendation
+  }
+
+  async createActionProposal(
+    input: CreateCenterActionProposalInput
+  ): Promise<CenterActionProposal> {
+    const actionProposal: CenterActionProposal = {
+      id: generateId(),
+      profileId: input.profileId,
+      recommendationId: input.recommendationId,
+      producerId: input.producerId,
+      actionType: input.actionType,
+      targetType: input.targetType,
+      targetId: input.targetId,
+      payload: input.payload ?? {},
+      evidenceRefs: input.evidenceRefs ?? [],
+      status: 'proposed',
+      createdAt: new Date().toISOString(),
+      sourceRef: input.sourceRef,
+    }
+
+    await this.update((dataset) => {
+      assertProfileExists(dataset, input.profileId)
+      assertRecommendationBelongsToProfile(dataset, input.recommendationId, input.profileId)
+      assertEvidenceBelongsToProfile(dataset, actionProposal.evidenceRefs, input.profileId)
+      dataset.actionProposals.push(actionProposal)
+    })
+
+    return actionProposal
+  }
+
   async exportProfile(profileId: string): Promise<CenterDataset> {
     const dataset = await this.storage.load()
     assertProfileExists(dataset, profileId)
@@ -305,6 +394,12 @@ export class CenterLocalSpine {
       )
       dataset.loops = dataset.loops.filter((loop) => loop.profileId !== profileId)
       dataset.decisions = dataset.decisions.filter((decision) => decision.profileId !== profileId)
+      dataset.recommendations = dataset.recommendations.filter(
+        (recommendation) => recommendation.profileId !== profileId
+      )
+      dataset.actionProposals = dataset.actionProposals.filter(
+        (proposal) => proposal.profileId !== profileId
+      )
     })
   }
 
@@ -367,6 +462,22 @@ function assertRawEventsBelongToProfile(
   }
 }
 
+function assertRecommendationBelongsToProfile(
+  dataset: CenterDataset,
+  recommendationId: string | undefined,
+  profileId: string
+) {
+  if (!recommendationId) return
+  const recommendation = dataset.recommendations.find(
+    (candidate) => candidate.id === recommendationId
+  )
+  if (!recommendation || recommendation.profileId !== profileId) {
+    throw new Error(
+      `Center recommendation ${recommendationId} does not belong to profile ${profileId}`
+    )
+  }
+}
+
 function filterDatasetByProfile(dataset: CenterDataset, profileId: string): CenterDataset {
   return {
     profiles: dataset.profiles.filter((profile) => profile.id === profileId),
@@ -376,6 +487,10 @@ function filterDatasetByProfile(dataset: CenterDataset, profileId: string): Cent
     observations: dataset.observations.filter((observation) => observation.profileId === profileId),
     loops: dataset.loops.filter((loop) => loop.profileId === profileId),
     decisions: dataset.decisions.filter((decision) => decision.profileId === profileId),
+    recommendations: dataset.recommendations.filter(
+      (recommendation) => recommendation.profileId === profileId
+    ),
+    actionProposals: dataset.actionProposals.filter((proposal) => proposal.profileId === profileId),
   }
 }
 
@@ -392,5 +507,7 @@ function normalizeDataset(dataset: Partial<CenterDataset>): CenterDataset {
     observations: dataset.observations ?? [],
     loops: dataset.loops ?? [],
     decisions: dataset.decisions ?? [],
+    recommendations: dataset.recommendations ?? [],
+    actionProposals: dataset.actionProposals ?? [],
   }
 }
