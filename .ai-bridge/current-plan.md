@@ -1,6 +1,6 @@
-# Current Plan — Phase 12 `.app` Packaging
+# Current Plan — Center Roadmap Complete
 
-Status: active.
+Status: complete.
 
 Governing decision: Center / Sim / MS2Scheduler architecture is approved with required changes. Those required changes are now execution gates:
 
@@ -231,9 +231,37 @@ Evidence:
 - `bun run check:center-boundary` passed.
 - `bun run check:boundaries` passed.
 
+## Phase 12 result
+
+Handled. Center now has a repo-local macOS `.app` launcher bundle path that starts the low-resource Center service and opens the Center route without changing storage or importing heavy runtime modules.
+
+Implemented:
+
+- `scripts/package-center-app.ts`
+- root `package:center-app` script
+- `.gitignore` entry for generated local app bundles
+- `.ai-bridge/projects/center/phase-12-implementation.md`
+
+Generated local artifact:
+
+```text
+.ai-bridge/artifacts/center-app/Center.app
+```
+
+Evidence:
+
+- `bun run package:center-app` generated `Center.app`.
+- `plutil -lint .ai-bridge/artifacts/center-app/Center.app/Contents/Info.plist` passed.
+- `test -x .ai-bridge/artifacts/center-app/Center.app/Contents/MacOS/Center` passed.
+- `CENTER_APP_OPEN=0 CENTER_APP_WAIT_SECONDS=5 .ai-bridge/artifacts/center-app/Center.app/Contents/MacOS/Center` exited 0.
+- `curl -I -sS http://localhost:6888/workspace/local-test/center` returned `HTTP/1.1 200 OK`.
+- `bunx biome check scripts/package-center-app.ts package.json` passed.
+- `bun run check:center-boundary` passed.
+- `git diff --check` passed.
+
 ## Objective
 
-Define and implement the smallest local `.app` packaging path for Center without constraining the architecture or compromising profile privacy.
+The approved Center roadmap is implemented through Phase 12. No further autonomous roadmap phase is active without a new approved scope.
 
 Center remains the working name for the daily operating surface. Workflow remains a feature module, not the operating surface.
 
@@ -255,6 +283,7 @@ Center remains the working name for the daily operating surface. Workflow remain
 - `.ai-bridge/projects/learn-understand-producers/index.md`
 - `.ai-bridge/projects/center/phase-11-implementation.md`
 - `.ai-bridge/projects/worker-lane/index.md`
+- `.ai-bridge/projects/center/phase-12-implementation.md`
 - `.ai-bridge/projects/center/reviews/RP-20260628-002-v1.md`
 - `.ai-bridge/projects/cpu-ram-stabilization/index.md`
 - `.ai-bridge/projects/ms2scheduler-integration/index.md`
@@ -342,12 +371,7 @@ Authority and truth impact are defined in:
 
 ## Active implementation
 
-Build:
-
-- packaging decision document for the first Center `.app` wrapper
-- local launch contract that starts the Center local service without changing Center storage semantics
-- privacy constraints for profile data and no-telemetry default
-- verification plan for app launch, Center route load, and profile isolation
+None. The approved Phase 0-12 sequence is complete.
 
 Guardrail:
 
@@ -355,11 +379,9 @@ Guardrail:
 
 ## Acceptance criteria
 
-- Center.app packaging does not force a storage/backend choice beyond the current local spine.
-- Packaged launch path can start the local Center service or clearly documents the remaining packaging gap.
-- Profile data remains private and no telemetry is introduced.
-- Center route remains free of heavy workflow/provider imports.
-- Targeted type/lint/boundary checks pass.
+- Phase implementation records exist for the completed roadmap.
+- The generated app launcher path is documented and reproducible.
+- Verification evidence is recorded in `.ai-bridge`.
 
 ## Final report format
 

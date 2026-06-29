@@ -13,6 +13,7 @@ links:
   - center-phase-9-implementation
   - center-phase-10-implementation
   - center-phase-11-implementation
+  - center-phase-12-implementation
 ---
 
 # Center Implementation Roadmap
@@ -273,12 +274,25 @@ Verified:
 
 ## Phase 12 - `.app` Packaging
 
-Status: active.
+Status: initial implementation complete.
 
 Only after spine and first producers work.
+
+Implementation:
+
+- Repo-local macOS app bundle generator at `scripts/package-center-app.ts`.
+- Root script `bun run package:center-app`.
+- Generated local `Center.app` launcher under `.ai-bridge/artifacts/center-app/`.
+- Launcher starts `CENTER_DEV=1 NEXT_TELEMETRY_DISABLED=1 bun run dev:center` and opens `/workspace/local-test/center`.
 
 Acceptance:
 
 - Center.app starts local service
 - profile data remains private
 - packaging does not constrain architecture
+
+Verified:
+
+- Generated `Center.app` has a valid `Info.plist` and executable launcher.
+- No-open launcher smoke exited 0 against the local Center service.
+- Center route returned `HTTP/1.1 200 OK`.
