@@ -7,6 +7,7 @@ const REPO_ROOT = path.resolve(import.meta.dir, '..')
 const APP_ROOT = path.join(REPO_ROOT, 'apps/sim')
 
 const ENTRYPOINTS = [
+  { path: 'app/workspace/[workspaceId]/home/error.tsx' },
   { path: 'app/workspace/[workspaceId]/home/home-runtime.tsx' },
   {
     path: 'app/workspace/[workspaceId]/chat/new/new-chat-runtime.tsx',

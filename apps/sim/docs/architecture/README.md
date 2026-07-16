@@ -47,6 +47,7 @@ evidence live in the applicable slice specification. Conversation history is nev
 9. [Development performance probe](performance-probe.md)
 10. [Phase 1 closeout](phase-1-closeout.md)
 11. [Pre-Phase 2 upstream v0.7.14 integration checkpoint](upstream-v0.7.14-integration-checkpoint.md)
+12. [Upstream v0.7.14 Home cold-compile investigation](upstream-v0.7.14-home-cold-compile-investigation.md)
 
 ## Slice Specification Contract
 

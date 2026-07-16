@@ -23,8 +23,11 @@ work remains sequenced after the Task, Artifact, and Execution domain phases.
 The exact upstream `v0.7.14` baseline was reconciled on the separate integration branch and worktree
 under the [pre-Phase 2 integration checkpoint](upstream-v0.7.14-integration-checkpoint.md). This was a
 technical-baseline sync, not an architecture phase or permission to begin Phase 2. The Phase 1 checkpoint
-remains the fallback. Phase 2 remains pending while the integration's Main cold-compile regression awaits
-either a fix or an explicit performance-budget waiver.
+remains the fallback. The focused [Home cold-compile investigation](upstream-v0.7.14-home-cold-compile-investigation.md)
+found and removed an eager workspace-component barrel import from the new Home error boundary. The
+authoritative cold result improved from `22313.539 ms` to `12033.201 ms`, which is accepted in the
+explicit `10–15s` band; warm and runtime behavior remain healthy. The integration performance blocker is
+resolved. Phase 2 remains pending and was not started.
 
 ## Sequence
 

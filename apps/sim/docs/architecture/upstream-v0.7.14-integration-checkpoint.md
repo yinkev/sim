@@ -10,8 +10,11 @@ Integrated on 2026-07-16 on `codex/upstream-v0.7.14-integration`.
   the local history.
 - Conflict resolution and the bounded postflight completed. Studio, warm Main, build, typecheck,
   boundaries, targeted tests, and the browser journey pass.
-- Main cold compile measured `22313.539 ms` against the accepted `5000 ms` gate. Phase 2 remains blocked
-  pending a fix or an explicit budget waiver; warm Main behavior and runtime budgets pass.
+- The focused [Home cold-compile investigation](upstream-v0.7.14-home-cold-compile-investigation.md)
+  removed an eager workspace-component barrel import from the new Home error boundary. The authoritative
+  cold result improved from `22313.539 ms` to `12033.201 ms`, accepted in the explicit `10–15s` band;
+  warm Main behavior and runtime budgets pass. The integration performance blocker is resolved.
+- Phase 2 remains pending and was not started.
 - No stash was changed and nothing was pushed.
 - This checkpoint is sequencing and execution guidance. It does not change the accepted architecture.
 
