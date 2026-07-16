@@ -3,7 +3,7 @@ import path from 'node:path'
 import { centerDatasetSchema } from '@/lib/api/contracts/center'
 import type { CenterDataset } from '@/lib/center/types'
 
-const DEFAULT_CENTER_STORAGE_DIR = path.join(getRepoRoot(), '.ai-bridge/artifacts/center-storage')
+const DEFAULT_CENTER_STORAGE_DIR = path.join(getRepoRoot(), 'var/center/storage')
 
 const EMPTY_CENTER_DATASET: CenterDataset = {
   profiles: [],

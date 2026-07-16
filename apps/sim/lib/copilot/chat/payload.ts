@@ -1,8 +1,10 @@
 import { createLogger } from '@sim/logger'
 import { toError } from '@sim/utils/errors'
+import { stripVersionSuffix } from '@sim/utils/string'
 import { LRUCache } from 'lru-cache'
 import { getHighestPrioritySubscription } from '@/lib/billing/core/subscription'
 import { isPaid } from '@/lib/billing/plan-helpers'
+import type { VfsSnapshotV1 } from '@/lib/copilot/generated/vfs-snapshot-v1'
 import { getExposedIntegrationTools } from '@/lib/copilot/integration-tools'
 import { getToolEntry } from '@/lib/copilot/tool-executor/router'
 import { getCopilotToolDescription } from '@/lib/copilot/tools/descriptions'
@@ -10,7 +12,6 @@ import { encodeVfsSegment } from '@/lib/copilot/vfs/path-utils'
 import { isE2BDocEnabled, isHosted } from '@/lib/core/config/env-flags'
 import { buildUserSkillTool } from '@/lib/mothership/skills'
 import { trackChatUpload } from '@/lib/uploads/contexts/workspace/workspace-file-manager'
-import { stripVersionSuffix } from '@/tools/utils'
 
 const logger = createLogger('CopilotChatPayload')
 const INTEGRATION_TOOL_SCHEMA_CACHE_TTL_MS = 5_000
@@ -33,6 +34,7 @@ interface BuildPayloadParams {
   prefetch?: boolean
   implicitFeedback?: string
   workspaceContext?: string
+  vfs?: VfsSnapshotV1
   userPermission?: string
   userTimezone?: string
   userMetadata?: {
@@ -366,6 +368,7 @@ export async function buildCopilotRequestPayload(
     ...(mothershipTools.length > 0 ? { mothershipTools } : {}),
     ...(commands && commands.length > 0 ? { commands } : {}),
     ...(params.workspaceContext ? { workspaceContext: params.workspaceContext } : {}),
+    ...(params.vfs ? { vfs: params.vfs } : {}),
     ...(params.userPermission ? { userPermission: params.userPermission } : {}),
     ...(params.userTimezone ? { userTimezone: params.userTimezone } : {}),
     ...(params.userMetadata &&

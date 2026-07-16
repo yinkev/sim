@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getErrorMessage } from '@sim/utils/errors'
 import { isEqual } from 'es-toolkit'
 import { useReactFlow } from 'reactflow'
@@ -17,6 +17,7 @@ import type { SubBlockConfig } from '@/blocks/types'
 import { getDependsOnFields } from '@/blocks/utils'
 import { usePermissionConfig } from '@/hooks/use-permission-config'
 import { getProviderFromModel } from '@/providers/utils'
+import { useProvidersStore } from '@/stores/providers'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 import { useSubBlockStore } from '@/stores/workflows/subblock/store'
 import { useWorkflowStore } from '@/stores/workflows/workflow/store'
@@ -29,6 +30,12 @@ const ZOOM_FACTOR_BASE = 0.96
 const MIN_ZOOM = 0.1
 const MAX_ZOOM = 1
 const ZOOM_DURATION = 0
+
+const LazyProviderModelsLoader = lazy(() =>
+  import('@/app/workspace/[workspaceId]/providers/provider-models-loader').then((module) => ({
+    default: module.ProviderModelsLoader,
+  }))
+)
 
 /**
  * Represents a selectable option in the combobox
@@ -88,6 +95,13 @@ export const ComboBox = memo(function ComboBox({
   dependsOn,
 }: ComboBoxProps) {
   const activeSearchTarget = useActiveSearchTarget()
+  const providerModelSignature = useProvidersStore((state) =>
+    subBlockId === 'model'
+      ? Object.values(state.providers)
+          .map((provider) => provider.models.join('\x00'))
+          .join('\x01')
+      : ''
+  )
   // Hooks and context
   const [storeValue, setStoreValue] = useSubBlockValue<string>(blockId, subBlockId)
   const accessiblePrefixes = useAccessibleReferencePrefixes(blockId)
@@ -173,7 +187,7 @@ export const ComboBox = memo(function ComboBox({
     }
 
     return opts
-  }, [options, subBlockId, isProviderAllowed, isModelAllowed])
+  }, [options, subBlockId, isProviderAllowed, isModelAllowed, providerModelSignature])
 
   // Normalize fetched options to match ComboBoxOption format
   const normalizedFetchedOptions = useMemo((): ComboBoxOption[] => {
@@ -548,49 +562,56 @@ export const ComboBox = memo(function ComboBox({
   )
 
   return (
-    <div className='relative w-full'>
-      <SubBlockInputController
-        blockId={blockId}
-        subBlockId={subBlockId}
-        config={config}
-        value={propValue}
-        onChange={controllerOnChange}
-        isPreview={isPreview}
-        disabled={disabled}
-        previewValue={previewValue}
-      >
-        {({ ref, onChange: ctrlOnChange, onDrop, onDragOver }) => {
-          // Update refs with latest handlers from render prop
-          ctrlOnChangeRef.current = ctrlOnChange
-          onDropRef.current = onDrop
-          onDragOverRef.current = onDragOver
-          // Store the input ref for passing to Combobox
-          if (ref.current) {
-            inputRefFromController.current = ref.current as HTMLInputElement
-          }
+    <>
+      {subBlockId === 'model' && (
+        <Suspense fallback={null}>
+          <LazyProviderModelsLoader />
+        </Suspense>
+      )}
+      <div className='relative w-full'>
+        <SubBlockInputController
+          blockId={blockId}
+          subBlockId={subBlockId}
+          config={config}
+          value={propValue}
+          onChange={controllerOnChange}
+          isPreview={isPreview}
+          disabled={disabled}
+          previewValue={previewValue}
+        >
+          {({ ref, onChange: ctrlOnChange, onDrop, onDragOver }) => {
+            // Update refs with latest handlers from render prop
+            ctrlOnChangeRef.current = ctrlOnChange
+            onDropRef.current = onDrop
+            onDragOverRef.current = onDragOver
+            // Store the input ref for passing to Combobox
+            if (ref.current) {
+              inputRefFromController.current = ref.current as HTMLInputElement
+            }
 
-          return (
-            <Combobox
-              options={comboboxOptions}
-              value={inputValue}
-              selectedValue={value ?? ''}
-              onChange={comboboxOnChange}
-              placeholder={placeholder}
-              disabled={disabled}
-              editable
-              overlayContent={overlayContent}
-              inputRef={ref as React.RefObject<HTMLInputElement>}
-              filterOptions
-              searchable={config.searchable}
-              className={cn('allow-scroll overflow-x-auto', selectedOptionIcon && 'pl-7')}
-              inputProps={comboboxInputProps}
-              isLoading={isLoadingOptions}
-              error={fetchError}
-              onOpenChange={handleOpenChange}
-            />
-          )
-        }}
-      </SubBlockInputController>
-    </div>
+            return (
+              <Combobox
+                options={comboboxOptions}
+                value={inputValue}
+                selectedValue={value ?? ''}
+                onChange={comboboxOnChange}
+                placeholder={placeholder}
+                disabled={disabled}
+                editable
+                overlayContent={overlayContent}
+                inputRef={ref as React.RefObject<HTMLInputElement>}
+                filterOptions
+                searchable={config.searchable}
+                className={cn('allow-scroll overflow-x-auto', selectedOptionIcon && 'pl-7')}
+                inputProps={comboboxInputProps}
+                isLoading={isLoadingOptions}
+                error={fetchError}
+                onOpenChange={handleOpenChange}
+              />
+            )
+          }}
+        </SubBlockInputController>
+      </div>
+    </>
   )
 })

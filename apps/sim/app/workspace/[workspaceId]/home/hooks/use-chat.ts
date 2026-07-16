@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  type Dispatch,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage, toError } from '@sim/utils/errors'
 import { sleep } from '@sim/utils/helpers'
@@ -46,18 +54,13 @@ import {
   isFilePreviewSession,
 } from '@/lib/copilot/request/session/file-preview-session-contract'
 import type { StreamBatchEvent } from '@/lib/copilot/request/session/types'
-import {
-  bindRunToolToExecution,
-  cancelRunToolExecution,
-  executeRunToolOnClient,
-  markRunToolManuallyStopped,
-  reportManualRunToolStop,
-} from '@/lib/copilot/tools/client/run-tool-execution'
 import { setCurrentChatTraceparent } from '@/lib/copilot/tools/client/trace-context'
 import { isWorkflowToolName } from '@/lib/copilot/tools/workflow-tools'
+import { readSSELines } from '@/lib/core/utils/sse'
 import { getQueryClient } from '@/app/_shell/providers/get-query-client'
 import { useFilePreviewController } from '@/app/workspace/[workspaceId]/home/hooks/preview'
 import {
+  applyTurnTerminal,
   createStreamLoopContext,
   dispatchStreamEvent,
   finalizeResidualToolCalls,
@@ -65,24 +68,20 @@ import {
 import {
   fetchMothershipChatHistory,
   type MothershipChatHistory,
-  mothershipChatKeys,
   useMothershipChatHistory,
-} from '@/hooks/queries/mothership-chats'
+} from '@/hooks/queries/mothership-chat-history'
+import { mothershipChatKeys } from '@/hooks/queries/mothership-chat-keys'
 import { getFolderMap } from '@/hooks/queries/utils/folder-cache'
 import { invalidateWorkflowSelectors } from '@/hooks/queries/utils/invalidate-workflow-lists'
 import { getTopInsertionSortOrder } from '@/hooks/queries/utils/top-insertion-sort-order'
 import { getWorkflowById, getWorkflows } from '@/hooks/queries/utils/workflow-cache'
-import { workflowKeys } from '@/hooks/queries/workflows'
-import { useExecutionStream } from '@/hooks/use-execution-stream'
-import { useExecutionStore } from '@/stores/execution/store'
+import { workflowKeys } from '@/hooks/queries/utils/workflow-keys'
 import { useMothershipQueueStore } from '@/stores/mothership-queue/store'
 import type {
   QueuedMothershipMessage,
   QueuedSendHandoffSeed,
 } from '@/stores/mothership-queue/types'
 import type { ChatContext } from '@/stores/panel'
-import { useTerminalConsoleStore } from '@/stores/terminal'
-import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 import type { WorkflowMetadata } from '@/stores/workflows/registry/types'
 import type {
   ChatMessage,
@@ -986,6 +985,17 @@ export interface UseChatOptions {
   onTitleUpdate?: () => void
   onStreamEnd?: (chatId: string, messages: ChatMessage[]) => void
   initialActiveResourceId?: string | null
+  /**
+   * Controlled binding for the active resource id, supplied as a
+   * `[value, setValue]` tuple (e.g. a URL-backed nuqs `useQueryState`). When
+   * provided, it is the single source of truth for the selected resource — the
+   * hook reads and writes it directly instead of owning the state internally,
+   * so no effect-sync mirror is needed. When omitted, `useChat` owns the state
+   * via local `useState` (seeded from `initialActiveResourceId`); this is the
+   * mode used by the socket-synced workflow editor copilot, whose resource
+   * selection intentionally stays out of the URL.
+   */
+  activeResourceState?: [string | null, Dispatch<SetStateAction<string | null>>]
   /** Fired when the server's `traceparent` response header arrives, before any stream content. */
   onRequestStarted?: (info: { requestId: string; userMessageId: string }) => void
 }
@@ -1005,7 +1015,11 @@ interface StopGenerationOptions {
 export function getMothershipUseChatOptions(
   options: Pick<
     UseChatOptions,
-    'onResourceEvent' | 'onStreamEnd' | 'initialActiveResourceId' | 'onRequestStarted'
+    | 'onResourceEvent'
+    | 'onStreamEnd'
+    | 'initialActiveResourceId'
+    | 'activeResourceState'
+    | 'onRequestStarted'
   > = {}
 ): UseChatOptions {
   return {
@@ -1043,9 +1057,16 @@ export function useChat(
   const [resolvedChatId, setResolvedChatId] = useState<string | undefined>(initialChatId)
   const [queuedHandoffRecoveryEpoch, setQueuedHandoffRecoveryEpoch] = useState(0)
   const [resources, setResources] = useState<MothershipResource[]>([])
-  const [activeResourceId, setActiveResourceId] = useState<string | null>(
+  const internalActiveResourceState = useState<string | null>(
     options?.initialActiveResourceId ?? null
   )
+  /**
+   * Prefer a caller-supplied controlled binding (URL-backed nuqs on the home/Chat
+   * surface) so the URL is the single source of truth; fall back to internal state
+   * for the workflow editor copilot, which keeps resource selection out of the URL.
+   */
+  const [activeResourceId, setActiveResourceId] =
+    options?.activeResourceState ?? internalActiveResourceState
   const [genericResourceData, setGenericResourceData] = useState<GenericResourceData | null>(null)
   const onResourceEventRef = useRef(options?.onResourceEvent)
   const revealedSimKeysRef = useRef<RevealedSimKeysByMessage>(new Map())
@@ -1229,7 +1250,6 @@ export function useChat(
   const streamingBlocksRef = useRef<ContentBlock[]>([])
   const handledClientWorkflowToolIdsRef = useRef<Set<string>>(new Set())
   const recoveringClientWorkflowToolIdsRef = useRef<Set<string>>(new Set())
-  const executionStream = useExecutionStream()
   const isHomePage = pathname.endsWith('/home')
 
   const setTransportIdle = useCallback(() => {
@@ -1541,10 +1561,13 @@ export function useChat(
 
   const ensureWorkflowToolResource = useCallback(
     (toolArgs: Record<string, unknown>): string | undefined => {
+      const activeWorkflowResource = resourcesRef.current.find(
+        (resource) => resource.type === 'workflow' && resource.id === activeResourceIdRef.current
+      )?.id
       const targetWorkflowId =
         typeof toolArgs.workflowId === 'string'
           ? toolArgs.workflowId
-          : useWorkflowRegistry.getState().activeWorkflowId
+          : (workflowIdRef.current ?? activeWorkflowResource)
 
       if (!targetWorkflowId) {
         return undefined
@@ -1579,8 +1602,20 @@ export function useChat(
       }
       handledClientWorkflowToolIdsRef.current.add(toolCallId)
 
-      ensureWorkflowToolResource(toolArgs)
-      executeRunToolOnClient(toolCallId, toolName, toolArgs)
+      const targetWorkflowId = ensureWorkflowToolResource(toolArgs)
+      const resolvedToolArgs =
+        targetWorkflowId && typeof toolArgs.workflowId !== 'string'
+          ? { ...toolArgs, workflowId: targetWorkflowId }
+          : toolArgs
+
+      void import('@/lib/copilot/tools/client/run-tool-execution')
+        .then(({ executeRunToolOnClient }) => {
+          executeRunToolOnClient(toolCallId, toolName, resolvedToolArgs)
+        })
+        .catch((error) => {
+          handledClientWorkflowToolIdsRef.current.delete(toolCallId)
+          logger.error('Failed to load workflow execution runtime', { toolCallId, toolName, error })
+        })
     },
     [ensureWorkflowToolResource]
   )
@@ -1604,6 +1639,11 @@ export function useChat(
           pending.push(toolCall)
         }
       }
+
+      if (pending.length === 0) return
+      const { bindRunToolToExecution } = await import(
+        '@/lib/copilot/tools/client/run-tool-execution'
+      )
 
       for (const toolCall of pending) {
         try {
@@ -1903,7 +1943,6 @@ export function useChat(
         shouldContinue?: () => boolean
       }
     ) => {
-      const decoder = new TextDecoder()
       const ctx = createStreamLoopContext({
         workspaceId,
         queryClient,
@@ -1956,76 +1995,50 @@ export function useChat(
         return { sawStreamError: false, sawComplete: false }
       }
       streamReaderRef.current = reader
-      let buffer = ''
 
       try {
-        const pendingLines: string[] = []
+        await readSSELines(reader, {
+          onData: (raw) => {
+            if (state.sawCompleteEvent) return true
+            if (ops.isStale()) return
 
-        while (true) {
-          if (pendingLines.length === 0) {
-            // Don't read another chunk after `complete` has drained.
-            if (state.sawCompleteEvent) break
-            const { done, value } = await reader.read()
-            if (done) break
-            if (ops.isStale()) continue
-
-            buffer += decoder.decode(value, { stream: true })
-            const lines = buffer.split('\n')
-            buffer = lines.pop() || ''
-            pendingLines.push(...lines)
-            if (pendingLines.length === 0) {
-              continue
+            const parsedResult = parsePersistedStreamEventEnvelopeJson(raw)
+            if (!parsedResult.ok) {
+              const error = createStreamSchemaValidationError(parsedResult, 'Live SSE event.')
+              logger.error('Rejected chat SSE event due to client-side schema enforcement', {
+                reason: parsedResult.reason,
+                message: parsedResult.message,
+                errors: parsedResult.errors,
+                error: error.message,
+              })
+              throw error
             }
-          }
+            const parsed = parsedResult.event
 
-          const line = pendingLines.shift()
-          if (line === undefined) {
-            continue
-          }
-          if (ops.isStale()) {
-            pendingLines.length = 0
-            continue
-          }
-          if (!line.startsWith('data: ')) continue
-          const raw = line.slice(6)
+            if (parsed.trace?.requestId && parsed.trace.requestId !== state.streamRequestId) {
+              state.streamRequestId = parsed.trace.requestId
+              streamRequestIdRef.current = state.streamRequestId
+              ops.flush()
+            }
+            if (parsed.stream?.streamId) {
+              streamIdRef.current = parsed.stream.streamId
+            }
+            const eventCursor = parsed.stream?.cursor ?? String(parsed.seq)
+            if (isAlreadyProcessedStreamCursor(eventCursor, lastCursorRef.current)) {
+              return
+            }
+            if (eventCursor) {
+              lastCursorRef.current = eventCursor
+            }
 
-          const parsedResult = parsePersistedStreamEventEnvelopeJson(raw)
-          if (!parsedResult.ok) {
-            const error = createStreamSchemaValidationError(parsedResult, 'Live SSE event.')
-            logger.error('Rejected chat SSE event due to client-side schema enforcement', {
-              reason: parsedResult.reason,
-              message: parsedResult.message,
-              errors: parsedResult.errors,
-              error: error.message,
-            })
-            throw error
-          }
-          const parsed = parsedResult.event
-
-          if (parsed.trace?.requestId && parsed.trace.requestId !== state.streamRequestId) {
-            state.streamRequestId = parsed.trace.requestId
-            streamRequestIdRef.current = state.streamRequestId
-            ops.flush()
-          }
-          if (parsed.stream?.streamId) {
-            streamIdRef.current = parsed.stream.streamId
-          }
-          const eventCursor =
-            parsed.stream?.cursor ??
-            (typeof parsed.seq === 'number' ? String(parsed.seq) : undefined)
-          if (isAlreadyProcessedStreamCursor(eventCursor, lastCursorRef.current)) {
-            continue
-          }
-          if (eventCursor) {
-            lastCursorRef.current = eventCursor
-          }
-
-          logger.debug('SSE event received', parsed)
-          dispatchStreamEvent(ctx, parsed)
-        }
+            logger.debug('SSE event received', parsed)
+            dispatchStreamEvent(ctx, parsed)
+            if (state.sawCompleteEvent) return true
+          },
+        })
       } finally {
         if (state.sawStreamError && !state.sawCompleteEvent) {
-          finalizeResidualToolCalls(state.blocks, 'error')
+          applyTurnTerminal(state.model, 'error')
           ops.flush()
         }
         if (state.scheduledTextFlushFrame !== null) {
@@ -2914,6 +2927,36 @@ export function useChat(
   const finalize = useCallback(
     (options?: { error?: boolean; targetChatId?: string }) => {
       const isError = !!options?.error
+      if (isError) {
+        const blocks = streamingBlocksRef.current
+        if (blocks.some((block) => block.toolCall?.status === 'executing')) {
+          finalizeResidualToolCalls(blocks, 'error')
+          const assistantId =
+            activeTurnRef.current?.assistantMessageId ??
+            (streamIdRef.current ? getLiveAssistantMessageId(streamIdRef.current) : undefined)
+          const activeChatId = options?.targetChatId ?? chatIdRef.current
+          if (assistantId && activeChatId) {
+            const snapshot = buildAssistantSnapshotMessage({
+              id: assistantId,
+              content: streamingContentRef.current,
+              contentBlocks: blocks,
+              ...(streamRequestIdRef.current ? { requestId: streamRequestIdRef.current } : {}),
+            })
+            upsertChatHistory(activeChatId, (current) => ({
+              ...current,
+              messages: current.messages.map((message) =>
+                message.id === assistantId ? snapshot : message
+              ),
+            }))
+          } else if (assistantId) {
+            setPendingMessages((prev) =>
+              prev.map((message) =>
+                message.id === assistantId ? { ...message, contentBlocks: [...blocks] } : message
+              )
+            )
+          }
+        }
+      }
       const queue = useMothershipQueueStore.getState().queues[chatKeyRef.current]
       const hasQueuedFollowUp = !isError && (queue?.length ?? 0) > 0
       reconcileTerminalPreviewSessions()
@@ -2934,6 +2977,7 @@ export function useChat(
       notifyTurnEnded,
       reconcileTerminalPreviewSessions,
       setTransportIdle,
+      upsertChatHistory,
     ]
   )
   finalizeRef.current = finalize
@@ -3576,7 +3620,18 @@ export function useChat(
       clearQueuedSendHandoffClaim(handoff.id, claimOwnerId)
     })
   }, [workspaceId, chatHistory, queuedHandoffRecoveryEpoch, startSendMessage])
-  const cancelActiveWorkflowExecutions = useCallback(() => {
+  const cancelActiveWorkflowExecutions = useCallback(async () => {
+    const [
+      { useExecutionStore },
+      { useTerminalConsoleStore },
+      { cancelRunToolExecution, markRunToolManuallyStopped, reportManualRunToolStop },
+      { cancelExecutionStreams },
+    ] = await Promise.all([
+      import('@/stores/execution/store'),
+      import('@/stores/terminal'),
+      import('@/lib/copilot/tools/client/run-tool-execution'),
+      import('@/hooks/use-execution-stream'),
+    ])
     const execState = useExecutionStore.getState()
     const consoleStore = useTerminalConsoleStore.getState()
 
@@ -3612,14 +3667,14 @@ export function useChat(
         blockType: 'cancelled',
       })
 
-      executionStream.cancel(workflowId)
+      cancelExecutionStreams(workflowId)
       execState.setIsExecuting(workflowId, false)
       execState.setIsDebugging(workflowId, false)
       execState.setActiveBlocks(workflowId, new Set())
 
       reportManualRunToolStop(workflowId, toolCallId).catch(() => {})
     }
-  }, [executionStream])
+  }, [])
 
   const stopGeneration = useCallback(
     async (options?: StopGenerationOptions) => {
@@ -3737,9 +3792,11 @@ export function useChat(
         throw err
       }
 
-      // Cancel active run-tool executions before waiting for the server-side stream
-      // shutdown barrier; otherwise the abort settle can sit behind tool execution teardown.
-      cancelActiveWorkflowExecutions()
+      // Start active run-tool cancellation before waiting for the server-side
+      // stream shutdown barrier. The execution runtime is loaded only on this path.
+      const workflowCancellation = cancelActiveWorkflowExecutions().catch((error) => {
+        logger.warn('Failed to cancel active workflow executions', { error })
+      })
 
       let abortSucceeded = false
       const stopBarrier = (async () => {
@@ -3854,7 +3911,7 @@ export function useChat(
       })()
 
       try {
-        await stopBarrier
+        await Promise.all([stopBarrier, workflowCancellation])
         notifyTurnEnded({
           error: false,
           skipQueueDispatch: mode === 'queued-handoff',

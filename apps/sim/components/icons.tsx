@@ -1,6 +1,8 @@
 import type { SVGProps } from 'react'
 import { useId } from 'react'
 
+export { AgentIcon, ImageIcon, TTSIcon, VideoIcon } from '@/components/icons/chat-icons'
+
 export function EnrichmentIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -121,41 +123,6 @@ export function SearchIcon(props: SVGProps<SVGSVGElement>) {
     >
       <circle cx='11' cy='11' r='8' />
       <path d='m21 21-4.3-4.3' />
-    </svg>
-  )
-}
-
-export function AgentIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      width='21'
-      height='24'
-      viewBox='0 0 21 24'
-      fill='none'
-      xmlns='http://www.w3.org/2000/svg'
-    >
-      <path
-        d='M15.67 9.25H4.67C2.64 9.25 1 10.89 1 12.92V18.42C1 20.44 2.64 22.08 4.67 22.08H15.67C17.69 22.08 19.33 20.44 19.33 18.42V12.92C19.33 10.89 17.69 9.25 15.67 9.25Z'
-        stroke='currentColor'
-        strokeWidth='2'
-        strokeLinecap='round'
-        strokeLinejoin='round'
-      />
-      <path
-        d='M10.17 5.58C11.18 5.58 12 4.76 12 3.75C12 2.74 11.18 1.92 10.17 1.92C9.15 1.92 8.33 2.74 8.33 3.75C8.33 4.76 9.15 5.58 10.17 5.58Z'
-        stroke='currentColor'
-        strokeWidth='2'
-        strokeLinecap='round'
-        strokeLinejoin='round'
-      />
-      <path
-        d='M10.17 5.59V9.25M7.42 16.59V14.75M12.92 14.75V16.59'
-        stroke='currentColor'
-        strokeWidth='2'
-        strokeLinecap='round'
-        strokeLinejoin='round'
-      />
     </svg>
   )
 }
@@ -1958,6 +1925,24 @@ export function WhatsAppIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function SportmonksIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      viewBox='0 0 25 24'
+      fill='none'
+      fillRule='evenodd'
+      xmlns='http://www.w3.org/2000/svg'
+    >
+      <path
+        d='M11.857 8.546c1.893 0 3.517.678 4.872 2.033 1.355 1.336 2.032 2.96 2.032 4.872 0 1.91-.677 3.535-2.032 4.871-1.355 1.355-2.979 2.032-4.872 2.032H1V17.093h10.857c.446 0 .825-.157 1.142-.473.334-.334.5-.724.5-1.17 0-.445-.166-.835-.5-1.17a1.558 1.558 0 00-1.142-.472H7.905c-1.912 0-3.537-.677-4.873-2.032C1.678 10.421 1 8.796 1 6.903 1 4.993 1.678 3.368 3.033 2.032 4.368.678 5.992 0 7.905 0h10.188V5.263H7.904a1.65 1.65 0 00-1.17.473 1.586 1.586 0 00-.472 1.169c0 .445.157.835.473 1.17.334.315.724.472 1.17.472h3.952z'
+        fill='currentColor'
+      />
+      <circle cx='21.27' cy='20.123' r='2.732' fill='#FF0F50' />
+    </svg>
+  )
+}
+
 export function SquareIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} viewBox='0 0 501.42 501.42' xmlns='http://www.w3.org/2000/svg'>
@@ -2123,27 +2108,6 @@ export function SendblueIcon(props: SVGProps<SVGSVGElement>) {
         fill='currentColor'
         d='M0.0122017 36C0.0122012 41.6798 4.37038 46.3269 9.92916 46.8072C6.33936 51.07 6.54347 57.4463 10.5535 61.457C14.5635 65.4676 20.9387 65.6718 25.2008 62.0814C25.669 67.6411 30.3274 72 36.0062 72C41.685 72 46.3314 67.6411 46.8116 62.0814C51.0737 65.6718 57.4489 65.4676 61.4589 61.457C65.4689 57.4463 65.673 51.0701 62.0832 46.8072C67.642 46.3389 72.0002 41.6798 72.0002 36C72.0002 30.008 67.1378 25.1448 61.1468 25.1448C60.7266 25.1448 60.3183 25.1808 59.9101 25.2288C59.4659 25.2769 59.0097 25.2889 58.5415 25.2889C56.9927 25.2889 55.5159 24.9887 54.1713 24.4483C51.1458 23.2475 48.7446 20.8339 47.544 17.8199C47.0037 16.463 46.7035 14.986 46.7035 13.449C46.7035 12.9807 46.7155 12.5364 46.7636 12.0801C46.8116 11.6718 46.8476 11.2635 46.8476 10.8553C46.8476 4.86326 41.9852 1.65468e-05 35.9942 1.60229e-05C30.3154 1.55264e-05 25.669 4.35892 25.1888 9.91862C20.9267 6.32823 14.5515 6.53237 10.5415 10.543C6.53146 14.5537 6.32736 20.93 9.91715 25.1928C4.35837 25.6611 0.000195295 30.3202 0.000194799 36L0.0122017 36Z'
       />
-    </svg>
-  )
-}
-
-export function ImageIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      width='26'
-      height='26'
-      viewBox='0 0 26 26'
-      fill='none'
-      xmlns='http://www.w3.org/2000/svg'
-      stroke='currentColor'
-      strokeWidth='2'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-    >
-      <path d='M24.9 10.32C16.09 9.11 8.49 15.65 9 24.33M5.67 7.67C5.67 8.37 5.95 9.05 6.45 9.55C6.95 10.05 7.63 10.33 8.33 10.33C9.04 10.33 9.72 10.05 10.22 9.55C10.72 9.05 11 8.37 11 7.67C11 6.96 10.72 6.28 10.22 5.78C9.72 5.28 9.04 5 8.33 5C7.63 5 6.95 5.28 6.45 5.78C5.95 6.28 5.67 6.96 5.67 7.67Z' />
-      <path d='M1 14.42C4.71 13.91 8.03 15.7 9.83 18.55' />
-      <path d='M1 9.53C1 6.55 1 5.05 1.58 3.91C2.09 2.91 2.91 2.09 3.91 1.58C5.05 1 6.55 1 9.53 1H16.47C19.45 1 20.95 1 22.09 1.58C23.09 2.09 23.91 2.91 24.42 3.91C25 5.05 25 6.55 25 9.53V16.47C25 19.45 25 20.95 24.42 22.09C23.91 23.09 23.09 23.91 22.09 24.42C20.95 25 19.45 25 16.47 25H9.53C6.55 25 5.05 25 3.91 24.42C2.91 23.91 2.09 23.09 1.58 22.09C1 20.95 1 19.45 1 16.47V9.53Z' />
     </svg>
   )
 }
@@ -3396,36 +3360,6 @@ export function AzureIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
-export function AzureDevOpsIcon(props: SVGProps<SVGSVGElement>) {
-  const id = useId()
-  const gradientId = `azure_devops_gradient_${id}`
-  return (
-    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128' {...props}>
-      <defs>
-        <linearGradient
-          id={gradientId}
-          gradientUnits='userSpaceOnUse'
-          x1='9'
-          y1='16.97'
-          x2='9'
-          y2='1.03'
-          gradientTransform='scale(7.11111)'
-        >
-          <stop offset='0' stopColor='#0078d4' />
-          <stop offset='.16' stopColor='#1380da' />
-          <stop offset='.53' stopColor='#3c91e5' />
-          <stop offset='.82' stopColor='#559cec' />
-          <stop offset='1' stopColor='#5ea0ef' />
-        </linearGradient>
-      </defs>
-      <path
-        fill={`url(#${gradientId})`}
-        d='M120.89 28.445v69.262l-28.445 23.324-44.09-16.07v15.93L23.395 88.25l72.746 5.688V31.574ZM96.64 31.93 55.82 7.11v16.285L18.348 34.418 7.109 48.852v32.785l16.075 7.11V46.718Zm0 0'
-      />
-    </svg>
-  )
-}
-
 export const GroqIcon = (props: SVGProps<SVGSVGElement>) => (
   <svg
     {...props}
@@ -3447,6 +3381,16 @@ export const DeepseekIcon = (props: SVGProps<SVGSVGElement>) => (
     <path
       d='M23.75 4.48c-.254-.124-.364.11-.512.23-.51.04-.094.09-.137.14-.372.4-.806.66-1.37.626-.829-.046-1.54.214-2.16.848-.133-.782-.575-1.25-1.25-1.55-.352-.156-.708-.311-.955-.65-.172-.241-.219-.51-.305-.774-.055-.16-.11-.323-.293-.35-.2-.031-.278.14-.356.28-.313.57-.434 1.2-.422 1.84.03 1.44.633 2.58 1.84 3.39.137.09.172.19.129.32-.082.28-.18.55-.266.83-.55.18-.137.22-.329.14a5.53 5.53 0 01-1.74-1.18c-.857-.828-1.63-1.74-2.6-2.46a11.37 11.37 0 00-.689-.471c-.985-.957.13-1.74.388-1.84.27-.98.09-.432-.779-.428-.872-1.67.3-2.69.684a3.06 3.06 0 01-.465.14 9.6 9.6 0 00-2.88-.102c-1.88.21-3.39 1.1-4.5 2.62C.082 8.61-.231 10.68.152 12.85c.403 2.28 1.57 4.18 3.36 5.65 1.86 1.53 4 2.28 6.44 2.14 1.48-.085 3.13-.284 4.99-1.86.47.23.962.33 1.78.4.63.06 1.24-.03 1.71-.128.74-.156.68-.837.42-.961-2.15-1-1.68-.595-2.11-.926 1.1-1.3 2.75-2.64 3.39-7.05-.347.01-.565 0-.845-.004-.17.04-.237.23-.256a4.17 4.17 0 1.55-.475c1.4-.763 1.96-2.01 2.09-3.52.02-.23-.004-.467-.247-.588zM11.58 18c-2.09-1.64-3.1-2.18-3.52-2.16-.392.02-.321.47-.235.76.9.29.207.49.371.74.114.17.192.42-.113.6-.673.42-1.84-.14-1.9-.167-1.36-.802-2.5-1.86-3.3-3.31-.774-1.39-1.22-2.89-1.3-4.48-.02-.386.09-.522.48-.592a4.7 4.7 0 11.53-.039c2.13.312 3.95 1.26 5.47 2.77.868.86 1.53 1.89 2.2 2.89.72 1.07 1.49 2.08 2.48 2.91.348.29.625.51.891.68-.802.09-2.14.11-3.05-.614zm1-6.44a.306.31 0 1.42-.287.3.302 0 01.2.29.306.31 0 01-.31.31.303.3 0 01-.304-.308zm3.11 1.6c-.2.08-.399.15-.59.16a1.25 1.25 0 01-.798-.254c-.274-.23-.47-.358-.552-.758a1.73 1.73 0 1.02-.588c.07-.327-.008-.537-.239-.727-.187-.156-.426-.199-.688-.199a.559.56 0 01-.254-.078c-.11-.054-.2-.19-.114-.358.03-.054.16-.186.19-.21.36-.202.77-.136 1.15.16.35.144.62.408 1.782.39.451.46.576.68.914.18.265.34.537.45.848.07.195-.19.35-.25.45z'
       fill='#4D6BFE'
+    />
+  </svg>
+)
+
+export const SakanaIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg {...props} height='1em' viewBox='152 5 38 30' width='1em' xmlns='http://www.w3.org/2000/svg'>
+    <title>Sakana AI</title>
+    <path
+      d='m187.2 7.8-2.5-0.7c-6.3-1.8-12.7-1.2-18 1.5l-10.2 5.7c-1.2 0.7-0.2 2.5 1 1.8l7.6-4.4c0.8 1.7 1.5 4 1.1 7.7-1.4-0.3-6-1.4-10.9 1.5-0.6 0.3-0.8 1.1-0.3 1.7 0.5 0.5 1.2 0.3 1.3 0.2 2.2-1.3 5.6-2.4 9.6-1.4-0.7 2.5-2.5 5.6-6 7.8-1.5 0.7-0.4 2.3 0.7 1.8 1.8-1 5.3-3.4 6.9-9 2.1 0.9 4.2 2.4 5.9 4.6l-7.2 4.1c-1.2 0.6-0.3 2.4 1.1 1.7l9-5c4.6-2.7 8.3-7.5 10.1-13.1l1.3-5.3c0.4-0.4 0-1.1-0.5-1.2zm-11.5 17.5-0.6 0.4c-2-2.6-4.5-4.7-7.5-5.7 0.5-3.8-0.3-6.8-1.2-9.1l1.1-0.6c4.8-2 9.8-2.7 16.2-0.9l1.6 0.4-0.8 2.7c-1.5 4.9-4.5 9.6-8.8 12.8z'
+      fill='#E60000'
     />
   </svg>
 )
@@ -4931,50 +4875,6 @@ export function STTIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
-export function TTSIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns='http://www.w3.org/2000/svg'
-      width='24'
-      height='24'
-      viewBox='0 0 24 24'
-      fill='none'
-      stroke='currentColor'
-      strokeWidth='2'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-    >
-      <path d='M2 10v3' />
-      <path d='M6 6v11' />
-      <path d='M10 3v18' />
-      <path d='M14 8v7' />
-      <path d='M18 5v13' />
-      <path d='M22 10v3' />
-    </svg>
-  )
-}
-
-export function VideoIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns='http://www.w3.org/2000/svg'
-      width='24'
-      height='24'
-      viewBox='0 0 24 24'
-      fill='none'
-      stroke='currentColor'
-      strokeWidth='2'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-    >
-      <path d='m16 13 5.22 3.48a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5' />
-      <rect x='2' y='6' width='14' height='12' rx='2' />
-    </svg>
-  )
-}
-
 export function VllmIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} fill='currentColor' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'>
@@ -5296,6 +5196,18 @@ export function SmtpIcon(props: SVGProps<SVGSVGElement>) {
         strokeLinejoin='round'
       />
       <circle cx='24' cy='6' r='4' fill='currentColor' stroke='none' />
+    </svg>
+  )
+}
+
+export function PiIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 800' fill='currentColor'>
+      <path
+        fillRule='evenodd'
+        d='M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z'
+      />
+      <path d='M517.36 400 H634.72 V634.72 H517.36 Z' />
     </svg>
   )
 }
@@ -7867,6 +7779,117 @@ export function TriggerDevIcon(props: SVGProps<SVGSVGElement>) {
           <stop offset='1' stopColor='#E7FF52' />
         </linearGradient>
       </defs>
+    </svg>
+  )
+}
+
+/** Datagma brand icon: navy square with the white Datagma "D" mark. */
+export function DatagmaIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
+      <rect width='24' height='24' fill='#003071' />
+      <path
+        fillRule='evenodd'
+        clipRule='evenodd'
+        d='M6 4.5H11.5C15.9 4.5 18.5 7.8 18.5 12C18.5 16.2 15.9 19.5 11.5 19.5H6V4.5ZM9.3 7.5V16.5H11.5C13.8 16.5 15.2 14.6 15.2 12C15.2 9.4 13.8 7.5 11.5 7.5H9.3Z'
+        fill='#FFFFFF'
+      />
+    </svg>
+  )
+}
+
+/** LeadMagic brand icon: purple gradient tile with the white spark mark. */
+export function LeadMagicIcon(props: SVGProps<SVGSVGElement>) {
+  const id = useId()
+  const gradient = `leadmagic_grad_${id}`
+  return (
+    <svg {...props} viewBox='0 0 65 65' fill='none' xmlns='http://www.w3.org/2000/svg'>
+      <defs>
+        <linearGradient id={gradient} x1='0%' y1='100%' x2='100%' y2='0%'>
+          <stop offset='0%' stopColor='#4C1D95' />
+          <stop offset='50%' stopColor='#7C3AED' />
+          <stop offset='100%' stopColor='#C4B5FD' />
+        </linearGradient>
+      </defs>
+      <rect width='65' height='65' fill={`url(#${gradient})`} />
+      <path
+        d='M34.1016 37.707C33.5363 37.7698 33.0967 38.021 32.8454 38.5235C32.5942 39.0259 32.4686 39.654 32.5942 40.4705C32.5942 40.4705 34.29 49.8288 34.5412 50.8337C34.7925 51.8386 35.3577 53.4716 36.1114 53.346C36.9279 53.2203 36.9907 51.5245 36.9279 50.4568C36.9279 50.4568 36.237 41.601 36.1742 40.5961C36.1114 39.5284 35.8602 38.7119 35.4833 38.335C35.1065 37.8326 34.6668 37.6442 34.1016 37.707Z'
+        fill='#FFFFFF'
+      />
+      <path
+        d='M33.5344 26.1529L35.4815 23.201C35.7955 22.6985 36.1095 22.7613 36.1095 23.1382L35.6699 26.9066C35.6071 27.2835 35.9211 27.7231 36.4236 27.6603L39.7523 26.9066C39.9408 26.9066 40.1292 27.1578 39.9408 27.3463L37.4285 29.5445C37.0516 29.9842 37.0516 30.4238 37.5541 30.7378L39.8152 32.1196C39.9408 32.2452 39.878 32.4336 39.6895 32.4336L36.9888 32.6221C36.4236 32.6849 36.1723 33.1245 36.2351 33.6898L37.1144 36.9558C37.1773 37.1442 36.9888 37.3326 36.7376 37.0814L34.4137 34.5691C33.9741 34.1922 33.4088 34.255 33.032 34.6947L31.399 36.8301C31.2734 36.9558 30.9593 36.8929 31.0221 36.7045L31.1478 34.1922C31.085 33.627 30.7081 33.1873 30.1428 33.2501L27.5049 34.0666C27.2537 34.1294 27.1909 33.8154 27.3165 33.6898L29.2635 31.5543C29.6404 31.1147 29.7032 30.6122 29.1379 30.2982L26.3116 28.9792C25.9348 28.728 26.1232 28.4768 26.4372 28.4768L29.452 28.414C29.8916 28.414 30.2685 28.0999 30.1428 27.4719C30.1428 27.4719 29.2635 24.3315 29.0751 23.8291C28.8867 23.3266 29.3892 23.0126 29.766 23.3894L32.3411 26.1529C32.7179 26.5926 33.1576 26.6554 33.5344 26.1529Z'
+        fill='#FFFFFF'
+      />
+      <path
+        d='M32.5928 22.3851C32.3416 22.3851 32.0903 22.1339 32.0275 21.757L30.3317 13.2152C30.2689 12.8384 30.4574 12.1475 31.0854 12.0219C31.6507 11.8963 32.216 12.3359 32.2788 12.7128L32.9068 21.6314C32.9696 22.0083 32.9696 22.3851 32.5928 22.3851Z'
+        fill='#FFFFFF'
+      />
+      <path
+        d='M40.5694 29.7335C40.5066 29.3567 40.8834 29.2939 41.2603 29.2939L49.3624 27.9121C49.8649 27.9121 50.1161 28.4146 50.1161 28.7286C50.2417 29.1054 49.7392 29.7335 49.0484 29.6707L41.3231 29.9847C41.009 29.9847 40.6322 30.1104 40.5694 29.7335Z'
+        fill='#FFFFFF'
+      />
+      <path
+        d='M16.0122 32.3718C16.0122 31.9949 16.6402 31.2412 17.3939 31.2412L24.868 31.0528C25.2448 30.99 25.6217 31.1156 25.6217 31.4297C25.6217 31.7437 25.1192 31.8693 24.7424 31.9321L17.2055 33.1883C16.7658 33.1254 15.8865 32.8742 16.0122 32.3718Z'
+        fill='#FFFFFF'
+      />
+      <path
+        d='M38.4972 24.2699C38.1831 24.0186 38.8112 23.265 39.0624 22.9509L43.3333 17.1099C43.5845 16.6702 44.401 16.419 44.9035 16.8586C45.2803 17.2355 45.2175 17.8007 44.9663 18.052L39.3137 24.0186C39.0624 24.2699 38.7484 24.3955 38.4972 24.2699Z'
+        fill='#FFFFFF'
+      />
+      <path
+        d='M18.838 19.43C19.2148 18.8647 20.0313 19.0531 20.3453 19.3044L26.1864 24.5802C26.5004 24.8314 26.6261 25.2082 26.4376 25.3339C26.2492 25.4595 25.9352 25.3967 25.6211 25.2082L18.9636 20.8117C18.6496 20.5605 18.4611 19.9324 18.838 19.43Z'
+        fill='#FFFFFF'
+      />
+    </svg>
+  )
+}
+
+/** Dropcontact brand icon: teal disc with the white open-"d" contact mark. */
+export function DropcontactIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
+      <circle cx='12' cy='12' r='12' fill='#0ABA9F' />
+      <path
+        d='M13.87 7.9A5 5 0 1 0 13.87 16.1'
+        stroke='#FFFFFF'
+        strokeWidth='2.4'
+        strokeLinecap='round'
+      />
+      <path d='M15.1 6.2V17.8' stroke='#FFFFFF' strokeWidth='2.4' strokeLinecap='round' />
+    </svg>
+  )
+}
+
+/** Icypeas brand icon: dark tile with the teal ring + rising-chart mark. */
+export function IcypeasIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
+      <rect width='24' height='24' rx='5' fill='#011C21' />
+      <circle cx='12' cy='12' r='7' stroke='#02C29F' strokeWidth='1.7' />
+      <path
+        d='M7.2 13.8H9.2V11.8H11.2V9.8H13.2V8.2'
+        stroke='#02C29F'
+        strokeWidth='1.7'
+        strokeLinecap='round'
+        strokeLinejoin='round'
+      />
+      <rect x='13.5' y='5.8' width='2.9' height='2.9' rx='0.8' fill='#02C29F' />
+    </svg>
+  )
+}
+
+/** Enrow brand icon: blue tile with the three white stacked rows. */
+export function EnrowIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} viewBox='0 0 256 256' fill='none' xmlns='http://www.w3.org/2000/svg'>
+      <path
+        fill='#0056FF'
+        d='M217.791 0H38.209C17.107 0 0 17.107 0 38.209v179.582C0 238.893 17.107 256 38.209 256h179.582C238.893 256 256 238.893 256 217.791V38.209C256 17.107 238.893 0 217.791 0z'
+      />
+      <path
+        fill='#F0F0F0'
+        d='M196.877 58.88H78.055a3.82 3.82 0 0 0-3.82 3.82v17.96a3.82 3.82 0 0 0 3.82 3.82h118.822a3.82 3.82 0 0 0 3.821-3.82V62.701a3.82 3.82 0 0 0-3.821-3.821zm.007 112.641H73.454a3.82 3.82 0 0 0-3.821 3.82V193.3a3.82 3.82 0 0 0 3.82 3.821h123.431a3.821 3.821 0 0 0 3.821-3.821v-17.959a3.82 3.82 0 0 0-3.821-3.82zM141.588 115.2H58.606a3.821 3.821 0 0 0-3.82 3.821v17.958a3.82 3.82 0 0 0 3.82 3.821h82.982a3.82 3.82 0 0 0 3.821-3.821v-17.958a3.82 3.82 0 0 0-3.821-3.821z'
+      />
     </svg>
   )
 }

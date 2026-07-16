@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { cn } from '@/lib/core/utils/cn'
 import { ContextMentionIcon } from '@/app/workspace/[workspaceId]/home/components/context-mention-icon'
 import type { ChatMessageContext } from '@/app/workspace/[workspaceId]/home/types'
-import { getIntegrationMatcher } from '@/blocks/integration-matcher'
+import { getIntegrationMatcher } from '@/blocks/integration-mention-matcher'
 
 const USER_MESSAGE_CLASSES =
   'whitespace-pre-wrap break-words [overflow-wrap:anywhere] font-[430] font-[family-name:var(--font-inter)] text-base text-[var(--text-primary)] leading-[23px] tracking-[0] antialiased'

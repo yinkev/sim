@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/emcn'
-import { AgentSkillsIcon } from '@/components/icons'
+import { Slash } from '@/components/emcn/icons'
 import { cn } from '@/lib/core/utils/cn'
 import type { SkillDefinition } from '@/hooks/queries/skills'
 
@@ -196,7 +196,7 @@ export const SkillsMenuDropdown = React.memo(
                       isActive && 'bg-[var(--surface-active)]'
                     )}
                   >
-                    <AgentSkillsIcon />
+                    <Slash />
                     <span>{skill.name}</span>
                   </button>
                 )

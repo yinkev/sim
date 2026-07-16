@@ -61,11 +61,12 @@ vi.mock('@/lib/core/telemetry', () => telemetryMock)
 
 vi.mock('@sim/audit', () => auditMock)
 
-vi.mock('@/lib/workflows/persistence/utils', () => workflowsPersistenceUtilsMock)
+vi.mock('@/lib/workflows/persistence/load', () => workflowsPersistenceUtilsMock)
 
-vi.mock('@/lib/workflows/utils', () => workflowsUtilsMock)
+vi.mock('@/lib/workflows/get-workflow-by-id', () => workflowsUtilsMock)
 
-vi.mock('@/lib/workflows/orchestration', () => workflowsOrchestrationMock)
+vi.mock('@/lib/workflows/orchestration/workflow-delete', () => workflowsOrchestrationMock)
+vi.mock('@/lib/workflows/orchestration/workflow-update', () => workflowsOrchestrationMock)
 
 vi.mock('@sim/db', () => ({
   db: {

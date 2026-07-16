@@ -1,5 +1,6 @@
-import { env, getEnv } from '@/lib/core/config/env'
-import { isProd } from '@/lib/core/config/env-flags'
+import { getEnv } from '@/lib/core/config/public-env'
+
+const isProd = process.env.NODE_ENV === 'production'
 
 /** Canonical base URL for the public-facing marketing site. No trailing slash. */
 export const SITE_URL = 'https://www.sim.ai'
@@ -40,7 +41,7 @@ export function getBaseUrl(): string {
  * Falls back to NEXT_PUBLIC_APP_URL when INTERNAL_API_BASE_URL is not set.
  */
 export function getInternalApiBaseUrl(): string {
-  const internalBaseUrl = getEnv('INTERNAL_API_BASE_URL')?.trim()
+  const internalBaseUrl = process.env.INTERNAL_API_BASE_URL?.trim()
   if (!internalBaseUrl) {
     return getBaseUrl()
   }
@@ -174,7 +175,7 @@ export function getBrowserOrigin(): string | null {
  * Reads from SOCKET_SERVER_URL with a localhost fallback for development.
  */
 export function getSocketServerUrl(): string {
-  return env.SOCKET_SERVER_URL || DEFAULT_SOCKET_URL
+  return process.env.SOCKET_SERVER_URL || DEFAULT_SOCKET_URL
 }
 
 /**
@@ -205,5 +206,5 @@ export function getSocketUrl(): string {
  * Reads from OLLAMA_URL with a localhost fallback for development.
  */
 export function getOllamaUrl(): string {
-  return env.OLLAMA_URL || DEFAULT_OLLAMA_URL
+  return process.env.OLLAMA_URL || DEFAULT_OLLAMA_URL
 }

@@ -1,6 +1,7 @@
 'use client'
 
-import { createElement, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { useParams } from 'next/navigation'
 import {
   ArrowRight,
@@ -11,15 +12,14 @@ import {
 } from '@/components/emcn'
 import { canonicalWorkspaceFilePath } from '@/lib/copilot/vfs/path-utils'
 import { cn } from '@/lib/core/utils/cn'
-import { OAUTH_PROVIDERS } from '@/lib/oauth/oauth'
 import { ContextMentionIcon } from '@/app/workspace/[workspaceId]/home/components/context-mention-icon'
 import type {
   ChatMessageContext,
   MothershipResource,
 } from '@/app/workspace/[workspaceId]/home/types'
-import { useKnowledgeBasesQuery } from '@/hooks/queries/kb/knowledge'
-import { useTablesList } from '@/hooks/queries/tables'
-import { useWorkflows } from '@/hooks/queries/workflows'
+import { useKnowledgeBasesQuery } from '@/hooks/queries/kb/knowledge-list'
+import { useTablesList } from '@/hooks/queries/table-list'
+import { useWorkflows } from '@/hooks/queries/workflow-list'
 import { useWorkspaceFiles } from '@/hooks/queries/workspace-files'
 
 export interface OptionsItemData {
@@ -584,23 +584,6 @@ export function WorkspaceResourceDisplay({
   )
 }
 
-function getCredentialIcon(provider: string): React.ComponentType<{ className?: string }> | null {
-  const lower = provider.toLowerCase()
-
-  const directMatch = OAUTH_PROVIDERS[lower]
-  if (directMatch) return directMatch.icon
-
-  for (const config of Object.values(OAUTH_PROVIDERS)) {
-    if (config.name.toLowerCase() === lower) return config.icon
-    for (const service of Object.values(config.services)) {
-      if (service.name.toLowerCase() === lower) return service.icon
-      if (service.providerId.toLowerCase() === lower) return service.icon
-    }
-  }
-
-  return null
-}
-
 const LockIcon = (props: { className?: string }) => (
   <svg
     className={props.className}
@@ -619,10 +602,16 @@ const LockIcon = (props: { className?: string }) => (
   </svg>
 )
 
+const CredentialProviderIcon = dynamic(
+  () => import('./credential-provider-icon').then((module) => module.CredentialProviderIcon),
+  {
+    loading: () => <LockIcon className='size-[16px] shrink-0' />,
+  }
+)
+
 function CredentialDisplay({ data }: { data: CredentialTagData }) {
   if (data.type === 'link') {
     if (!data.provider) return null
-    const Icon = getCredentialIcon(data.provider) ?? LockIcon
     return (
       <a
         href={data.value}
@@ -630,7 +619,11 @@ function CredentialDisplay({ data }: { data: CredentialTagData }) {
         rel='noopener noreferrer'
         className='flex items-center gap-2 rounded-lg border border-[var(--divider)] px-3 py-2.5 transition-colors hover-hover:bg-[var(--surface-5)]'
       >
-        {createElement(Icon, { className: 'size-[16px] shrink-0' })}
+        <CredentialProviderIcon
+          provider={data.provider}
+          className='size-[16px] shrink-0'
+          fallback={<LockIcon className='size-[16px] shrink-0' />}
+        />
         <span className='flex-1 text-[var(--text-body)] text-sm'>Connect {data.provider}</span>
         <ArrowRight className='size-[16px] shrink-0 text-[var(--text-icon)]' />
       </a>

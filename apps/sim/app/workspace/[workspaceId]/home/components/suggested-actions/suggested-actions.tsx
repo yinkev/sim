@@ -1,9 +1,8 @@
 'use client'
 
-import { type ComponentType, type CSSProperties, useMemo, useState } from 'react'
+import { type ComponentType, useEffect, useMemo, useState } from 'react'
 import { randomFloat } from '@sim/utils/random'
-import { stripVersionSuffix } from '@sim/utils/string'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { usePostHog } from 'posthog-js/react'
 import {
   ArrowRight,
@@ -12,60 +11,28 @@ import {
   Expandable,
   ExpandableContent,
 } from '@/components/emcn'
-import { Shuffle, Table } from '@/components/emcn/icons'
-import { GmailIcon, SlackIcon } from '@/components/icons'
+import { Connections, Shuffle, Table, Workflow } from '@/components/emcn/icons'
 import { cn } from '@/lib/core/utils/cn'
-import {
-  getAllBlockMeta,
-  INTEGRATIONS,
-  type OAuthServiceMatch,
-  resolveOAuthServiceForIntegration,
-  resolveOAuthServiceForSlug,
-} from '@/lib/integrations'
 import { captureEvent } from '@/lib/posthog/client'
-import { ConnectOAuthModal } from '@/app/workspace/[workspaceId]/components/connect-oauth-modal'
-import { getBareIconStyle } from '@/blocks/icon-color'
-import type { ModuleTag } from '@/blocks/types'
 import { useWorkspaceCredentials } from '@/hooks/queries/credentials'
-import { useKnowledgeBasesQuery } from '@/hooks/queries/kb/knowledge'
-import { useOAuthConnections } from '@/hooks/queries/oauth/oauth-connections'
-import { useTablesList } from '@/hooks/queries/tables'
+import {
+  type HomeSuggestionCatalogCandidate,
+  type HomeSuggestionCatalogService,
+  useHomeSuggestionCatalog,
+} from '@/hooks/queries/home-suggestion-catalog'
+import { useKnowledgeBasesQuery } from '@/hooks/queries/kb/knowledge-list'
+import { useTablesList } from '@/hooks/queries/table-list'
 
-type Icon = ComponentType<{ className?: string; style?: CSSProperties }>
+type Icon = ComponentType<{ className?: string }>
 
 type Action =
   | { kind: 'prompt'; id: string; label: string; prompt: string; icon: Icon }
   | { kind: 'integration'; id: string; label: string; icon: Icon; slug: string }
 
-/** Lookup integration slug by OAuth service display name (case-insensitive). */
-const SLUG_BY_LOWER_NAME: ReadonlyMap<string, string> = new Map(
-  INTEGRATIONS.map((i) => [i.name.toLowerCase(), i.slug])
-)
-
-/** Lookup base block type by catalog slug, for the connect-row popularity weight. */
-const TYPE_BY_SLUG: ReadonlyMap<string, string> = new Map(
-  INTEGRATIONS.map((i) => [i.slug, stripVersionSuffix(i.type)])
-)
-
-/**
- * A scored suggestion candidate derived from the block template catalog (plus
- * a few generic table starters). `providerId` is set when the owning block is
- * an OAuth integration, enabling connectivity-aware scoring.
- */
-interface Candidate {
-  id: string
-  /** Diversity key — at most one suggestion per block is ever shown. */
-  blockType: string
-  label: string
-  prompt: string
+interface Candidate extends HomeSuggestionCatalogCandidate {
   icon: Icon
-  modules: readonly ModuleTag[]
-  featured: boolean
-  popular: boolean
-  providerId: string | null
 }
 
-/** Generic table starters for workspaces without integration context. */
 const TABLE_STARTERS: readonly Candidate[] = [
   { label: 'Create a CRM with sample data', prompt: 'Create a CRM with sample data.' },
   { label: 'Build a project tracker', prompt: 'Build a project tracker table.' },
@@ -84,49 +51,42 @@ const TABLE_STARTERS: readonly Candidate[] = [
   providerId: null,
 }))
 
-/**
- * The full suggestion pool, built once at module load from the curated block
- * template catalog (`getAllBlockMeta`). Each block's templates are hand-written
- * catalog prompts; the owning block links a template to its integration so
- * connectivity can inform scoring. Blocks without a catalog entry (internal
- * blocks) are skipped. Catalog types may carry version suffixes (`gmail_v2`)
- * while meta-registry keys are base types (`gmail`), so the integration map
- * is keyed by both forms.
- */
-const CANDIDATES: readonly Candidate[] = (() => {
-  const integrationByType = new Map(
-    INTEGRATIONS.flatMap((i) => [[i.type, i] as const, [stripVersionSuffix(i.type), i] as const])
-  )
-  const out: Candidate[] = [...TABLE_STARTERS]
-  for (const [blockType, meta] of Object.entries(getAllBlockMeta())) {
-    const integration = integrationByType.get(blockType)
-    if (!integration) continue
-    const providerId = resolveOAuthServiceForIntegration(integration)?.providerId ?? null
-    for (const [i, template] of (meta.templates ?? []).entries()) {
-      out.push({
-        id: `${blockType}-${i}`,
-        blockType,
-        label: template.title,
-        prompt: template.prompt,
-        icon: template.icon as Icon,
-        modules: template.modules,
-        featured: template.featured ?? false,
-        popular: template.category === 'popular',
-        providerId,
-      })
-    }
-  }
-  return out
-})()
+const GITHUB_JIRA_PROMPT =
+  'Build a workflow that monitors GitHub pull requests and automatically transitions linked Jira issues when PRs are opened or merged, keeping your project board accurate without any manual updates.'
 
-/** Template count per block type — a data-driven popularity proxy for connect rows. */
-const TEMPLATE_COUNT_BY_TYPE: ReadonlyMap<string, number> = (() => {
-  const counts = new Map<string, number>()
-  for (const c of CANDIDATES) {
-    if (c.providerId) counts.set(c.blockType, (counts.get(c.blockType) ?? 0) + 1)
-  }
-  return counts
-})()
+const INITIAL_ACTIONS: readonly Action[] = [
+  {
+    kind: 'integration',
+    id: 'integrate-slack',
+    label: 'Integrate with Slack',
+    icon: Connections,
+    slug: 'slack',
+  },
+  {
+    kind: 'integration',
+    id: 'integrate-gmail',
+    label: 'Integrate with Gmail',
+    icon: Connections,
+    slug: 'gmail',
+  },
+  {
+    kind: 'prompt',
+    id: TABLE_STARTERS[0].id,
+    label: TABLE_STARTERS[0].label,
+    prompt: TABLE_STARTERS[0].prompt,
+    icon: Table,
+  },
+  {
+    kind: 'prompt',
+    id: 'github-6',
+    label: 'Link GitHub pull requests to Jira tickets',
+    prompt: GITHUB_JIRA_PROMPT,
+    icon: Workflow,
+  },
+]
+
+const EMPTY_CREDENTIALS: NonNullable<ReturnType<typeof useWorkspaceCredentials>['data']> = []
+const EMPTY_CATALOG = { candidates: [], services: [] } as const
 
 interface Signals {
   connectedProviders: ReadonlySet<string>
@@ -134,30 +94,18 @@ interface Signals {
   hasKnowledgeBases: boolean
 }
 
-/**
- * Scores a candidate against workspace signals. Connected-provider prompts get
- * the largest boost — they are runnable immediately, with no OAuth detour —
- * while unconnected OAuth prompts are discounted (but kept, since they still
- * teach capability). Resource gaps nudge the mix: workspaces without tables
- * see more table starters; workspaces that already run knowledge bases see
- * fewer "create a knowledge base" prompts.
- */
-function scoreCandidate(c: Candidate, signals: Signals): number {
+function scoreCandidate(candidate: Candidate, signals: Signals): number {
   let weight = 1
-  if (c.featured) weight *= 3
-  if (c.popular) weight *= 1.5
-  if (c.providerId) {
-    weight *= signals.connectedProviders.has(c.providerId) ? 4 : 0.4
+  if (candidate.featured) weight *= 3
+  if (candidate.popular) weight *= 1.5
+  if (candidate.providerId) {
+    weight *= signals.connectedProviders.has(candidate.providerId) ? 4 : 0.4
   }
-  if (c.modules.includes('tables') && !signals.hasTables) weight *= 1.5
-  if (c.modules.includes('knowledge-base') && signals.hasKnowledgeBases) weight *= 0.6
+  if (candidate.modules.includes('tables') && !signals.hasTables) weight *= 1.5
+  if (candidate.modules.includes('knowledge-base') && signals.hasKnowledgeBases) weight *= 0.6
   return weight
 }
 
-/**
- * Weighted sampling without replacement. Each pick's probability is
- * proportional to its weight, so shuffles stay fresh while staying relevant.
- */
 function weightedSample<T>(pool: readonly T[], n: number, weightOf: (item: T) => number): T[] {
   const remaining = pool.map((item) => ({ item, weight: Math.max(weightOf(item), 0) }))
   const out: T[] = []
@@ -175,155 +123,152 @@ function weightedSample<T>(pool: readonly T[], n: number, weightOf: (item: T) =>
   return out
 }
 
-const EMPTY_CREDENTIALS: NonNullable<ReturnType<typeof useWorkspaceCredentials>['data']> = []
-const EMPTY_SERVICES: NonNullable<ReturnType<typeof useOAuthConnections>['data']> = []
-
-type ServiceInfo = NonNullable<ReturnType<typeof useOAuthConnections>['data']>[number]
-
-function toPromptAction(c: Candidate): Action {
-  return { kind: 'prompt', id: c.id, label: c.label, prompt: c.prompt, icon: c.icon }
+function toPromptAction(candidate: Candidate): Action {
+  return {
+    kind: 'prompt',
+    id: candidate.id,
+    label: candidate.label,
+    prompt: candidate.prompt,
+    icon: candidate.icon,
+  }
 }
 
-function toIntegrationAction(service: ServiceInfo, slug: string): Action {
+function toIntegrationAction(service: HomeSuggestionCatalogService): Action {
   return {
     kind: 'integration',
     id: `integrate-${service.providerId}`,
     label: `Integrate with ${service.name}`,
-    icon: service.icon,
-    slug,
+    icon: Connections,
+    slug: service.slug,
   }
 }
 
-/**
- * Builds a fresh set of four suggested actions: "Integrate with X" rows for
- * unconnected services (weighted by how many catalog templates the service
- * has — a data-driven popularity proxy), then prompt rows weighted by
- * {@link scoreCandidate}. At most one prompt per block keeps the set diverse.
- * Workspaces with at least one connection get a single connect row and three
- * prompts; fresh workspaces get two of each.
- */
-function computeActions(services: readonly ServiceInfo[], signals: Signals): Action[] {
-  const connectCandidates = services.flatMap((s) => {
-    if (signals.connectedProviders.has(s.providerId)) return []
-    const slug = SLUG_BY_LOWER_NAME.get(s.name.toLowerCase())
-    return slug ? [{ service: s, slug }] : []
-  })
+function computeActions(
+  services: readonly HomeSuggestionCatalogService[],
+  candidates: readonly Candidate[],
+  signals: Signals
+): Action[] {
+  const connectCandidates = services.filter(
+    (service) => !signals.connectedProviders.has(service.providerId)
+  )
   const connectCount = signals.connectedProviders.size === 0 ? 2 : 1
   const integrations = weightedSample(
     connectCandidates,
     connectCount,
-    ({ slug }) => (TEMPLATE_COUNT_BY_TYPE.get(TYPE_BY_SLUG.get(slug) ?? '') ?? 0) + 1
-  ).map(({ service, slug }) => toIntegrationAction(service, slug))
+    (service) => service.templateCount + 1
+  ).map(toIntegrationAction)
 
-  const scored = CANDIDATES.map((c) => ({ c, weight: scoreCandidate(c, signals) })).filter(
-    (entry) => entry.weight > 0
-  )
+  const scored = candidates
+    .map((candidate) => ({ candidate, weight: scoreCandidate(candidate, signals) }))
+    .filter((entry) => entry.weight > 0)
   const prompts: Action[] = []
   const usedBlockTypes = new Set<string>()
   while (prompts.length < 4 - integrations.length) {
-    const available = scored.filter((entry) => !usedBlockTypes.has(entry.c.blockType))
+    const available = scored.filter((entry) => !usedBlockTypes.has(entry.candidate.blockType))
     const [pick] = weightedSample(available, 1, (entry) => entry.weight)
     if (!pick) break
-    usedBlockTypes.add(pick.c.blockType)
-    prompts.push(toPromptAction(pick.c))
+    usedBlockTypes.add(pick.candidate.blockType)
+    prompts.push(toPromptAction(pick.candidate))
   }
 
   return [...integrations, ...prompts]
 }
 
-/**
- * Initial actions rendered on first paint, before OAuth/credentials queries
- * resolve. For users with no connections this is also the final result, so the
- * section never flashes. Users with existing connections briefly see this
- * before the personalized recompute replaces it.
- */
-const INITIAL_ACTIONS: Action[] = [
-  {
-    kind: 'integration',
-    id: 'integrate-slack',
-    label: 'Integrate with Slack',
-    icon: SlackIcon,
-    slug: 'slack',
-  },
-  {
-    kind: 'integration',
-    id: 'integrate-gmail',
-    label: 'Integrate with Gmail',
-    icon: GmailIcon,
-    slug: 'gmail',
-  },
-  toPromptAction(TABLE_STARTERS[0]),
-  ...CANDIDATES.filter((c) => c.blockType === 'github' && c.featured)
-    .slice(0, 1)
-    .map(toPromptAction),
-]
-
 interface SuggestedActionsProps {
+  deferSignalQueries?: boolean
   onSelectPrompt: (prompt: string) => void
 }
 
-export function SuggestedActions({ onSelectPrompt }: SuggestedActionsProps) {
+export function SuggestedActions({
+  deferSignalQueries = false,
+  onSelectPrompt,
+}: SuggestedActionsProps) {
   const { workspaceId } = useParams<{ workspaceId: string }>()
+  const router = useRouter()
   const posthog = usePostHog()
+  const [signalsRequested, setSignalsRequested] = useState(false)
+  const signalsEnabled = !deferSignalQueries || signalsRequested
 
-  const { data: credentials = EMPTY_CREDENTIALS } = useWorkspaceCredentials({
+  const {
+    data: credentials = EMPTY_CREDENTIALS,
+    isFetched: credentialsFetched,
+    isFetching: credentialsFetching,
+  } = useWorkspaceCredentials({
     workspaceId,
-    enabled: Boolean(workspaceId),
+    enabled: Boolean(workspaceId) && signalsEnabled,
   })
-  const { data: services = EMPTY_SERVICES } = useOAuthConnections()
-  const { data: tables = [] } = useTablesList(workspaceId)
-  const { data: knowledgeBases = [] } = useKnowledgeBasesQuery(workspaceId, {
-    enabled: Boolean(workspaceId),
+  const {
+    data: catalog = EMPTY_CATALOG,
+    isFetched: catalogFetched,
+    isFetching: catalogFetching,
+  } = useHomeSuggestionCatalog({ enabled: signalsEnabled })
+  const {
+    data: tables = [],
+    isFetched: tablesFetched,
+    isFetching: tablesFetching,
+  } = useTablesList(workspaceId, 'active', { enabled: signalsEnabled })
+  const {
+    data: knowledgeBases = [],
+    isFetched: knowledgeBasesFetched,
+    isFetching: knowledgeBasesFetching,
+  } = useKnowledgeBasesQuery(workspaceId, {
+    enabled: Boolean(workspaceId) && signalsEnabled,
   })
 
   const [expanded, setExpanded] = useState(true)
-  /**
-   * Collapsible animations are enabled only after the first user toggle, so
-   * the initially-open, server-rendered panel appears at full height on first
-   * paint instead of replaying the open animation and shifting the input
-   * above it.
-   */
   const [animationsEnabled, setAnimationsEnabled] = useState(false)
-  /** Incremented by the shuffle control to re-roll the weighted sample. */
   const [shuffleNonce, setShuffleNonce] = useState(0)
-  /**
-   * OAuth connect modal target. Setting this opens the modal; setting it back
-   * to `null` (via `onOpenChange(false)`) closes it. Mirrors the local-state
-   * pattern used by the integrations detail page.
-   */
-  const [oauthTarget, setOAuthTarget] = useState<OAuthServiceMatch | null>(null)
+  const [deferredShufflePending, setDeferredShufflePending] = useState(false)
 
+  const candidates = useMemo<readonly Candidate[]>(
+    () => [
+      ...TABLE_STARTERS,
+      ...catalog.candidates.map((candidate) => ({ ...candidate, icon: Workflow })),
+    ],
+    [catalog.candidates]
+  )
   const connectedProviders = useMemo(
     () =>
       new Set(
         credentials
-          .filter((c) => c.type === 'oauth' || c.type === 'service_account')
-          .map((c) => c.providerId)
+          .filter((credential) => ['oauth', 'service_account'].includes(credential.type))
+          .map((credential) => credential.providerId)
           .filter((id): id is string => Boolean(id))
       ),
     [credentials]
   )
-
   const signals = useMemo<Signals>(
     () => ({
       connectedProviders,
       hasTables: tables.length > 0,
       hasKnowledgeBases: knowledgeBases.length > 0,
     }),
-    [connectedProviders, tables.length, knowledgeBases.length]
+    [connectedProviders, knowledgeBases.length, tables.length]
   )
 
-  /**
-   * Personalized suggestions, re-sampled whenever signals resolve or the user
-   * shuffles. Falls back to {@link INITIAL_ACTIONS} until the credential and
-   * service queries have loaded (and stays there for users with no
-   * connections, unless they shuffle), so first paint never flashes.
-   */
+  const signalQueriesSettled =
+    signalsEnabled &&
+    credentialsFetched &&
+    !credentialsFetching &&
+    catalogFetched &&
+    !catalogFetching &&
+    tablesFetched &&
+    !tablesFetching &&
+    knowledgeBasesFetched &&
+    !knowledgeBasesFetching
+
+  useEffect(() => {
+    if (!deferredShufflePending || !signalQueriesSettled) return
+    setDeferredShufflePending(false)
+    setShuffleNonce((nonce) => nonce + 1)
+  }, [deferredShufflePending, signalQueriesSettled])
+
   const actions = useMemo(() => {
-    const personalized = services.length > 0 && connectedProviders.size > 0
+    if (deferSignalQueries && shuffleNonce === 0) return INITIAL_ACTIONS
+    const personalized = catalog.services.length > 0 && connectedProviders.size > 0
     if (!personalized && shuffleNonce === 0) return INITIAL_ACTIONS
-    return computeActions(services, signals)
-  }, [connectedProviders, services, signals, shuffleNonce])
+    return computeActions(catalog.services, candidates, signals)
+  }, [candidates, catalog.services, connectedProviders, deferSignalQueries, signals, shuffleNonce])
 
   const handleSelect = (action: Action, position: number) => {
     captureEvent(posthog, 'suggested_action_clicked', {
@@ -338,8 +283,7 @@ export function SuggestedActions({ onSelectPrompt }: SuggestedActionsProps) {
       onSelectPrompt(action.prompt)
       return
     }
-    const match = resolveOAuthServiceForSlug(action.slug)
-    if (match) setOAuthTarget(match)
+    router.push(`/workspace/${workspaceId}/integrations/${action.slug}?connect=oauth`)
   }
 
   const handleShuffle = () => {
@@ -347,7 +291,12 @@ export function SuggestedActions({ onSelectPrompt }: SuggestedActionsProps) {
       workspace_id: workspaceId,
       connected_provider_count: connectedProviders.size,
     })
-    setShuffleNonce((n) => n + 1)
+    if (deferSignalQueries && shuffleNonce === 0) {
+      setSignalsRequested(true)
+      setDeferredShufflePending(true)
+      return
+    }
+    setShuffleNonce((nonce) => nonce + 1)
   }
 
   const handleToggleExpanded = () => {
@@ -356,7 +305,7 @@ export function SuggestedActions({ onSelectPrompt }: SuggestedActionsProps) {
       expanded: !expanded,
     })
     setAnimationsEnabled(true)
-    setExpanded((prev) => !prev)
+    setExpanded((previous) => !previous)
   }
 
   return (
@@ -395,22 +344,19 @@ export function SuggestedActions({ onSelectPrompt }: SuggestedActionsProps) {
       <Expandable expanded={expanded}>
         <ExpandableContent className={cn('mt-2', !animationsEnabled && '!animate-none')}>
           <div className='flex flex-col'>
-            {actions.map((action, i) => {
+            {actions.map((action, index) => {
               const Icon = action.icon
               return (
                 <button
                   key={action.id}
                   type='button'
-                  onClick={() => handleSelect(action, i)}
+                  onClick={() => handleSelect(action, index)}
                   className={cn(
                     'flex items-center gap-2 border-[var(--divider)] px-2 py-2 text-left transition-colors hover-hover:bg-[var(--surface-5)]',
-                    i > 0 && 'border-t'
+                    index > 0 && 'border-t'
                   )}
                 >
-                  <Icon
-                    className='size-[16px] flex-shrink-0 text-[var(--text-icon)]'
-                    style={getBareIconStyle(Icon)}
-                  />
+                  <Icon className='size-[16px] flex-shrink-0 text-[var(--text-icon)]' />
                   <span className='flex-1 truncate text-[var(--text-body)] text-sm'>
                     {action.label}
                   </span>
@@ -421,21 +367,6 @@ export function SuggestedActions({ onSelectPrompt }: SuggestedActionsProps) {
           </div>
         </ExpandableContent>
       </Expandable>
-      {oauthTarget && workspaceId && (
-        <ConnectOAuthModal
-          mode='connect'
-          origin='integrations'
-          open
-          onOpenChange={(open) => {
-            if (!open) setOAuthTarget(null)
-          }}
-          workspaceId={workspaceId}
-          providerId={oauthTarget.providerId}
-          requiredScopes={oauthTarget.requiredScopes}
-          serviceName={oauthTarget.serviceName}
-          serviceIcon={oauthTarget.serviceIcon}
-        />
-      )}
     </div>
   )
 }

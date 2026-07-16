@@ -54,7 +54,7 @@ describe('requestExplicitStreamAbort', () => {
         cache: 'no-store',
         headers: expect.objectContaining({
           'content-type': 'application/json',
-          'x-api-key': 'legacy-runtime-key',
+          'x-mothership-runtime-key': 'legacy-runtime-key',
           'x-sim-source-env': 'dev',
         }),
         body: JSON.stringify({

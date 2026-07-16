@@ -2,11 +2,11 @@ import { createLogger } from '@sim/logger'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { requestJson } from '@/lib/api/client/request'
 import {
-  type ContractBodyInput,
   removeWorkspaceEnvironmentContract,
   savePersonalEnvironmentContract,
   upsertWorkspaceEnvironmentContract,
-} from '@/lib/api/contracts'
+} from '@/lib/api/contracts/environment'
+import type { ContractBodyInput } from '@/lib/api/contracts/types'
 import type { WorkspaceEnvironmentData } from '@/lib/environment/api'
 import { fetchPersonalEnvironment, fetchWorkspaceEnvironment } from '@/lib/environment/api'
 
@@ -25,10 +25,11 @@ export const environmentKeys = {
 /**
  * Hook to fetch personal environment variables
  */
-export function usePersonalEnvironment() {
+export function usePersonalEnvironment(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: environmentKeys.personal(),
     queryFn: ({ signal }) => fetchPersonalEnvironment(signal),
+    enabled: options?.enabled ?? true,
     staleTime: 60 * 1000,
   })
 }
@@ -38,15 +39,15 @@ export function usePersonalEnvironment() {
  */
 export function useWorkspaceEnvironment<TData = WorkspaceEnvironmentData>(
   workspaceId: string,
-  options?: { select?: (data: WorkspaceEnvironmentData) => TData }
+  options?: { enabled?: boolean; select?: (data: WorkspaceEnvironmentData) => TData }
 ) {
   return useQuery({
     queryKey: environmentKeys.workspace(workspaceId),
     queryFn: ({ signal }) => fetchWorkspaceEnvironment(workspaceId, signal),
-    enabled: !!workspaceId,
+    ...options,
+    enabled: Boolean(workspaceId) && (options?.enabled ?? true),
     staleTime: 60 * 1000, // 1 minute
     placeholderData: keepPreviousData,
-    ...options,
   })
 }
 

@@ -16,6 +16,10 @@
     "./schema": {
       "types": "./schema.ts",
       "default": "./schema.ts"
+    },
+    "./constants": {
+      "types": "./constants.ts",
+      "default": "./constants.ts"
     }
   },
   "scripts": {
@@ -40,6 +44,7 @@
     "@sim/tsconfig": "workspace:*",
     "drizzle-kit": "^0.31.4",
     "@types/node": "^22.10.5",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.0"
   }
 }

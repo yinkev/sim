@@ -1,18 +1,17 @@
 import type { ReactNode } from 'react'
 import {
   Calendar,
+  Connections,
   Database,
   Folder as FolderIcon,
   Library,
+  Slash,
   Table as TableIcon,
   Task,
   Workflow,
 } from '@/components/emcn/icons'
-import { AgentSkillsIcon } from '@/components/icons'
 import { getDocumentIcon } from '@/components/icons/document-icons'
 import type { ChatContextKind, ChatMessageContext } from '@/app/workspace/[workspaceId]/home/types'
-import { getBareIconStyle } from '@/blocks/icon-color'
-import { registry as blockRegistry } from '@/blocks/registry'
 
 interface RenderIconArgs {
   context: ChatMessageContext
@@ -31,18 +30,13 @@ function renderWorkflowIcon({ className }: RenderIconArgs): ReactNode | null {
 }
 
 /**
- * Renders the integration chip glyph: just the block's brand SVG icon, no
- * background tile — sized and positioned by the caller-supplied className
- * (same slot the `@` character normally occupies). The block is resolved
- * by `context.blockType` so the chip stays in sync with the registry.
+ * Renders the lightweight generic integration glyph. The context still carries
+ * its canonical block type for message semantics and downstream tool routing.
  */
 function renderIntegrationTile({ context, className }: RenderIconArgs): ReactNode | null {
   if (context.kind !== 'integration') return null
   if (!context.blockType) return null
-  const block = blockRegistry[context.blockType]
-  if (!block) return null
-  const Icon = block.icon
-  return <Icon className={className} style={getBareIconStyle(Icon)} />
+  return <Connections className={className} />
 }
 
 /**
@@ -97,6 +91,6 @@ export const CHAT_CONTEXT_KIND_REGISTRY: Record<ChatContextKind, ChatContextKind
   integration: { label: 'Integration', renderIcon: renderIntegrationTile },
   skill: {
     label: 'Skill',
-    renderIcon: ({ className }) => <AgentSkillsIcon className={className} />,
+    renderIcon: ({ className }) => <Slash className={className} />,
   },
 }

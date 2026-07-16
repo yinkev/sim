@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { toast } from '@/components/emcn'
 import { requestJson } from '@/lib/api/client/request'
-import { listWorkspaceCredentialsContract } from '@/lib/api/contracts'
+import { listWorkspaceCredentialsContract } from '@/lib/api/contracts/credentials'
 import {
   ADD_CONNECTOR_SEARCH_PARAM,
   consumeOAuthReturnContext,

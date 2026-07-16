@@ -9,7 +9,6 @@ import { requestJson } from '@/lib/api/client/request'
 import { getUsageLimitsContract } from '@/lib/api/contracts/usage-limits'
 import {
   deleteWorkspaceFileContract,
-  listWorkspaceFilesContract,
   registerWorkspaceFileContract,
   renameWorkspaceFileContract,
   restoreWorkspaceFileContract,
@@ -22,36 +21,13 @@ import {
   type UploadProgressEvent,
 } from '@/lib/uploads/client/direct-upload'
 import type { WorkspaceFileRecord } from '@/lib/uploads/contexts/workspace'
+import { workspaceFilesKeys } from '@/hooks/queries/workspace-file-keys'
+import { useFileContentSource } from '@/hooks/use-file-content-source'
 
 const logger = createLogger('WorkspaceFilesQuery')
 
-type WorkspaceFileQueryScope = 'active' | 'archived' | 'all'
-
-/**
- * Query key factories for workspace files
- */
-export const workspaceFilesKeys = {
-  all: ['workspaceFiles'] as const,
-  lists: () => [...workspaceFilesKeys.all, 'list'] as const,
-  workspaceLists: (workspaceId: string) => [...workspaceFilesKeys.lists(), workspaceId] as const,
-  list: (workspaceId: string, scope: WorkspaceFileQueryScope = 'active') =>
-    [...workspaceFilesKeys.workspaceLists(workspaceId), scope] as const,
-  contents: () => [...workspaceFilesKeys.all, 'content'] as const,
-  contentFile: (workspaceId: string, fileId: string) =>
-    [...workspaceFilesKeys.contents(), workspaceId, fileId] as const,
-  content: (
-    workspaceId: string,
-    fileId: string,
-    mode: 'text' | 'raw' | 'binary' = 'text',
-    storageKey?: string
-  ) =>
-    [
-      ...workspaceFilesKeys.contentFile(workspaceId, fileId),
-      mode,
-      ...(storageKey ? [storageKey] : []),
-    ] as const,
-  storageInfo: () => [...workspaceFilesKeys.all, 'storageInfo'] as const,
-}
+export { workspaceFilesKeys } from '@/hooks/queries/workspace-file-keys'
+export { useWorkspaceFileRecord, useWorkspaceFiles } from '@/hooks/queries/workspace-file-list'
 
 /**
  * Storage info type
@@ -64,66 +40,11 @@ interface StorageInfo {
 }
 
 /**
- * Hook to fetch a single workspace file record by ID.
- * Shares the `list(workspaceId, 'active')` query key with {@link useWorkspaceFiles} so no extra
- * network request is made when the list is already cached (warm path).
- * On a cold path (e.g. direct navigation to a file URL), this fetches the full active file list
- * for the workspace and selects the matching record via `select`.
+ * Fetch file content as text via a content-source URL
  */
-export function useWorkspaceFileRecord(workspaceId: string, fileId: string) {
-  return useQuery({
-    queryKey: workspaceFilesKeys.list(workspaceId, 'active'),
-    queryFn: ({ signal }) => fetchWorkspaceFiles(workspaceId, 'active', signal),
-    enabled: !!workspaceId && !!fileId,
-    staleTime: 30 * 1000,
-    select: (files) => files.find((f) => f.id === fileId) ?? null,
-  })
-}
-
-/**
- * Fetch workspace files from API
- */
-async function fetchWorkspaceFiles(
-  workspaceId: string,
-  scope: WorkspaceFileQueryScope = 'active',
-  signal?: AbortSignal
-): Promise<WorkspaceFileRecord[]> {
-  const data = await requestJson(listWorkspaceFilesContract, {
-    params: { id: workspaceId },
-    query: { scope },
-    signal,
-  })
-  return data.success ? data.files : []
-}
-
-/**
- * Hook to fetch workspace files
- */
-export function useWorkspaceFiles(
-  workspaceId: string,
-  scope: WorkspaceFileQueryScope = 'active',
-  options?: { enabled?: boolean }
-) {
-  return useQuery({
-    queryKey: workspaceFilesKeys.list(workspaceId, scope),
-    queryFn: ({ signal }) => fetchWorkspaceFiles(workspaceId, scope, signal),
-    enabled: !!workspaceId && (options?.enabled ?? true),
-    staleTime: 30 * 1000, // 30 seconds - files can change frequently
-    placeholderData: keepPreviousData, // Show cached data immediately
-  })
-}
-
-/**
- * Fetch file content as text via the serve URL
- */
-async function fetchWorkspaceFileContent(
-  key: string,
-  signal?: AbortSignal,
-  raw?: boolean
-): Promise<string> {
-  const serveUrl = `/api/files/serve/${encodeURIComponent(key)}?context=workspace&t=${Date.now()}${raw ? '&raw=1' : ''}`
+async function fetchWorkspaceFileContent(url: string, signal?: AbortSignal): Promise<string> {
   // boundary-raw-fetch: binary/text download, response is not JSON
-  const response = await fetch(serveUrl, { signal, cache: 'no-store' })
+  const response = await fetch(url, { signal, cache: 'no-store' })
 
   if (!response.ok) {
     throw new Error('Failed to fetch file content')
@@ -143,9 +64,11 @@ export function useWorkspaceFileContent(
   key: string,
   raw?: boolean
 ) {
+  const source = useFileContentSource()
   return useQuery({
     queryKey: workspaceFilesKeys.content(workspaceId, fileId, raw ? 'raw' : 'text', key),
-    queryFn: ({ signal }) => fetchWorkspaceFileContent(key, signal, raw),
+    queryFn: ({ signal }) =>
+      fetchWorkspaceFileContent(source.buildUrl(key, { raw, bust: true }), signal),
     enabled: !!workspaceId && !!fileId && !!key,
     staleTime: 30 * 1000,
     refetchOnWindowFocus: 'always',
@@ -177,16 +100,13 @@ export class DocNotReadyError extends Error {
  * so the query keeps polling.
  */
 async function fetchWorkspaceFileBinary(
-  key: string,
+  url: string,
   version: string | number | undefined,
   signal?: AbortSignal
 ): Promise<ArrayBuffer> {
-  const cacheParam =
-    version != null ? `v=${encodeURIComponent(String(version))}` : `t=${Date.now()}`
-  const serveUrl = `/api/files/serve/${encodeURIComponent(key)}?context=workspace&${cacheParam}`
   const init: RequestInit = version != null ? { signal } : { signal, cache: 'no-store' }
   // boundary-raw-fetch: binary download consumed as ArrayBuffer
-  const response = await fetch(serveUrl, init)
+  const response = await fetch(url, init)
   if (response.status === 409) throw new DocNotReadyError()
   if (!response.ok) throw new Error('Failed to fetch file content')
   return response.arrayBuffer()
@@ -210,12 +130,18 @@ export function useWorkspaceFileBinary(
   key: string,
   options?: { enabled?: boolean; version?: string | number }
 ) {
+  const source = useFileContentSource()
   return useQuery({
     queryKey:
       options?.version != null
         ? [...workspaceFilesKeys.content(workspaceId, fileId, 'binary', key), options.version]
         : workspaceFilesKeys.content(workspaceId, fileId, 'binary', key),
-    queryFn: ({ signal }) => fetchWorkspaceFileBinary(key, options?.version, signal),
+    queryFn: ({ signal }) =>
+      fetchWorkspaceFileBinary(
+        source.buildUrl(key, { version: options?.version, bust: true }),
+        options?.version,
+        signal
+      ),
     // Callers gate this on a readiness signal (e.g. the file has committed
     // content) so we don't 409-poll the serve route for a generated doc whose
     // compiled artifact hasn't been written yet — the doc is fetched once, when

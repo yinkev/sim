@@ -16,10 +16,10 @@ import type {
   SubBlockConfig as BlockSubBlockConfig,
   GenerationType,
 } from '@/blocks/types'
+import type { ClientToolMetadata, ClientToolOAuth } from '@/tools/client-registry'
 import { safeAssign } from '@/tools/safe-assign'
 import { isEmptyTagValue } from '@/tools/shared/tags'
-import type { OAuthConfig, ParameterVisibility, ToolConfig } from '@/tools/types'
-import { getTool } from '@/tools/utils'
+import type { ParameterVisibility, ToolConfig } from '@/tools/types'
 
 const logger = createLogger('ToolsParams')
 type ToolParamDefinition = ToolConfig['params'][string]
@@ -154,7 +154,7 @@ export interface ToolParameterConfig {
 }
 
 export interface ToolWithParameters {
-  toolConfig: ToolConfig
+  toolConfig: ClientToolMetadata
   allParameters: ToolParameterConfig[]
   userInputParameters: ToolParameterConfig[] // Parameters shown to user
   requiredParameters: ToolParameterConfig[] // Must be filled by user or LLM
@@ -254,11 +254,11 @@ function resolveSubBlockForParam(
  */
 export function getToolParametersConfig(
   toolId: string,
+  toolConfig: ClientToolMetadata | undefined,
   blockType?: string,
   currentValues?: Record<string, unknown>
 ): ToolWithParameters | null {
   try {
-    const toolConfig = getTool(toolId)
     if (!toolConfig) {
       logger.warn(`Tool not found: ${toolId}`)
       return null
@@ -971,9 +971,9 @@ const EXCLUDED_SUBBLOCK_TYPES = new Set([
 ])
 
 export interface SubBlocksForToolInput {
-  toolConfig: ToolConfig
+  toolConfig: ClientToolMetadata
   subBlocks: BlockSubBlockConfig[]
-  oauthConfig?: OAuthConfig
+  oauthConfig?: ClientToolOAuth
 }
 
 /**
@@ -986,13 +986,13 @@ export interface SubBlocksForToolInput {
  */
 export function getSubBlocksForToolInput(
   toolId: string,
+  toolConfig: ClientToolMetadata | undefined,
   blockType: string,
   currentValues?: Record<string, unknown>,
   canonicalModeOverrides?: CanonicalModeOverrides,
   blockConfigOverride?: Pick<ToolInputBlockConfig, 'subBlocks'>
 ): SubBlocksForToolInput | null {
   try {
-    const toolConfig = getTool(toolId)
     if (!toolConfig) {
       logger.warn(`Tool not found: ${toolId}`)
       return null

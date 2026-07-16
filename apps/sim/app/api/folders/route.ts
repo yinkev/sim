@@ -3,12 +3,11 @@ import { workflowFolder } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
 import { and, asc, eq, isNotNull, isNull } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
-import { createFolderContract, listFoldersContract } from '@/lib/api/contracts'
+import { createFolderContract, listFoldersContract } from '@/lib/api/contracts/folders'
 import { parseRequest } from '@/lib/api/server'
-import { getSession } from '@/lib/auth'
+import { getSession } from '@/lib/auth/api-session'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { captureServerEvent } from '@/lib/posthog/server'
-import { performCreateFolder } from '@/lib/workflows/orchestration'
 import { getUserEntityPermissions } from '@/lib/workspaces/permissions/utils'
 
 const logger = createLogger('FoldersAPI')
@@ -93,6 +92,17 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
       )
     }
 
+    const { assertFolderMutable } = await import('@sim/platform-authz/workflow')
+    try {
+      await assertFolderMutable(parentId ?? null)
+    } catch (error) {
+      if (error instanceof Error && error.name === 'FolderLockedError') {
+        return NextResponse.json({ error: error.message }, { status: 423 })
+      }
+      throw error
+    }
+
+    const { performCreateFolder } = await import('@/lib/workflows/orchestration/folder-create')
     const result = await performCreateFolder({
       id: clientId,
       userId: session.user.id,

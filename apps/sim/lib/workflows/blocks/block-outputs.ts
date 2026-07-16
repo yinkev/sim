@@ -22,7 +22,7 @@ import {
   type OutputCondition,
   type OutputFieldDefinition,
 } from '@/blocks/types'
-import { getTool } from '@/tools/utils'
+import { getClientToolSummary } from '@/tools/client-summary-registry'
 import { getTrigger, isTriggerValid } from '@/triggers'
 
 const logger = createLogger('BlockOutputs')
@@ -645,7 +645,7 @@ export function getToolOutputs(
     const toolId = blockConfig.tools.config.tool(params)
     if (!toolId) return {}
 
-    const toolConfig = getTool(toolId)
+    const toolConfig = getClientToolSummary(toolId)
     if (!toolConfig?.outputs) return {}
     if (includeHidden) {
       return toolConfig.outputs

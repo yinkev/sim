@@ -1,25 +1,22 @@
 /**
  * @vitest-environment node
  */
-import {
-  createEnvMock,
-  urlsMock,
-  urlsMockFns,
-  workflowsUtilsMock,
-  workflowsUtilsMockFns,
-} from '@sim/testing'
+import { createEnvMock, urlsMock, urlsMockFns } from '@sim/testing'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockSelect, mockTransaction, mockCleanupExternalWebhook, mockWorkflowDeleted } = vi.hoisted(
-  () => ({
-    mockSelect: vi.fn(),
-    mockTransaction: vi.fn(),
-    mockCleanupExternalWebhook: vi.fn(),
-    mockWorkflowDeleted: vi.fn(),
-  })
-)
-
-const mockGetWorkflowById = workflowsUtilsMockFns.mockGetWorkflowById
+const {
+  mockSelect,
+  mockTransaction,
+  mockCleanupExternalWebhook,
+  mockWorkflowDeleted,
+  mockGetWorkflowById,
+} = vi.hoisted(() => ({
+  mockSelect: vi.fn(),
+  mockTransaction: vi.fn(),
+  mockCleanupExternalWebhook: vi.fn(),
+  mockWorkflowDeleted: vi.fn(),
+  mockGetWorkflowById: vi.fn(),
+}))
 
 vi.mock('@sim/db', () => ({
   db: {
@@ -28,7 +25,9 @@ vi.mock('@sim/db', () => ({
   },
 }))
 
-vi.mock('@/lib/workflows/utils', () => workflowsUtilsMock)
+vi.mock('@/lib/workflows/get-workflow-by-id', () => ({
+  getWorkflowById: mockGetWorkflowById,
+}))
 
 vi.mock('@/lib/webhooks/provider-subscriptions', () => ({
   cleanupExternalWebhook: (...args: unknown[]) => mockCleanupExternalWebhook(...args),

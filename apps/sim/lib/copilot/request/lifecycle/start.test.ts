@@ -351,7 +351,7 @@ describe('createSSEStream terminal error handling', () => {
         method: 'POST',
         headers: expect.objectContaining({
           'content-type': 'application/json',
-          'x-api-key': 'legacy-runtime-key',
+          'x-mothership-runtime-key': 'legacy-runtime-key',
           'x-sim-source-env': 'staging',
         }),
         body: JSON.stringify({

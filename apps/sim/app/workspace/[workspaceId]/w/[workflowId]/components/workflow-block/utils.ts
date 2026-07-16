@@ -13,6 +13,33 @@ export function getProviderName(providerId: string): string {
   return WEBHOOK_PROVIDERS[providerId] || 'Webhook'
 }
 
+interface SubBlockResourceQueryIntent {
+  customTools: boolean
+  mcpServers: boolean
+  mcpTools: boolean
+  skills: boolean
+  tables: boolean
+}
+
+/**
+ * Returns the resource catalogs needed to hydrate a populated canvas row.
+ */
+export function getSubBlockResourceQueryIntent(
+  subBlock: Pick<SubBlockConfig, 'type'> | undefined,
+  rawValue: unknown
+): SubBlockResourceQueryIntent {
+  const hasStringValue = typeof rawValue === 'string' && rawValue.length > 0
+  const hasArrayValue = Array.isArray(rawValue) && rawValue.length > 0
+
+  return {
+    customTools: subBlock?.type === 'tool-input' && hasArrayValue,
+    mcpServers: subBlock?.type === 'mcp-server-selector' && hasStringValue,
+    mcpTools: subBlock?.type === 'mcp-tool-selector' && hasStringValue,
+    skills: subBlock?.type === 'skill-input' && hasArrayValue,
+    tables: subBlock?.type === 'table-selector' && hasStringValue,
+  }
+}
+
 /**
  * Compares two WorkflowBlock props to determine if a re-render should be skipped.
  * Used as the comparison function for React.memo.

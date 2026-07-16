@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getSession } from '@/lib/auth'
+import { getSession } from '@/lib/auth/api-session'
 import { getAllowedIntegrationsFromEnv } from '@/lib/core/config/env-flags'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 

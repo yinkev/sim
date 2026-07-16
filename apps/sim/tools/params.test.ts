@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   createExecutionToolSchema,
   createLLMToolSchema,
@@ -54,19 +54,10 @@ const mockToolConfig = {
   },
 }
 
-vi.mock('@/tools/utils', () => ({
-  getTool: vi.fn((toolId: string) => {
-    if (toolId === 'test_tool') {
-      return mockToolConfig
-    }
-    return null
-  }),
-}))
-
 describe('Tool Parameters Utils', () => {
   describe('getToolParametersConfig', () => {
     it.concurrent('should return tool parameters configuration', () => {
-      const result = getToolParametersConfig('test_tool')
+      const result = getToolParametersConfig('test_tool', mockToolConfig)
 
       expect(result).toBeDefined()
       expect(result?.toolConfig).toEqual(mockToolConfig)
@@ -77,7 +68,7 @@ describe('Tool Parameters Utils', () => {
     })
 
     it.concurrent('should return null for non-existent tool', () => {
-      const result = getToolParametersConfig('non_existent_tool')
+      const result = getToolParametersConfig('non_existent_tool', undefined)
       expect(result).toBeNull()
     })
   })
@@ -667,7 +658,7 @@ describe('Tool Parameters Utils', () => {
     })
 
     it.concurrent('should have properly typed ToolParameterConfig', () => {
-      const config = getToolParametersConfig('test_tool')
+      const config = getToolParametersConfig('test_tool', mockToolConfig)
       expect(config).toBeDefined()
 
       if (config) {

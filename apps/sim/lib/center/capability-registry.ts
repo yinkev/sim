@@ -2,7 +2,7 @@ import { readdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
 import type { CenterProducerImportPacket } from '@/lib/center/producer-import'
 
-const DEFAULT_CAPABILITY_DIR = path.join(getRepoRoot(), '.ai-bridge/capabilities')
+const DEFAULT_CAPABILITY_DIR = path.join(getRepoRoot(), 'apps/sim/config/center/capabilities')
 
 export interface CenterCapabilityRegistry {
   registeredIds: string[]

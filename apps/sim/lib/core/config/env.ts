@@ -3,14 +3,20 @@ import { z } from 'zod'
 
 /**
  * Reads NEXT_PUBLIC_* env vars in both client and server contexts.
- * Client reads `window.__ENV` (populated by `<PublicEnvScript>`); server reads `process.env`.
- * We do not use next-runtime-env's `env()` helper because it calls `unstable_noStore()`,
- * which Next 16.2+ rejects outside a request scope.
+ * Kept local because Next's config transpiler cannot resolve application modules
+ * imported by files that next.config.ts loads directly.
  */
-const getEnv = (variable: string): string | undefined => {
+export const getEnv = (variable: string): string | undefined => {
   if (typeof window === 'undefined') return process.env[variable]
-  return window.__ENV?.[variable] ?? process.env[variable]
+  const runtimeWindow = window as typeof window & {
+    __ENV?: Record<string, string | undefined>
+  }
+  return runtimeWindow.__ENV?.[variable] ?? process.env[variable]
 }
+
+/** Coerces string-backed env flags without treating `"false"` as enabled. */
+export const isTruthy = (value: string | boolean | number | undefined): boolean =>
+  typeof value === 'string' ? value.toLowerCase() === 'true' || value === '1' : Boolean(value)
 
 // biome-ignore format: keep alignment for readability
 export const env = createEnv({
@@ -33,7 +39,6 @@ export const env = createEnv({
     BLOCKED_EMAIL_MX_HOSTS:                z.string().optional(),                  // Comma-separated MX-host substrings blocked from signing up; matched against the domain's resolved MX backend to catch throwaway domains that share a mail backend. No defaults — operators supply their own list. Only used when SIGNUP_MX_VALIDATION_ENABLED is set.
     TRUSTED_ORIGINS:                       z.string().optional(),                  // Comma-separated additional origins to trust for auth (e.g., "https://app.example.com,https://www.example.com"). Merged into Better Auth trustedOrigins.
     TURNSTILE_SECRET_KEY:                  z.string().min(1).optional(),           // Cloudflare Turnstile secret key for captcha verification
-    SIGNUP_EMAIL_VALIDATION_ENABLED:       z.boolean().optional(),                 // Enable disposable email blocking via better-auth-harmony (55K+ domains)
     ENCRYPTION_KEY:                        z.string().min(32),                     // Key for encrypting sensitive data
     API_ENCRYPTION_KEY:                    z.string().min(32).optional(),          // Dedicated key for encrypting API keys (optional for OSS)
     INTERNAL_API_SECRET:                   z.string().min(32),                     // Secret for internal API authentication
@@ -77,14 +82,17 @@ export const env = createEnv({
     BILLING_ENABLED:                       z.boolean().optional(),                 // Enable billing enforcement and usage tracking
     FREE_API_DEPLOYMENT_GATE_ENABLED:      z.boolean().optional(),                 // Block free-plan accounts from programmatic execution (API/MCP/A2A/generic webhooks/chat embeds). Requires BILLING_ENABLED. Off by default for dark rollout
     TABLES_FRACTIONAL_ORDERING:            z.boolean().optional(),                 // Order table rows by fractional order_key (O(1) insert/delete) instead of integer position
+    TABLE_SNAPSHOT_CACHE:                  z.boolean().optional(),                 // Mount tables into sandboxes by reference via a version-keyed CSV snapshot in object storage instead of draining the whole table into web-process heap
+    PII_REDACTION:                         z.boolean().optional(),                 // Redact PII from workflow logs via configurable Data Retention rules (Presidio at the logger persist choke point) and expose the Data Retention config UI
+    TRIGGER_EU_REGION:                     z.boolean().optional(),                 // Route Trigger.dev runs to eu-central-1 instead of the default us-east-1 (fallback for the trigger-eu-region flag when AppConfig is not the source of truth)
 
     // Table feature limits (per plan). Apply when billing is disabled (free tier defaults) or for billed plans.
-    FREE_TABLES_LIMIT:                     z.number().optional(),                  // Max user tables per workspace on free tier (default: 3)
-    FREE_TABLE_ROWS_LIMIT:                 z.number().optional(),                  // Max rows per table on free tier (default: 1000)
-    PRO_TABLES_LIMIT:                      z.number().optional(),                  // Max user tables per workspace on pro tier (default: 25)
-    PRO_TABLE_ROWS_LIMIT:                  z.number().optional(),                  // Max rows per table on pro tier (default: 5000)
-    TEAM_TABLES_LIMIT:                     z.number().optional(),                  // Max user tables per workspace on team tier (default: 100)
-    TEAM_TABLE_ROWS_LIMIT:                 z.number().optional(),                  // Max rows per table on team tier (default: 10000)
+    FREE_TABLES_LIMIT:                     z.number().optional(),                  // Max user tables per workspace on free tier (default: 5)
+    FREE_TABLE_ROWS_LIMIT:                 z.number().optional(),                  // Max rows per table on free tier (default: 50000)
+    PRO_TABLES_LIMIT:                      z.number().optional(),                  // Max user tables per workspace on pro tier (default: 100)
+    PRO_TABLE_ROWS_LIMIT:                  z.number().optional(),                  // Max rows per table on pro tier (default: 100000)
+    TEAM_TABLES_LIMIT:                     z.number().optional(),                  // Max user tables per workspace on team tier (default: 1000)
+    TEAM_TABLE_ROWS_LIMIT:                 z.number().optional(),                  // Max rows per table on team tier (default: 500000)
     ENTERPRISE_TABLES_LIMIT:               z.number().optional(),                  // Max user tables per workspace on enterprise tier (default: 10000)
     ENTERPRISE_TABLE_ROWS_LIMIT:           z.number().optional(),                  // Max rows per table on enterprise tier (default: 1000000)
 
@@ -314,6 +322,7 @@ export const env = createEnv({
     PORT:                                  z.number().optional(),                  // Main application port
     INTERNAL_API_BASE_URL:                 z.string().optional(),                  // Optional internal base URL for server-side self-calls; must include protocol if set (e.g., http://sim-app.namespace.svc.cluster.local:3000)
     ALLOWED_ORIGINS:                       z.string().optional(),                  // CORS allowed origins
+    PII_URL:                               z.string().optional(),                  // Optional Presidio sidecar base URL serving /analyze + /anonymize; PII is disabled when unset
 
     // OAuth Integration Credentials - All optional, enables third-party integrations
     GOOGLE_CLIENT_ID:                      z.string().optional(),                  // Google OAuth client ID for Google services
@@ -393,6 +402,7 @@ export const env = createEnv({
     E2B_API_KEY:                           z.string().optional(),                  // E2B API key for sandbox creation
     MOTHERSHIP_E2B_TEMPLATE_ID:             z.string().optional(),                  // Custom E2B template with pre-installed CLI tools for shell execution
     MOTHERSHIP_E2B_DOC_TEMPLATE_ID:         z.string().optional(),                  // Dedicated E2B template with python-pptx/docx/openpyxl/reportlab for document generation; when set (and E2B enabled), docs compile via Python instead of the JS isolated-vm path
+    E2B_PI_TEMPLATE_ID:                     z.string().optional(),                  // E2B template ID/alias with the Pi CLI + git baked in (Pi Coding Agent cloud mode)
 
     // Credential Sets (Email Polling) - for self-hosted deployments
     CREDENTIAL_SETS_ENABLED:               z.boolean().optional(),                 // Enable credential sets on self-hosted (bypasses plan requirements)
@@ -563,15 +573,9 @@ export const env = createEnv({
   },
 })
 
-// Need this utility because t3-env is returning string for boolean values.
-export const isTruthy = (value: string | boolean | number | undefined) =>
-  typeof value === 'string' ? value.toLowerCase() === 'true' || value === '1' : Boolean(value)
-
 // Utility to check if a value is explicitly false (defaults to false only if explicitly set)
 export const isFalsy = (value: string | boolean | number | undefined) =>
   typeof value === 'string' ? value.toLowerCase() === 'false' || value === '0' : value === false
-
-export { getEnv }
 
 /**
  * Coerce an env-derived value to a finite number ≥ `min`, falling back to the

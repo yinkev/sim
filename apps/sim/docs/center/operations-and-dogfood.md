@@ -14,8 +14,7 @@ Current status: Local development and packaging work; live dogfooding is gated b
 - `apps/sim/docs/center/architecture.md`
 - `apps/sim/docs/center/producer-model.md`
 - `apps/sim/docs/LOCAL_DEV_PROFILES.md`
-- `.ai-bridge/projects/center/reviews/RP-20260629-003-dogfood-readiness-capability-enforcement.md`
-- `.ai-bridge/projects/center/reviews/RP-20260629-004-pre-dogfood-overnight-hardening.md`
+- `apps/sim/fixtures/center/review-packets/center-capability-review.md`
 - `apps/sim/docs/center/morning-dogfood-runbook.md`
 
 ## Daily Dev Command
@@ -87,8 +86,10 @@ The Center UI also exposes explicit profile actions:
 Default path:
 
 ```text
-.ai-bridge/artifacts/center-storage/<workspaceId>.json
+var/center/storage/<workspaceId>.json
 ```
+
+The default storage path resolves from the repo root even when `file-storage.ts` is imported from a repo subdirectory. `CENTER_WORKSPACE_STORAGE_DIR` can still override this for tests or explicitly scoped dogfood runs.
 
 Override:
 
@@ -167,7 +168,7 @@ bun run package:center-app
 Default output:
 
 ```text
-.ai-bridge/artifacts/center-app/Center.app
+var/center/apps/Center.app
 ```
 
 The generated launcher starts `bun run dev:center`, waits for the Center URL, and opens the browser unless `CENTER_APP_OPEN=0`.
@@ -175,9 +176,9 @@ The generated launcher starts `bun run dev:center`, waits for the Center URL, an
 Useful packaging smoke:
 
 ```text
-CENTER_APP_OPEN=0 CENTER_APP_WAIT_SECONDS=5 .ai-bridge/artifacts/center-app/Center.app/Contents/MacOS/Center
-plutil -lint .ai-bridge/artifacts/center-app/Center.app/Contents/Info.plist
-test -x .ai-bridge/artifacts/center-app/Center.app/Contents/MacOS/Center
+CENTER_APP_OPEN=0 CENTER_APP_WAIT_SECONDS=5 var/center/apps/Center.app/Contents/MacOS/Center
+plutil -lint var/center/apps/Center.app/Contents/Info.plist
+test -x var/center/apps/Center.app/Contents/MacOS/Center
 ```
 
 Logs:
@@ -210,18 +211,20 @@ bun --cwd apps/sim test lib/center/producers/worker-lane.test.ts
 
 ## Dogfood Gate
 
-Do not treat Center as live-dogfood ready until these review packets are resolved or explicitly waived:
+Do not treat Center as live-dogfood ready until the active review gate and the blockers below are resolved or explicitly waived:
 
 ```text
-.ai-bridge/projects/center/reviews/RP-20260629-003-dogfood-readiness-capability-enforcement.md
-.ai-bridge/projects/center/reviews/RP-20260629-004-pre-dogfood-overnight-hardening.md
+apps/sim/fixtures/center/review-packets/center-capability-review.md
 ```
 
 Current blockers:
 
-- Full authority/truth-impact/policy capability enforcement is not implemented beyond registered-id import gating.
-- Production sync beyond local workspace JSON storage is not implemented.
+- Production sync beyond local workspace JSON storage is blocked pending a reviewed sync adapter, auth model, and conflict-resolution policy. Existing inactive auth/policy guards canonicalize caller input before authorization and adapter delegation, and validate wrapped adapter result objects before dataset parsing or caller output, including array/object-instance result rejection.
 - Real live GitHub/Plane dogfood import requires local credential/source-id environment variables. Current checked local env has none configured.
+
+Guardrail:
+
+- External action execution beyond local gated proposal status transitions is not in scope until separately reviewed and explicitly approved. Local proposal execution gates also reject malformed producer import packets, records, payloads, declared capability ids, source refs, reference values, recommendation refs, loop optional fields, evidence URI values, timestamps, required record fields, or explicit registered-capability inputs, including no-registry malformed capability declarations, malformed packet capability display values, malformed `registeredCapabilityIds`, empty producer record `sourceRef` values, empty producer reference values, empty action-proposal `recommendationRef` values, empty loop `nextAction`/`blockedBy` values, empty evidence `uri` values, malformed producer `occurredAt`/`observedAt` values, empty required producer record fields, array payload roots and object-instance payload values, malformed runtime proposal statuses, malformed capability ids, malformed runtime capability metadata, non-plain runtime capability metadata entries, malformed runtime capability registry roots and containers, malformed runtime policy requirement containers, and unsafe unsupported policy requirements with generic blocker text rather than echoing raw values.
 
 First-use runbook:
 
@@ -272,13 +275,13 @@ MS2 import returns empty packet:
 
 GitHub, Plane, Learn/Understand, or Worker import fails:
 
-- Confirm the default `.ai-bridge/projects/<producer>/sample-events.json` file exists or set the matching `CENTER_*_PRODUCER_FILE` override.
+- Confirm the matching fixture under `apps/sim/fixtures/center/producers/` exists or set the matching `CENTER_*_PRODUCER_FILE` override.
 - For GitHub live mode, confirm `CENTER_GITHUB_LIVE_REPOS` is set and the optional token can read the configured repos.
 - For Plane live mode, confirm `CENTER_PLANE_WORKSPACE_SLUG`, `CENTER_PLANE_PROJECT_ID` or `CENTER_PLANE_PROJECT_IDS`, and a Plane token variable are set.
 
 Review import returns no records:
 
-- Confirm `.ai-bridge/projects/center/reviews/` contains Markdown review packets with frontmatter.
+- Confirm `apps/sim/fixtures/center/review-packets/` contains Markdown review packets with frontmatter.
 
 High memory or slow compile:
 
@@ -293,4 +296,3 @@ High memory or slow compile:
 - `apps/sim/docs/center/morning-dogfood-runbook.md`
 - `apps/sim/docs/LOCAL_DEV_PROFILES.md`
 - `apps/sim/docs/DEV_COMPILE_PERF.md`
-- `.ai-bridge/projects/center/phase-12-implementation.md`

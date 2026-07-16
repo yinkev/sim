@@ -44,7 +44,7 @@ export function createMockRequest(
     init.body = JSON.stringify(body)
   }
 
-  return new NextRequest(new URL(url), init)
+  return new NextRequest(url, init)
 }
 
 /**
@@ -60,7 +60,7 @@ export function createMockFormDataRequest(
   method = 'POST',
   url = 'http://localhost:3000/api/test'
 ): Request {
-  return new Request(new URL(url), {
+  return new Request(url, {
     method,
     body: formData,
   })

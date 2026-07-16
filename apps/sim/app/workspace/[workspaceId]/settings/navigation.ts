@@ -83,7 +83,7 @@ const isAuditLogsEnabled = isTruthy(getEnv('NEXT_PUBLIC_AUDIT_LOGS_ENABLED'))
 const isDataRetentionEnabled = isTruthy(getEnv('NEXT_PUBLIC_DATA_RETENTION_ENABLED'))
 const isDataDrainsEnabled = isTruthy(getEnv('NEXT_PUBLIC_DATA_DRAINS_ENABLED'))
 
-export const isBillingEnabled = isTruthy(getEnv('NEXT_PUBLIC_BILLING_ENABLED'))
+export { isBillingEnabled } from '@/app/workspace/[workspaceId]/settings/billing-enabled'
 export { isCredentialSetsEnabled }
 
 export const sectionConfig: { key: NavigationSection; title: string }[] = [

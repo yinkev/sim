@@ -62,6 +62,8 @@ describe('getFeatureFlags', () => {
     // All registered flags should be present, disabled (env vars unset in test env)
     expect(flags['tables-fractional-ordering']).toEqual({ enabled: false })
     expect(flags['mothership-beta']).toEqual({ enabled: false })
+    expect(flags['pii-redaction']).toEqual({ enabled: false })
+    expect(flags['trigger-eu-region']).toEqual({ enabled: false })
     expect(mockFetch).not.toHaveBeenCalled()
   })
 
@@ -88,6 +90,8 @@ describe('getFeatureFlags', () => {
     const flags = await getFeatureFlags()
     expect(flags['tables-fractional-ordering']).toEqual({ enabled: false })
     expect(flags['mothership-beta']).toEqual({ enabled: false })
+    expect(flags['pii-redaction']).toEqual({ enabled: false })
+    expect(flags['trigger-eu-region']).toEqual({ enabled: false })
   })
 
   it('degrades gracefully on a malformed document', async () => {

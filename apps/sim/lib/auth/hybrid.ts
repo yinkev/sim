@@ -1,7 +1,7 @@
 import { createLogger } from '@sim/logger'
 import type { NextRequest } from 'next/server'
 import { authenticateApiKeyFromHeader, updateApiKeyLastUsed } from '@/lib/api-key/service'
-import { getSession } from '@/lib/auth'
+import { getSession } from '@/lib/auth/api-session'
 import { verifyInternalToken } from '@/lib/auth/internal'
 
 const logger = createLogger('HybridAuth')

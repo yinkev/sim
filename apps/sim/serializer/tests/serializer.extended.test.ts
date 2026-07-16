@@ -227,7 +227,9 @@ vi.mock('@/blocks', () => ({
   getBlock: createMockGetBlock(),
   getAllBlocks: () => Object.values(mockBlockConfigs),
 }))
-vi.mock('@/tools/utils', () => toolsUtilsMock)
+vi.mock('@/tools/client-summary-registry', () => ({
+  getClientToolSummary: toolsUtilsMock.getTool,
+}))
 
 describe('Serializer Extended Tests', () => {
   describe('WorkflowValidationError', () => {

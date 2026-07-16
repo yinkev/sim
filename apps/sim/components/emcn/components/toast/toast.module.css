@@ -1,0 +1,71 @@
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--toast-enter-y)) scale(1);
+  }
+}
+
+.stack {
+  opacity: 1;
+  transition: opacity 200ms ease-in;
+}
+
+.stackExiting {
+  opacity: 0;
+}
+
+.toastItem {
+  opacity: 1;
+  transform: translateY(var(--toast-y)) scale(var(--toast-scale));
+  animation: toast-enter 400ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    opacity 400ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.toastItemExiting {
+  opacity: 0;
+  transform: translateY(var(--toast-y)) scale(0.95);
+  animation: none;
+  transition-duration: 150ms;
+  transition-timing-function: ease-in;
+}
+
+.reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.revealOpen {
+  grid-template-rows: 1fr;
+}
+
+.revealInner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.revealContent {
+  opacity: 0;
+  filter: blur(5px);
+  transition:
+    opacity 300ms cubic-bezier(0.2, 0, 0, 1),
+    filter 300ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.revealOpen .revealContent {
+  opacity: 1;
+  filter: blur(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stack,
+  .toastItem,
+  .toastItemExiting,
+  .reveal,
+  .revealContent {
+    animation: none;
+    transition-duration: 0ms;
+  }
+}

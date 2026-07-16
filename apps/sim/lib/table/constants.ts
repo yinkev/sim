@@ -31,7 +31,7 @@ export const TABLE_LIMITS = {
    *  keyset-select and cancel/ownership-check granularity. */
   DELETE_PAGE_SIZE: 10000,
   /** Row count above which an export runs as a background job instead of a synchronous stream.
-   *  Matches the default per-table row cap, so non-enterprise tables keep instant downloads. */
+   *  Tables at or under this stream instantly; larger ones fall back to an async export job. */
   EXPORT_ASYNC_THRESHOLD_ROWS: 10000,
   /** Cap on the exclusion set ("select all, minus these") sent to an async delete job. */
   MAX_EXCLUDE_ROW_IDS: 10000,
@@ -44,16 +44,16 @@ export const TABLE_LIMITS = {
  */
 export const DEFAULT_TABLE_PLAN_LIMITS = {
   free: {
-    maxTables: 3,
-    maxRowsPerTable: 1000,
+    maxTables: 5,
+    maxRowsPerTable: 50000,
   },
   pro: {
-    maxTables: 25,
-    maxRowsPerTable: 5000,
+    maxTables: 100,
+    maxRowsPerTable: 100000,
   },
   team: {
-    maxTables: 100,
-    maxRowsPerTable: 10000,
+    maxTables: 1000,
+    maxRowsPerTable: 500000,
   },
   enterprise: {
     maxTables: 10000,
@@ -123,6 +123,9 @@ export const USER_TABLE_ROWS_SQL_NAME = 'user_table_rows'
  * the Next.js proxy request-body cap (10MB) so a synchronous upload is never truncated.
  */
 export const CSV_ASYNC_IMPORT_THRESHOLD_BYTES = 8 * 1024 * 1024
+
+/** Maximum CSV/TSV file size accepted by import routes (25 MB). */
+export const CSV_MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024
 
 const TABLE_NAME_ADJECTIVES = [
   'Radiant',

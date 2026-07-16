@@ -10,7 +10,7 @@ import { parseCenterReviewPacketFile } from '@/lib/center/review-packet-files'
 import { applyCenterReviewPacketImport } from '@/lib/center/review-packets'
 
 describe('Center review packets', () => {
-  it('parses .ai-bridge review packets into worker gate records', async () => {
+  it('parses review packet fixtures into worker gate records', async () => {
     const dir = await mkdtemp(path.join(tmpdir(), 'center-review-'))
     const filePath = path.join(dir, 'RP-1.md')
     await writeFile(
@@ -41,7 +41,7 @@ APPROVE WITH REQUIRED CHANGES.
     const record = await parseCenterReviewPacketFile(filePath)
 
     expect(record).toMatchObject({
-      sourceRef: 'ai-bridge:review-packet:RP-1',
+      sourceRef: 'center-review:packet:RP-1',
       packetId: 'RP-1',
       projectId: 'center',
       status: 'converged',
@@ -101,7 +101,7 @@ APPROVE.
     const spine = new CenterLocalSpine(storage)
     const profile = await spine.createProfile({ displayName: 'Kevin' })
     const record = {
-      sourceRef: 'ai-bridge:review-packet:RP-1',
+      sourceRef: 'center-review:packet:RP-1',
       packetId: 'RP-1',
       projectId: 'center',
       title: 'Review Packet',

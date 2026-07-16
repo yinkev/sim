@@ -20,7 +20,7 @@ import { PlatformEvents } from '@/lib/core/telemetry'
 import { generateRequestId } from '@/lib/core/utils/request'
 import { getSocketServerUrl } from '@/lib/core/utils/urls'
 import { mcpPubSub } from '@/lib/mcp/pubsub'
-import { getWorkflowById } from '@/lib/workflows/utils'
+import { getWorkflowById } from '@/lib/workflows/get-workflow-by-id'
 
 const logger = createLogger('WorkflowLifecycle')
 

@@ -1,75 +1,15 @@
 'use client'
 
 import type React from 'react'
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react'
-import { createLogger } from '@sim/logger'
+import { createContext, useCallback, useContext, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useParams } from 'next/navigation'
-import { useToast } from '@/components/emcn'
-import { useSocket } from '@/app/workspace/providers/socket-provider'
+import { useParams, usePathname } from 'next/navigation'
 import {
   useWorkspacePermissionsQuery,
   type WorkspacePermissions,
-  workspaceKeys,
-} from '@/hooks/queries/workspace'
+  workspacePermissionsKey,
+} from '@/hooks/queries/workspace-permissions'
 import { useUserPermissions, type WorkspaceUserPermissions } from '@/hooks/use-user-permissions'
-import { useOperationQueueStore } from '@/stores/operation-queue/store'
-
-const logger = createLogger('WorkspacePermissionsProvider')
-
-interface PersistentToastOptions {
-  description?: string
-  action?: { label: string; onClick: () => void }
-}
-
-/**
- * Shows a persistent error toast while `message` is non-null, replaces it when
- * the message changes, and dismisses it when the message becomes null or the
- * owning component unmounts.
- */
-function usePersistentErrorToast(message: string | null, options?: PersistentToastOptions) {
-  const { toast } = useToast()
-  const toastIdRef = useRef<string | null>(null)
-  const shownMessageRef = useRef<string | null>(null)
-  const optionsRef = useRef(options)
-  optionsRef.current = options
-
-  const dismiss = useCallback(() => {
-    if (!toastIdRef.current) {
-      return
-    }
-
-    toast.dismiss(toastIdRef.current)
-    toastIdRef.current = null
-    shownMessageRef.current = null
-  }, [])
-
-  useEffect(() => {
-    if (!message) {
-      dismiss()
-      return
-    }
-
-    if (toastIdRef.current && shownMessageRef.current === message) {
-      return
-    }
-
-    dismiss()
-
-    try {
-      toastIdRef.current = toast.error(message, {
-        ...optionsRef.current,
-        duration: 0,
-        persistAcrossRoutes: true,
-      })
-      shownMessageRef.current = message
-    } catch (error) {
-      logger.error('Failed to show persistent notification', { error, message })
-    }
-  }, [dismiss, message])
-
-  useEffect(() => dismiss, [dismiss])
-}
 
 interface WorkspacePermissionsContextType {
   workspacePermissions: WorkspacePermissions | null
@@ -101,87 +41,52 @@ interface WorkspacePermissionsProviderProps {
 }
 
 /**
- * Provides workspace permissions and connection-aware user access throughout the app.
- * Enforces read-only mode when offline to prevent data loss.
+ * Provides workspace permissions without importing workflow collaboration state.
  */
 export function WorkspacePermissionsProvider({ children }: WorkspacePermissionsProviderProps) {
   const params = useParams()
   const workspaceId = params?.workspaceId as string
-  const urlWorkflowId = params?.workflowId as string | undefined
+  const pathname = usePathname()
   const queryClient = useQueryClient()
-
-  const hasOperationError = useOperationQueueStore((state) => state.hasOperationError)
-  const { isReconnecting, isRetryingWorkflowJoin, blockedJoinWorkflowId } = useSocket()
-
-  const isOfflineMode = hasOperationError
-  const isJoinBlocked = Boolean(blockedJoinWorkflowId) && blockedJoinWorkflowId === urlWorkflowId
-  const realtimeStatusMessage = isOfflineMode
-    ? null
-    : isReconnecting
-      ? 'Reconnecting...'
-      : isRetryingWorkflowJoin
-        ? 'Joining workflow...'
-        : null
-
-  usePersistentErrorToast(realtimeStatusMessage)
-  // Offline mode only recovers via workspace switch or refresh; the join block
-  // lifts when the user targets a different workflow or refreshes.
-  usePersistentErrorToast(isOfflineMode ? 'Connection unavailable' : null, {
-    description: 'Recent changes may not have been saved. Refresh to resync.',
-    action: { label: 'Refresh', onClick: () => window.location.reload() },
-  })
-  usePersistentErrorToast(isJoinBlocked ? 'Unable to connect to workflow' : null, {
-    description: 'Changes cannot be saved. Refresh to retry.',
-    action: { label: 'Refresh', onClick: () => window.location.reload() },
-  })
+  const permissionsEnabled = pathname !== `/workspace/${workspaceId}/chat/new`
 
   const {
-    data: workspacePermissions,
-    isLoading: permissionsLoading,
+    data: queriedWorkspacePermissions,
+    isLoading: queriedPermissionsLoading,
     error: permissionsErrorObj,
     refetch,
-  } = useWorkspacePermissionsQuery(workspaceId)
+  } = useWorkspacePermissionsQuery(workspaceId, { enabled: permissionsEnabled })
 
-  const permissionsError = permissionsErrorObj?.message ?? null
+  const workspacePermissions = permissionsEnabled ? (queriedWorkspacePermissions ?? null) : null
+  const permissionsLoading = permissionsEnabled ? queriedPermissionsLoading : true
+  const permissionsError = permissionsEnabled ? (permissionsErrorObj?.message ?? null) : null
 
   const updatePermissions = useCallback(
     (newPermissions: WorkspacePermissions) => {
       if (!workspaceId) return
-      queryClient.setQueryData(workspaceKeys.permissions(workspaceId), newPermissions)
+      queryClient.setQueryData(workspacePermissionsKey(workspaceId), newPermissions)
     },
     [workspaceId, queryClient]
   )
 
   const refetchPermissions = useCallback(async () => {
+    if (!permissionsEnabled) return
     await refetch()
-  }, [refetch])
+  }, [permissionsEnabled, refetch])
 
-  const baseUserPermissions = useUserPermissions(
-    workspacePermissions ?? null,
+  const resolvedUserPermissions = useUserPermissions(
+    workspacePermissions,
     permissionsLoading,
     permissionsError
   )
-
-  const userPermissions = useMemo((): WorkspaceUserPermissions & { isOfflineMode?: boolean } => {
-    if (isOfflineMode || isJoinBlocked) {
-      return {
-        ...baseUserPermissions,
-        canEdit: false,
-        canAdmin: false,
-        canRead: baseUserPermissions.canRead,
-        isOfflineMode,
-      }
-    }
-
-    return {
-      ...baseUserPermissions,
-      isOfflineMode: false,
-    }
-  }, [baseUserPermissions, isOfflineMode, isJoinBlocked])
+  const userPermissions = useMemo(
+    () => ({ ...resolvedUserPermissions, isOfflineMode: false }),
+    [resolvedUserPermissions]
+  )
 
   const contextValue = useMemo(
     () => ({
-      workspacePermissions: workspacePermissions ?? null,
+      workspacePermissions,
       permissionsLoading,
       permissionsError,
       updatePermissions,
@@ -197,6 +102,26 @@ export function WorkspacePermissionsProvider({ children }: WorkspacePermissionsP
       userPermissions,
     ]
   )
+
+  return (
+    <WorkspacePermissionsContext.Provider value={contextValue}>
+      {children}
+    </WorkspacePermissionsContext.Provider>
+  )
+}
+
+interface WorkspacePermissionsOverrideProviderProps {
+  children: React.ReactNode
+  userPermissions: WorkspaceUserPermissions & { isOfflineMode?: boolean }
+}
+
+/** Overrides only the workflow-sensitive permission result for an owning route. */
+export function WorkspacePermissionsOverrideProvider({
+  children,
+  userPermissions,
+}: WorkspacePermissionsOverrideProviderProps) {
+  const context = useWorkspacePermissionsContext()
+  const contextValue = useMemo(() => ({ ...context, userPermissions }), [context, userPermissions])
 
   return (
     <WorkspacePermissionsContext.Provider value={contextValue}>

@@ -9,7 +9,7 @@ import type {
 import { getErrorMessage } from '@sim/utils/errors'
 import { generateId } from '@sim/utils/id'
 import { isRecordLike } from '@sim/utils/object'
-import { authorizeWorkflowByWorkspacePermission } from '@sim/workflow-authz'
+import { authorizeWorkflowByWorkspacePermission } from '@sim/platform-authz/workflow'
 import type { ToolSchema } from '@/lib/copilot/chat/payload'
 import { TOOL_CATALOG } from '@/lib/copilot/generated/tool-catalog-v1'
 import { runHeadlessCopilotLifecycle } from '@/lib/copilot/request/lifecycle/headless'

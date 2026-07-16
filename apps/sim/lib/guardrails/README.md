@@ -7,7 +7,7 @@ Validation scripts for the Guardrails block.
 - **JSON Validation** - Validates if content is valid JSON (TypeScript)
 - **Regex Validation** - Validates content against regex patterns (TypeScript)
 - **Hallucination Detection** - Validates LLM output against knowledge base using RAG + LLM scoring (TypeScript)
-- **PII Detection** - Detects personally identifiable information using Microsoft Presidio (Python)
+- **PII Detection** - Optional Microsoft Presidio sidecar, disabled by default
 
 ## Setup
 
@@ -19,22 +19,29 @@ For **hallucination detection**, you'll need:
 - A knowledge base with documents
 - An LLM provider API key (or use hosted models)
 
-### Python Validators (PII Detection)
+### PII Detection
 
-For **PII detection**, you need to set up a Python virtual environment and install Microsoft Presidio:
+PII detection and masking are disabled by default. There is no embedded Python fallback, and the app
+does not require Presidio for startup, build, Home, chat, Workflow Studio, or execution. A workflow
+configured with a PII guardrail receives a clear feature-disabled error while `PII_URL` is unset.
+
+An explicitly configured `PII_URL` opts into the Presidio sidecar built from
+`docker/pii.Dockerfile` with source in `apps/pii/server.py`:
 
 ```bash
-cd apps/sim/lib/guardrails
-./setup.sh
+docker build -f docker/pii.Dockerfile -t sim-pii .
+docker run -d -p 5001:5001 sim-pii
 ```
 
-This will:
-1. Create a Python virtual environment in `apps/sim/lib/guardrails/venv`
-2. Install required dependencies:
-   - `presidio-analyzer` - PII detection engine
-   - `presidio-anonymizer` - PII masking/anonymization
+Point the app at it:
 
-The TypeScript wrapper will automatically use the virtual environment's Python interpreter.
+```bash
+PII_URL=http://localhost:5001
+```
+
+The sidecar image bakes in a check-digit-validated **VIN** recognizer and multi-language NLP models
+(en/es/it/pl/fi). The redaction language is configured per rule (Data Retention) and defaults to
+English.
 
 ## Usage
 
@@ -93,10 +100,7 @@ See [Presidio documentation](https://microsoft.github.io/presidio/supported_enti
 - `validate_json.ts` - JSON validation (TypeScript)
 - `validate_regex.ts` - Regex validation (TypeScript)
 - `validate_hallucination.ts` - Hallucination detection with RAG + LLM scoring (TypeScript)
-- `validate_pii.ts` - PII detection TypeScript wrapper (TypeScript)
-- `validate_pii.py` - PII detection using Microsoft Presidio (Python)
+- `validate_pii.ts` - Disabled-by-default PII wrapper with an optional `PII_URL` sidecar
+- `pii-entities.ts` - Client-safe PII entity + language catalog (shared by the block and Data Retention)
+- `mask-client.ts` - Internal HTTP client for batch PII masking from the log-redaction persist path
 - `validate.test.ts` - Test suite for JSON and regex validators
-- `validate_hallucination.py` - Legacy Python hallucination detector (deprecated)
-- `requirements.txt` - Python dependencies for PII detection (and legacy hallucination)
-- `setup.sh` - Legacy installation script (deprecated)
-

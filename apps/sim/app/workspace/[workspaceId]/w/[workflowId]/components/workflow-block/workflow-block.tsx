@@ -43,6 +43,7 @@ import {
 import type { WorkflowBlockProps } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/workflow-block/types'
 import {
   getProviderName,
+  getSubBlockResourceQueryIntent,
   shouldSkipBlockRender,
 } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/workflow-block/utils'
 import { useBlockVisual } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks'
@@ -245,6 +246,7 @@ const SubBlockRow = memo(function SubBlockRow({
     subBlock?.type === 'knowledge-base-selector' && typeof rawValue === 'string' ? rawValue : ''
   )
   const knowledgeBaseDisplayName = kbForDisplayName?.name ?? null
+  const resourceQueryIntent = getSubBlockResourceQueryIntent(subBlock, rawValue)
 
   const {
     data: workflowMapForLookup = {},
@@ -267,7 +269,9 @@ const SubBlockRow = memo(function SubBlockRow({
     )
   }, [workflowMapForLookup, workflowMapLoaded, workflowMapIsPlaceholder, subBlock, rawValue])
 
-  const { data: mcpServers = [] } = useMcpServers(workspaceId || '')
+  const { data: mcpServers = [] } = useMcpServers(workspaceId || '', {
+    enabled: resourceQueryIntent.mcpServers,
+  })
   const mcpServerDisplayName = useMemo(() => {
     if (subBlock?.type !== 'mcp-server-selector' || typeof rawValue !== 'string') {
       return null
@@ -276,7 +280,9 @@ const SubBlockRow = memo(function SubBlockRow({
     return server?.name ?? null
   }, [subBlock?.type, rawValue, mcpServers])
 
-  const { data: mcpToolsData = [] } = useMcpToolsQuery(workspaceId || '')
+  const { data: mcpToolsData = [] } = useMcpToolsQuery(workspaceId || '', {
+    enabled: resourceQueryIntent.mcpTools,
+  })
   const mcpToolDisplayName = useMemo(() => {
     if (subBlock?.type !== 'mcp-tool-selector' || typeof rawValue !== 'string') {
       return null
@@ -289,7 +295,9 @@ const SubBlockRow = memo(function SubBlockRow({
     return tool?.name ?? null
   }, [subBlock?.type, rawValue, mcpToolsData])
 
-  const { data: tables = [] } = useTablesList(workspaceId || '')
+  const { data: tables = [] } = useTablesList(workspaceId || '', 'active', {
+    enabled: resourceQueryIntent.tables,
+  })
   const tableDisplayName = useMemo(() => {
     if (subBlock?.type !== 'table-selector' || typeof rawValue !== 'string') {
       return null
@@ -333,7 +341,9 @@ const SubBlockRow = memo(function SubBlockRow({
   )
 
   /** Hydrates tool references to display names. */
-  const { data: customTools = [] } = useCustomTools(workspaceId || '')
+  const { data: customTools = [] } = useCustomTools(workspaceId || '', {
+    enabled: resourceQueryIntent.customTools,
+  })
   const toolsDisplayValue = useMemo(
     () => resolveToolsLabel(subBlock, rawValue, customTools),
     [subBlock, rawValue, customTools]
@@ -345,7 +355,9 @@ const SubBlockRow = memo(function SubBlockRow({
   )
 
   /** Hydrates skill references to display names. */
-  const { data: workspaceSkills = [] } = useSkills(workspaceId || '')
+  const { data: workspaceSkills = [] } = useSkills(workspaceId || '', {
+    enabled: resourceQueryIntent.skills,
+  })
   const skillsDisplayValue = useMemo(
     () => resolveSkillsLabel(subBlock, rawValue, workspaceSkills),
     [subBlock, rawValue, workspaceSkills]

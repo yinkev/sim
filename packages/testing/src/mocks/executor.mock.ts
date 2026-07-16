@@ -56,7 +56,7 @@ vi.mock('@/providers', () => ({
   executeProviderRequest: vi.fn(),
 }))
 
-vi.mock('@/providers/utils', async (importOriginal) => {
+vi.mock('@/providers/utils', async (importOriginal: () => Promise<unknown>) => {
   const actual = await importOriginal()
   return {
     ...(actual as object),
@@ -78,7 +78,16 @@ vi.mock('@/executor/utils/http', () => ({
     const defaultMessage = `API request failed with status ${response.status}`
     try {
       const errorData = await response.json()
-      return errorData.error || defaultMessage
+      if (
+        typeof errorData === 'object' &&
+        errorData !== null &&
+        'error' in errorData &&
+        typeof errorData.error === 'string' &&
+        errorData.error
+      ) {
+        return errorData.error
+      }
+      return defaultMessage
     } catch {
       return defaultMessage
     }

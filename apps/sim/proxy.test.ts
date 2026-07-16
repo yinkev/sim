@@ -1,13 +1,14 @@
 /**
  * @vitest-environment node
  */
-import { createEnvMock } from '@sim/testing'
 import type { NextRequest } from 'next/server'
 import { describe, expect, it, vi } from 'vitest'
 
-vi.mock('@/lib/core/config/env', () =>
-  createEnvMock({ NEXT_PUBLIC_APP_URL: 'https://app.sim.test' })
-)
+vi.mock('@/lib/core/config/proxy-env', () => ({
+  isAuthDisabled: false,
+  isHosted: false,
+  proxyAppUrl: 'https://app.sim.test',
+}))
 
 import { resolveApiCorsPolicy } from '@/proxy'
 

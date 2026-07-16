@@ -1,17 +1,16 @@
 import { createLogger } from '@sim/logger'
 import { isPlainRecord } from '@sim/utils/object'
 import { DEFAULT_SUBBLOCK_TYPE } from '@sim/workflow-persistence/subblocks'
-import { sanitizeMalformedSubBlocks } from '@/lib/workflows/sanitization/subblocks'
 import {
-  buildCanonicalIndex,
-  buildSubBlockValues,
-  isCanonicalPair,
-  resolveCanonicalMode,
-} from '@/lib/workflows/subblocks/visibility'
-import { getBlock } from '@/blocks'
+  type CanonicalPairMetadata,
+  getCanonicalPairs,
+  getConfiguredSubBlockType,
+} from '@/lib/workflows/migrations/subblock-metadata'
+import { sanitizeMalformedSubBlocksWithResolver } from '@/lib/workflows/sanitization/subblocks-core'
 import type { BlockState } from '@/stores/workflows/workflow/types'
 
 const logger = createLogger('SubblockMigrations')
+const sanitizationLogger = createLogger('WorkflowSubblockSanitization')
 
 /**
  * Maps old subblock IDs to their current equivalents per block type.
@@ -100,8 +99,6 @@ function migrateBlockSubblockIds(
   if (!migrated) return { subBlocks, migrated: false }
 
   const result = { ...subBlocks }
-  const blockConfig = getBlock(blockType)
-
   for (const [oldId, newId] of Object.entries(renames)) {
     if (!(oldId in result)) continue
 
@@ -111,7 +108,7 @@ function migrateBlockSubblockIds(
     }
 
     const oldEntry: unknown = result[oldId]
-    const configuredType = blockConfig?.subBlocks?.find((config) => config.id === newId)?.type
+    const configuredType = getConfiguredSubBlockType(blockType, newId)
     if (isPlainRecord(oldEntry)) {
       const type =
         configuredType ||
@@ -163,7 +160,12 @@ export function migrateSubblockIds(blocks: Record<string, BlockState>): {
       ? migrateBlockSubblockIds(block.type, block.subBlocks, renames)
       : { subBlocks: block.subBlocks, migrated: false }
     const renamedBlock = renamed.migrated ? { ...block, subBlocks: renamed.subBlocks } : block
-    const sanitized = sanitizeMalformedSubBlocks(renamedBlock)
+    const sanitized = sanitizeMalformedSubBlocksWithResolver(
+      renamedBlock,
+      getConfiguredSubBlockType,
+      {},
+      sanitizationLogger
+    )
     const blockMigrated = renamed.migrated || sanitized.changed
 
     if (blockMigrated) {
@@ -199,14 +201,12 @@ export function backfillCanonicalModes(blocks: Record<string, BlockState>): {
   const result: Record<string, BlockState> = {}
 
   for (const [blockId, block] of Object.entries(blocks)) {
-    const blockConfig = getBlock(block.type)
-    if (!blockConfig?.subBlocks || !block.subBlocks) {
+    if (!block.subBlocks) {
       result[blockId] = block
       continue
     }
 
-    const canonicalIndex = buildCanonicalIndex(blockConfig.subBlocks)
-    const pairs = Object.values(canonicalIndex.groupsById).filter(isCanonicalPair)
+    const pairs = getCanonicalPairs(block.type)
     if (pairs.length === 0) {
       result[blockId] = block
       continue
@@ -215,7 +215,9 @@ export function backfillCanonicalModes(blocks: Record<string, BlockState>): {
     const existing = (block.data?.canonicalModes ?? {}) as Record<string, 'basic' | 'advanced'>
     let patched: Record<string, 'basic' | 'advanced'> | null = null
 
-    const values = buildSubBlockValues(block.subBlocks)
+    const values = Object.fromEntries(
+      Object.entries(block.subBlocks).map(([key, subBlock]) => [key, subBlock?.value])
+    )
 
     for (const group of pairs) {
       if (existing[group.canonicalId] != null) continue
@@ -237,4 +239,21 @@ export function backfillCanonicalModes(blocks: Record<string, BlockState>): {
   }
 
   return { blocks: result, migrated: anyMigrated }
+}
+
+function isNonEmptyValue(value: unknown): boolean {
+  if (value === null || value === undefined) return false
+  if (typeof value === 'string') return value.trim().length > 0
+  if (Array.isArray(value)) return value.length > 0
+  return true
+}
+
+function resolveCanonicalMode(
+  group: CanonicalPairMetadata,
+  values: Record<string, unknown>
+): 'basic' | 'advanced' {
+  const hasBasic = isNonEmptyValue(values[group.basicId])
+  const hasAdvanced = group.advancedIds.some((advancedId) => isNonEmptyValue(values[advancedId]))
+
+  return !hasBasic && hasAdvanced ? 'advanced' : 'basic'
 }

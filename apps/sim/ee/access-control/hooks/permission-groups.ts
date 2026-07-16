@@ -6,7 +6,6 @@ import {
   bulkAddPermissionGroupMembersContract,
   createPermissionGroupContract,
   deletePermissionGroupContract,
-  getUserPermissionConfigContract,
   listOrganizationWorkspacesContract,
   listPermissionGroupMembersContract,
   listPermissionGroupsContract,
@@ -14,17 +13,14 @@ import {
   type PermissionGroupMember,
   type PermissionGroupWorkspaceRef,
   removePermissionGroupMemberContract,
-  type UserPermissionConfig,
   updatePermissionGroupContract,
 } from '@/lib/api/contracts'
 import type { PermissionGroupConfig } from '@/lib/permission-groups/types'
 
-export type {
-  PermissionGroup,
-  PermissionGroupMember,
-  PermissionGroupWorkspaceRef,
-  UserPermissionConfig,
-}
+export type { UserPermissionConfig } from '@/lib/api/contracts/permission-groups'
+export { useUserPermissionConfig } from '@/ee/access-control/hooks/use-user-permission-config'
+
+export type { PermissionGroup, PermissionGroupMember, PermissionGroupWorkspaceRef }
 
 export const permissionGroupKeys = {
   all: ['permissionGroups'] as const,
@@ -90,28 +86,12 @@ export function useOrganizationWorkspaces(organizationId?: string, enabled = tru
   })
 }
 
-export function useUserPermissionConfig(workspaceId?: string) {
-  return useQuery<UserPermissionConfig>({
-    queryKey: permissionGroupKeys.userConfig(workspaceId),
-    queryFn: async ({ signal }) => {
-      const data = await requestJson(getUserPermissionConfigContract, {
-        query: { workspaceId: workspaceId ?? '' },
-        signal,
-      })
-      return data
-    },
-    enabled: Boolean(workspaceId),
-    staleTime: 60 * 1000,
-  })
-}
-
 export interface CreatePermissionGroupData {
   organizationId: string
   name: string
   description?: string
   config?: Partial<PermissionGroupConfig>
   isDefault?: boolean
-  appliesToAllWorkspaces?: boolean
   workspaceIds?: string[]
 }
 
@@ -140,7 +120,6 @@ export interface UpdatePermissionGroupData {
   description?: string | null
   config?: Partial<PermissionGroupConfig>
   isDefault?: boolean
-  appliesToAllWorkspaces?: boolean
   workspaceIds?: string[]
 }
 

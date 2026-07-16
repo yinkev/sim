@@ -15,7 +15,7 @@ import type {
 
 const DEFAULT_WORKER_LANE_PRODUCER_FILE = path.join(
   getRepoRoot(),
-  '.ai-bridge/projects/worker-lane/sample-events.json'
+  'apps/sim/fixtures/center/producers/worker-lane/sample-events.json'
 )
 
 export async function readCenterWorkerLaneSnapshot(

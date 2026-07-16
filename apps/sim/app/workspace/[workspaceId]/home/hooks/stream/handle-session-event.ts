@@ -2,7 +2,8 @@ import { getLiveAssistantMessageId } from '@/lib/copilot/chat/effective-transcri
 import { MothershipStreamV1SessionKind } from '@/lib/copilot/generated/mothership-stream-v1'
 import type { PersistedStreamEventEnvelope } from '@/lib/copilot/request/session/contract'
 import type { StreamLoopContext } from '@/app/workspace/[workspaceId]/home/hooks/stream/stream-context'
-import { type MothershipChatHistory, mothershipChatKeys } from '@/hooks/queries/mothership-chats'
+import type { MothershipChatHistory } from '@/hooks/queries/mothership-chat-history'
+import { mothershipChatKeys } from '@/hooks/queries/mothership-chat-keys'
 
 type SessionEvent = Extract<PersistedStreamEventEnvelope, { type: 'session' }>
 

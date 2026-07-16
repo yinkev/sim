@@ -7,7 +7,7 @@ These instructions apply to all tasks, not just coding.
 ## Operating Rules
 
 - Treat the user as a technical collaborator. Execute, verify, and return the artifact.
-- For Center / Sim / MS2Scheduler work, `.ai-bridge/current-plan.md` is the active source of truth and `.ai-bridge/decisions.md` is the durable decision ledger.
+- For Sim architecture work, `apps/sim/docs/architecture/README.md` is the source of truth; `migration-roadmap.md` defines sequencing and accepted ADRs record durable decisions.
 - Do not start Center UI implementation until Phase 0 Sim CPU/RAM stabilization is handled or explicitly waived by the user.
 - Do not narrate what you are about to do unless the work is long-running, risky, blocked, or a required safety notice.
 - Do not summarize requested command output. Return the raw output, including hidden files, or save the full output and give the exact file path when it is too large for the response.
@@ -111,11 +111,11 @@ packages/
 ├── auth/                   # @sim/auth — shared Better Auth verifier
 ├── db/                     # @sim/db — drizzle schema + client
 ├── logger/                 # @sim/logger
+├── platform-authz/         # @sim/platform-authz — workspace + workflow authz (subpath exports)
 ├── realtime-protocol/      # @sim/realtime-protocol — socket op constants + zod schemas
 ├── security/               # @sim/security — safeCompare
 ├── tsconfig/               # shared tsconfig presets
 ├── utils/                  # @sim/utils
-├── workflow-authz/         # @sim/workflow-authz
 ├── workflow-persistence/   # @sim/workflow-persistence
 └── workflow-types/         # @sim/workflow-types — pure BlockState/Loop/Parallel types
 ```
@@ -469,7 +469,7 @@ Use Vitest. Test files: `feature.ts` → `feature.test.ts`. See `.cursor/rules/s
 
 ### Global Mocks (vitest.setup.ts)
 
-`@sim/db`, `@sim/db/schema`, `drizzle-orm`, `@sim/logger`, `@sim/workflow-authz`, `@/blocks/registry`, `@/lib/auth`, `@/lib/auth/hybrid`, `@/lib/core/utils/request`, `@trigger.dev/sdk`, and store mocks are provided globally. Do NOT re-mock them unless overriding behavior. (The `vi.mock('@/lib/auth', ...)` in the example below is an override of the global mock so `getSession` can be controlled per-test.)
+`@sim/db`, `@sim/db/schema`, `drizzle-orm`, `@sim/logger`, `@sim/platform-authz/workflow`, `@/blocks/registry`, `@/lib/auth`, `@/lib/auth/hybrid`, `@/lib/core/utils/request`, `@trigger.dev/sdk`, and store mocks are provided globally. Do NOT re-mock them unless overriding behavior. (The `vi.mock('@/lib/auth', ...)` in the example below is an override of the global mock so `getSession` can be controlled per-test.)
 
 ### Standard Test Pattern
 

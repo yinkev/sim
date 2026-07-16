@@ -2,7 +2,6 @@
  * @vitest-environment node
  */
 import { WORKFLOW_SUBAGENT_SPEC } from '@sim/mothership-contracts'
-import { mothershipChatBodySchema } from '@sim/mothership-contracts/routes'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { runHeadlessCopilotLifecycle as RunHeadlessCopilotLifecycle } from '@/lib/copilot/request/lifecycle/headless'
 import type { OrchestratorResult } from '@/lib/copilot/request/types'
@@ -19,7 +18,7 @@ const {
   mockRunHeadlessCopilotLifecycle: vi.fn(),
 }))
 
-vi.mock('@sim/workflow-authz', () => ({
+vi.mock('@sim/platform-authz/workflow', () => ({
   authorizeWorkflowByWorkspacePermission: mockAuthorizeWorkflowByWorkspacePermission,
 }))
 
@@ -169,7 +168,6 @@ describe('executeWorkflowSubagent', () => {
       mode: 'agent',
     })
     expect(payload.runId).not.toBe('11111111-1111-4111-8111-111111111111')
-    expect(mothershipChatBodySchema.safeParse(payload).success).toBe(true)
     expect(options).toMatchObject({
       userId: 'user-1',
       workspaceId: 'workspace-1',

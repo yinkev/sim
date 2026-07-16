@@ -1,0 +1,27 @@
+{
+  "id": "emit.agent_run_completed",
+  "version": "1.0.0",
+  "producerId": "worker-lane",
+  "kind": "emit",
+  "inputs": [
+    {
+      "id": "worker-lane-snapshot-record",
+      "version": "1.0.0",
+      "uri": "apps/sim/fixtures/center/producers/worker-lane/sample-events.json"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "center-producer-import-packet",
+      "version": "1.0.0",
+      "uri": "apps/sim/lib/center/producer-import.ts"
+    }
+  ],
+  "authorityRequired": "A1",
+  "truthImpact": "T2",
+  "policyRequirements": ["profile-scope", "explicit-local-import", "evidence-required"],
+  "evidenceProduced": ["Worker run output"],
+  "failureModes": ["snapshot is stale", "completion status is misclassified"],
+  "requires": ["emit.agent_run_started"],
+  "lifecycle": "available"
+}

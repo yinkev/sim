@@ -1,6 +1,6 @@
 import type { EdgeTypes, NodeTypes } from 'reactflow'
-import { SubflowNodeComponent } from '@/app/workspace/[workspaceId]/w/[workflowId]/components'
 import { NoteBlock } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/note-block/note-block'
+import { SubflowNodeComponent } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/subflows/subflow-node'
 import { WorkflowBlock } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/workflow-block/workflow-block'
 import { WorkflowEdge } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/workflow-edge/workflow-edge'
 

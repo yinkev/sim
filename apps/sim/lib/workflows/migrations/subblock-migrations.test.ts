@@ -1,12 +1,19 @@
 /**
  * @vitest-environment node
  */
-import { describe, expect, it, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { describe, expect, it } from 'vitest'
 import type { BlockState } from '@/stores/workflows/workflow/types'
-
-vi.unmock('@/blocks/registry')
-
 import { backfillCanonicalModes, migrateSubblockIds } from './subblock-migrations'
+
+describe('module boundary', () => {
+  it('does not statically import the block registry', () => {
+    const source = readFileSync(new URL('./subblock-migrations.ts', import.meta.url), 'utf8')
+
+    expect(source).not.toContain("from '@/blocks")
+    expect(source).not.toContain("from '@/lib/workflows/sanitization/subblocks'")
+  })
+})
 
 function makeBlock(overrides: Partial<BlockState> & { type: string }): BlockState {
   return {

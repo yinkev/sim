@@ -7,13 +7,8 @@ const { mockGetEnv } = vi.hoisted(() => ({
   mockGetEnv: vi.fn<(key: string) => string | undefined>(),
 }))
 
-vi.mock('@/lib/core/config/env', () => ({
-  env: {},
+vi.mock('@/lib/core/config/public-env', () => ({
   getEnv: mockGetEnv,
-}))
-
-vi.mock('@/lib/core/config/env-flags', () => ({
-  isProd: false,
 }))
 
 import {

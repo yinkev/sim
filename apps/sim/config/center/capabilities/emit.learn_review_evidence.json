@@ -1,0 +1,27 @@
+{
+  "id": "emit.learn_review_evidence",
+  "version": "1.0.0",
+  "producerId": "learn",
+  "kind": "emit",
+  "inputs": [
+    {
+      "id": "learn-understand-snapshot-record",
+      "version": "1.0.0",
+      "uri": "apps/sim/fixtures/center/producers/learn-understand/sample-events.json"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "center-producer-import-packet",
+      "version": "1.0.0",
+      "uri": "apps/sim/lib/center/producer-import.ts"
+    }
+  ],
+  "authorityRequired": "A1",
+  "truthImpact": "T2",
+  "policyRequirements": ["profile-scope", "explicit-local-import", "evidence-required"],
+  "evidenceProduced": ["Learning review test evidence"],
+  "failureModes": ["snapshot is stale", "review score is missing or incomparable"],
+  "requires": ["emit.learn_learning_gap"],
+  "lifecycle": "available"
+}

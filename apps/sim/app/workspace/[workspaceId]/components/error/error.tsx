@@ -2,8 +2,7 @@
 
 import { type ReactNode, useEffect } from 'react'
 import { createLogger } from '@sim/logger'
-import { TriangleAlert } from 'lucide-react'
-import { Button } from '@/components/emcn'
+import { TriangleAlert } from '@/components/emcn/icons'
 
 /** Props shape required by Next.js error boundary files (`error.tsx`). */
 export interface ErrorBoundaryProps {
@@ -87,9 +86,13 @@ export function ErrorState({
   return (
     <ErrorShell title={title} description={description} icon={icon} digest={error.digest}>
       {children}
-      <Button variant='primary' size='md' onClick={reset}>
+      <button
+        type='button'
+        onClick={reset}
+        className='rounded-[5px] bg-[var(--text-primary)] px-2 py-1.5 font-medium text-[12px] text-[var(--text-inverse)]'
+      >
         Refresh
-      </Button>
+      </button>
     </ErrorShell>
   )
 }

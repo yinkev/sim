@@ -13,7 +13,7 @@ import type {
 
 const DEFAULT_GITHUB_PRODUCER_FILE = path.join(
   getRepoRoot(),
-  '.ai-bridge/projects/github-producer/sample-events.json'
+  'apps/sim/fixtures/center/producers/github/sample-events.json'
 )
 
 export async function readCenterGithubSnapshot(

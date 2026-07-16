@@ -2,6 +2,7 @@
 
 import {
   type ComponentType,
+  type CSSProperties,
   createContext,
   type ReactNode,
   type SVGProps,
@@ -14,7 +15,6 @@ import {
   useState,
 } from 'react'
 import { generateId } from '@sim/utils/id'
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { usePathname } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { Button } from '@/components/emcn/components/button/button'
@@ -23,6 +23,7 @@ import {
   chipContentIconClass,
   chipFilledFillTokens,
 } from '@/components/emcn/components/chip/chip-chrome'
+import styles from '@/components/emcn/components/toast/toast.module.css'
 import { Bell } from '@/components/emcn/icons/bell'
 import { CircleAlert } from '@/components/emcn/icons/circle-alert'
 import { CircleCheck } from '@/components/emcn/icons/circle-check'
@@ -32,6 +33,8 @@ import { X } from '@/components/emcn/icons/x'
 import { cn } from '@/lib/core/utils/cn'
 
 const AUTO_DISMISS_MS = 5000
+const TOAST_EXIT_MS = 150
+const STACK_EXIT_MS = 200
 
 /** Card width; tracks the workflow-panel inset on narrow viewports. */
 const TOAST_WIDTH = 'min(100vw - 2rem, 280px)'
@@ -50,15 +53,17 @@ const ESTIMATED_TOAST_HEIGHT = 56
 /** Card border box, added to the measured content so the clamped `<li>` height matches. */
 const CARD_BORDER_PX = 2
 
-/** Shared expo-out easing so every card in the stack reshuffles with identical timing. */
-const TOAST_EASE = [0.22, 1, 0.36, 1] as const
-const STACK_DURATION = 0.4
-const RESIZE_DURATION = 0.3
-
 /** Single-line cards use a tighter corner radius; taller cards keep the concentric 16px. */
 const COMPACT_CARD_HEIGHT_PX = 46
 const COMPACT_RADIUS_PX = 12
 const CONCENTRIC_RADIUS_PX = 16
+
+function motionDuration(duration: number): number {
+  return typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    ? 0
+    : duration
+}
 
 type ToastVariant = 'default' | 'info' | 'success' | 'warning' | 'error'
 
@@ -174,7 +179,7 @@ interface ToastGeometry {
 interface ToastItemProps {
   toast: ToastData
   geometry: ToastGeometry
-  reduceMotion: boolean
+  exiting: boolean
   onDismiss: (id: string) => void
   onMeasure: (id: string, height: number) => void
 }
@@ -190,7 +195,6 @@ interface RevealTextProps {
   /** Optional inline icon; included in head and tail so wrapping stays identical. */
   leadingIcon?: ReactNode
   className?: string
-  reduceMotion: boolean
 }
 
 /**
@@ -206,7 +210,6 @@ function RevealText({
   lineHeightPx,
   leadingIcon,
   className,
-  reduceMotion,
 }: RevealTextProps) {
   const headRef = useRef<HTMLDivElement>(null)
   const [truncated, setTruncated] = useState(false)
@@ -240,38 +243,19 @@ function RevealText({
         {leadingIcon}
         {text}
       </div>
-      <AnimatePresence initial={false}>
-        {open ? (
-          <motion.div
-            className='overflow-hidden'
-            aria-hidden
-            initial={reduceMotion ? false : { height: 0 }}
-            animate={{ height: 'auto' }}
-            exit={{ height: 0 }}
-            transition={
-              reduceMotion ? { duration: 0 } : { duration: RESIZE_DURATION, ease: TOAST_EASE }
-            }
-          >
-            <motion.div
-              className={className}
-              style={{ marginTop: -clampHeight }}
-              initial={reduceMotion ? false : { opacity: 0, filter: 'blur(5px)' }}
-              animate={{ opacity: 1, filter: 'blur(0px)' }}
-              transition={
-                reduceMotion ? { duration: 0 } : { duration: RESIZE_DURATION, ease: [0.2, 0, 0, 1] }
-              }
-            >
-              {leadingIcon}
-              {text}
-            </motion.div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+      <div className={cn(styles.reveal, open && styles.revealOpen)} aria-hidden>
+        <div className={styles.revealInner}>
+          <div className={cn(styles.revealContent, className)} style={{ marginTop: -clampHeight }}>
+            {leadingIcon}
+            {text}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
 
-function ToastItem({ toast: t, geometry, reduceMotion, onDismiss, onMeasure }: ToastItemProps) {
+function ToastItem({ toast: t, geometry, exiting, onDismiss, onMeasure }: ToastItemProps) {
   const contentRef = useRef<HTMLDivElement>(null)
   const [hovered, setHovered] = useState(false)
   const Icon = VARIANT_ICON[t.variant]
@@ -295,29 +279,27 @@ function ToastItem({ toast: t, geometry, reduceMotion, onDismiss, onMeasure }: T
 
   const { y, scale, height, zIndex } = geometry
   const cornerRadius = height <= COMPACT_CARD_HEIGHT_PX ? COMPACT_RADIUS_PX : CONCENTRIC_RADIUS_PX
-  /** One fixed-duration tween so all cards reshuffle in unison; height tracks content instantly. */
-  const transition = reduceMotion
-    ? { duration: 0 }
-    : {
-        duration: STACK_DURATION,
-        ease: TOAST_EASE,
-        height: { duration: 0 },
-      }
+  const itemStyle = {
+    '--toast-y': `${y}px`,
+    '--toast-scale': scale,
+    '--toast-enter-y': `${height}px`,
+    zIndex,
+    transformOrigin: 'bottom',
+    width: TOAST_WIDTH,
+    height,
+    borderRadius: cornerRadius,
+  } as CSSProperties
 
   return (
-    <motion.li
+    <li
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      initial={reduceMotion ? false : { opacity: 0, y: height }}
-      animate={{ opacity: 1, y, scale, height }}
-      exit={{
-        opacity: 0,
-        scale: 0.95,
-        transition: reduceMotion ? { duration: 0 } : { duration: 0.15, ease: 'easeIn' },
-      }}
-      transition={transition}
-      style={{ zIndex, transformOrigin: 'bottom', width: TOAST_WIDTH, borderRadius: cornerRadius }}
-      className='pointer-events-auto absolute right-0 bottom-0 m-0 overflow-hidden border border-[var(--border-1)] bg-[var(--bg)] shadow-[var(--shadow-overlay)]'
+      style={itemStyle}
+      className={cn(
+        styles.toastItem,
+        exiting && styles.toastItemExiting,
+        'pointer-events-auto absolute right-0 bottom-0 m-0 overflow-hidden border border-[var(--border-1)] bg-[var(--bg)] shadow-[var(--shadow-overlay)]'
+      )}
     >
       <div ref={contentRef} className='flex flex-col gap-2 p-2'>
         <div className='flex items-start gap-2'>
@@ -333,7 +315,6 @@ function ToastItem({ toast: t, geometry, reduceMotion, onDismiss, onMeasure }: T
                 </span>
               }
               className='text-[var(--text-body)] text-sm leading-5'
-              reduceMotion={reduceMotion}
             />
           </div>
           <div className='flex h-5 flex-shrink-0 items-center'>
@@ -355,7 +336,6 @@ function ToastItem({ toast: t, geometry, reduceMotion, onDismiss, onMeasure }: T
             clampLines={3}
             lineHeightPx={18}
             className='text-[var(--text-muted)] text-small leading-[18px]'
-            reduceMotion={reduceMotion}
           />
         ) : null}
         {t.action ? (
@@ -372,7 +352,7 @@ function ToastItem({ toast: t, geometry, reduceMotion, onDismiss, onMeasure }: T
           </Chip>
         ) : null}
       </div>
-    </motion.li>
+    </li>
   )
 }
 
@@ -389,19 +369,79 @@ function ToastItem({ toast: t, geometry, reduceMotion, onDismiss, onMeasure }: T
  */
 export function ToastProvider({ children }: { children?: ReactNode }) {
   const pathname = usePathname()
-  const reduceMotion = useReducedMotion() ?? false
   /** On the workflow editor (`/w/[id]` and the `/w` index) the stack insets by `--panel-width` / `--terminal-height` to clear the panel and terminal. */
   const isWorkflowPage = pathname ? /\/w(\/|$)/.test(pathname) : false
 
   const [toasts, setToasts] = useState<ToastData[]>([])
+  const [renderedToasts, setRenderedToasts] = useState<ToastData[]>([])
+  const [stackMounted, setStackMounted] = useState(false)
   const [heights, setHeights] = useState<Record<string, number>>({})
   const [expanded, setExpanded] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const toastIds = toasts.map((toast) => toast.id).join(',')
   const timersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>())
+  const exitTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>())
+  const stackExitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const previousToastsRef = useRef<ToastData[]>([])
+  const geometryRef = useRef(new Map<string, ToastGeometry>())
+  const containerHeightRef = useRef(ESTIMATED_TOAST_HEIGHT)
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  /** Retain removed cards and the stack shell until their local CSS exit transitions finish. */
+  useEffect(() => {
+    const previousToasts = previousToastsRef.current
+    const unchanged =
+      previousToasts.length === toasts.length &&
+      previousToasts.every((toast, index) => toast.id === toasts[index]?.id)
+    if (unchanged) return
+
+    previousToastsRef.current = toasts
+    const liveIds = new Set(toasts.map((t) => t.id))
+    const removed = previousToasts.filter((t) => !liveIds.has(t.id))
+
+    setRenderedToasts((prev) => {
+      const nextById = new Map(toasts.map((t) => [t.id, t]))
+      let changed = false
+      const next = prev.map((t) => {
+        const updated = nextById.get(t.id) ?? t
+        if (updated !== t) changed = true
+        return updated
+      })
+      const renderedIds = new Set(next.map((t) => t.id))
+      for (const t of toasts) {
+        if (renderedIds.has(t.id)) continue
+        next.push(t)
+        changed = true
+      }
+      return changed ? next : prev
+    })
+
+    for (const t of removed) {
+      if (exitTimersRef.current.has(t.id)) continue
+      exitTimersRef.current.set(
+        t.id,
+        setTimeout(() => {
+          exitTimersRef.current.delete(t.id)
+          geometryRef.current.delete(t.id)
+          setRenderedToasts((prev) => prev.filter((candidate) => candidate.id !== t.id))
+        }, motionDuration(TOAST_EXIT_MS))
+      )
+    }
+
+    if (toasts.length > 0) {
+      if (stackExitTimerRef.current) clearTimeout(stackExitTimerRef.current)
+      stackExitTimerRef.current = null
+      setStackMounted(true)
+    } else if (previousToasts.length > 0 && !stackExitTimerRef.current) {
+      stackExitTimerRef.current = setTimeout(() => {
+        stackExitTimerRef.current = null
+        setStackMounted(false)
+      }, motionDuration(STACK_EXIT_MS))
+    }
+  }, [toastIds])
 
   /**
    * Reset the hover-expanded flag whenever the stack empties. The hover wrapper
@@ -497,7 +537,7 @@ export function ToastProvider({ children }: { children?: ReactNode }) {
       for (const id of stale) delete next[id]
       return next
     })
-  }, [toasts])
+  }, [toastIds])
 
   /**
    * Per-toast auto-dismiss timers. Each timed toast runs its own timer so it
@@ -530,12 +570,15 @@ export function ToastProvider({ children }: { children?: ReactNode }) {
         timers.delete(id)
       }
     }
-  }, [toasts, expanded, dismissToast])
+  }, [toastIds, expanded, dismissToast])
 
   useEffect(() => {
     const timers = timersRef.current
+    const exitTimers = exitTimersRef.current
     return () => {
       for (const timer of timers.values()) clearTimeout(timer)
+      for (const timer of exitTimers.values()) clearTimeout(timer)
+      if (stackExitTimerRef.current) clearTimeout(stackExitTimerRef.current)
     }
   }, [])
 
@@ -585,56 +628,70 @@ export function ToastProvider({ children }: { children?: ReactNode }) {
   const expandedHeight = cumulative > 0 ? cumulative - EXPAND_GAP_PX : frontHeight
   const containerHeight = expanded ? expandedHeight : collapsedHeight
 
+  const liveGeometry = new Map(layout.map(({ toast, geometry }) => [toast.id, geometry]))
+  const liveIds = new Set(toasts.map((t) => t.id))
+  const renderedLayout = [...renderedToasts].reverse().map((toast) => ({
+    toast,
+    geometry: liveGeometry.get(toast.id) ??
+      geometryRef.current.get(toast.id) ?? {
+        y: 0,
+        scale: 1,
+        height: ESTIMATED_TOAST_HEIGHT,
+        zIndex: 0,
+      },
+    exiting: !liveIds.has(toast.id),
+  }))
+
+  useLayoutEffect(() => {
+    for (const { toast, geometry } of layout) geometryRef.current.set(toast.id, geometry)
+    if (toasts.length > 0) containerHeightRef.current = containerHeight
+  }, [layout, containerHeight, toasts.length])
+
   return (
     <ToastContext.Provider value={ctx}>
       {children}
       {mounted
         ? createPortal(
-            <AnimatePresence>
-              {toasts.length > 0 ? (
-                <motion.ol
-                  key='toast-stack'
-                  aria-live='polite'
-                  aria-label='Notifications'
-                  className='fixed z-[var(--z-toast)] m-0 list-none p-0'
-                  exit={{
-                    opacity: 0,
-                    transition: reduceMotion ? { duration: 0 } : { duration: 0.2, ease: 'easeIn' },
+            stackMounted ? (
+              <ol
+                aria-live='polite'
+                aria-label='Notifications'
+                className={cn(
+                  styles.stack,
+                  toasts.length === 0 && styles.stackExiting,
+                  'fixed z-[var(--z-toast)] m-0 list-none p-0'
+                )}
+                style={{
+                  right: isWorkflowPage ? 'calc(var(--panel-width) + 16px)' : '16px',
+                  bottom: isWorkflowPage ? 'calc(var(--terminal-height) + 16px)' : '16px',
+                  width: TOAST_WIDTH,
+                  height: toasts.length > 0 ? containerHeight : containerHeightRef.current,
+                }}
+              >
+                <div
+                  onMouseEnter={() => setExpanded(true)}
+                  onMouseLeave={() => setExpanded(false)}
+                  onFocusCapture={() => setExpanded(true)}
+                  onBlurCapture={(event) => {
+                    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                      setExpanded(false)
+                    }
                   }}
-                  style={{
-                    right: isWorkflowPage ? 'calc(var(--panel-width) + 16px)' : '16px',
-                    bottom: isWorkflowPage ? 'calc(var(--terminal-height) + 16px)' : '16px',
-                    width: TOAST_WIDTH,
-                    height: containerHeight,
-                  }}
+                  className='absolute inset-0'
                 >
-                  <div
-                    onMouseEnter={() => setExpanded(true)}
-                    onMouseLeave={() => setExpanded(false)}
-                    onFocusCapture={() => setExpanded(true)}
-                    onBlurCapture={(event) => {
-                      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-                        setExpanded(false)
-                      }
-                    }}
-                    className='absolute inset-0'
-                  >
-                    <AnimatePresence>
-                      {layout.map(({ toast, geometry }) => (
-                        <ToastItem
-                          key={toast.id}
-                          toast={toast}
-                          geometry={geometry}
-                          reduceMotion={reduceMotion}
-                          onDismiss={dismissToast}
-                          onMeasure={measureToast}
-                        />
-                      ))}
-                    </AnimatePresence>
-                  </div>
-                </motion.ol>
-              ) : null}
-            </AnimatePresence>,
+                  {renderedLayout.map(({ toast, geometry, exiting }) => (
+                    <ToastItem
+                      key={toast.id}
+                      toast={toast}
+                      geometry={geometry}
+                      exiting={exiting}
+                      onDismiss={dismissToast}
+                      onMeasure={measureToast}
+                    />
+                  ))}
+                </div>
+              </ol>
+            ) : null,
             document.body
           )
         : null}

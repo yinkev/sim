@@ -1,10 +1,10 @@
 'use client'
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createLogger } from '@sim/logger'
 import { toError } from '@sim/utils/errors'
 import { useQueryClient } from '@tanstack/react-query'
-import { History, Plus, Square } from 'lucide-react'
+import { History, Plus, Square, Variable } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { usePostHog } from 'posthog-js/react'
 import { useShallow } from 'zustand/react/shallow'
@@ -31,7 +31,6 @@ import {
   toast,
 } from '@/components/emcn'
 import { Download, Lock, Unlock } from '@/components/emcn/icons'
-import { VariableIcon } from '@/components/icons'
 import { requestJson } from '@/lib/api/client/request'
 import {
   createWorkflowCopilotChatContract,
@@ -45,18 +44,18 @@ import {
 } from '@/lib/mothership/events'
 import { captureEvent } from '@/lib/posthog/client'
 import { generateWorkflowJson } from '@/lib/workflows/operations/import-export'
-import { ConversationListItem } from '@/app/workspace/[workspaceId]/components'
-import { MothershipChat } from '@/app/workspace/[workspaceId]/home/components'
-import { getWorkflowCopilotUseChatOptions, useChat } from '@/app/workspace/[workspaceId]/home/hooks'
+import { ConversationListItem } from '@/app/workspace/[workspaceId]/components/conversation-list-item/conversation-list-item'
+import { MothershipChat } from '@/app/workspace/[workspaceId]/home/components/mothership-chat/mothership-chat'
+import {
+  getWorkflowCopilotUseChatOptions,
+  useChat,
+} from '@/app/workspace/[workspaceId]/home/hooks/use-chat'
 import type { FileAttachmentForApi } from '@/app/workspace/[workspaceId]/home/types'
 import { useRegisterGlobalCommands } from '@/app/workspace/[workspaceId]/providers/global-commands-provider'
 import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
 import { createCommands } from '@/app/workspace/[workspaceId]/utils/commands-utils'
-import {
-  Deploy,
-  Editor,
-  Toolbar,
-} from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components'
+import { Deploy } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/deploy'
+import { Toolbar } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/toolbar'
 import {
   usePanelResize,
   useUsageLimits,
@@ -65,8 +64,9 @@ import { Variables } from '@/app/workspace/[workspaceId]/w/[workflowId]/componen
 import { useAutoLayout } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks/use-auto-layout'
 import { useCurrentWorkflow } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks/use-current-workflow'
 import { useWorkflowExecution } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks/use-workflow-execution'
-import { getWorkflowLockToggleIds } from '@/app/workspace/[workspaceId]/w/[workflowId]/utils'
-import { useDeleteWorkflow, useImportWorkflow } from '@/app/workspace/[workspaceId]/w/hooks'
+import { getWorkflowLockToggleIds } from '@/app/workspace/[workspaceId]/w/[workflowId]/utils/block-protection-utils'
+import { useDeleteWorkflow } from '@/app/workspace/[workspaceId]/w/hooks/use-delete-workflow'
+import { useImportWorkflow } from '@/app/workspace/[workspaceId]/w/hooks/use-import-workflow'
 import { useCopilotChatSelection } from '@/hooks/queries/copilot-chat-selection'
 import {
   type CopilotChatListItem,
@@ -93,6 +93,11 @@ import type { WorkflowState } from '@/stores/workflows/workflow/types'
 
 const logger = createLogger('Panel')
 const EMPTY_COPILOT_CHATS: readonly CopilotChatListItem[] = []
+const LazyEditor = lazy(() =>
+  import(
+    '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/editor'
+  ).then((mod) => ({ default: mod.Editor }))
+)
 /**
  * Panel component with resizable width and tab navigation that persists across page refreshes.
  *
@@ -105,8 +110,7 @@ const EMPTY_COPILOT_CHATS: readonly CopilotChatListItem[] = []
  *
  * This ensures server and client render identical HTML, preventing hydration errors and visual flash.
  *
- * Note: All tabs are kept mounted but hidden to preserve component state during tab switches.
- * This prevents unnecessary remounting which would trigger data reloads and reset state.
+ * Note: Tabs mount on first activation, then remain mounted but hidden to preserve state.
  *
  * @returns Panel on the right side of the workflow
  */
@@ -145,6 +149,7 @@ export const Panel = memo(function Panel({ workspaceId: propWorkspaceId }: Panel
   const [isExporting, setIsExporting] = useState(false)
   const [isDuplicating, setIsDuplicating] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [mountedTabs, setMountedTabs] = useState<ReadonlySet<PanelTab>>(() => new Set())
 
   // Hooks
   const userPermissions = useUserPermissionsContext()
@@ -266,6 +271,13 @@ export const Panel = memo(function Panel({ workspaceId: propWorkspaceId }: Panel
   // selection that no longer matches anything in the current list (e.g. the
   // chat was deleted in another tab).
   const autoSelectAttemptedForRef = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (!_hasHydrated) return
+    setMountedTabs((current) =>
+      current.has(activeTab) ? current : new Set([...current, activeTab])
+    )
+  }, [_hasHydrated, activeTab])
+
   useEffect(() => {
     if (!activeWorkflowId) return
 
@@ -669,7 +681,7 @@ export const Panel = memo(function Panel({ workspaceId: propWorkspaceId }: Panel
                     Auto layout
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => setVariablesOpen(!isVariablesOpen)}>
-                    <VariableIcon />
+                    <Variable />
                     Variables
                   </DropdownMenuItem>
                   {userPermissions.canAdmin && !isSnapshotView && (
@@ -899,7 +911,11 @@ export const Panel = memo(function Panel({ workspaceId: propWorkspaceId }: Panel
               }
               data-tab-content='editor'
             >
-              <Editor />
+              {_hasHydrated && (activeTab === 'editor' || mountedTabs.has('editor')) && (
+                <Suspense fallback={null}>
+                  <LazyEditor />
+                </Suspense>
+              )}
             </div>
             <div
               className={

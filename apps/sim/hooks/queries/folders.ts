@@ -1,19 +1,18 @@
 import { createLogger } from '@sim/logger'
 import { generateId } from '@sim/utils/id'
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { requestJson } from '@/lib/api/client/request'
 import {
   createFolderContract,
   deleteFolderContract,
   duplicateFolderContract,
-  type FolderApi,
-  listFoldersContract,
   reorderFoldersContract,
   restoreFolderContract,
   updateFolderContract,
-} from '@/lib/api/contracts'
+} from '@/lib/api/contracts/folders'
+import { mapFolder } from '@/hooks/queries/folder-list'
 import { getFolderMap } from '@/hooks/queries/utils/folder-cache'
-import { type FolderQueryScope, folderKeys } from '@/hooks/queries/utils/folder-keys'
+import { folderKeys } from '@/hooks/queries/utils/folder-keys'
 import { invalidateWorkflowLists } from '@/hooks/queries/utils/invalidate-workflow-lists'
 import {
   createOptimisticMutationHandlers,
@@ -25,59 +24,12 @@ import type { WorkflowFolder } from '@/stores/folders/types'
 
 const logger = createLogger('FolderQueries')
 
-function mapFolder(folder: FolderApi): WorkflowFolder {
-  return {
-    id: folder.id,
-    name: folder.name,
-    userId: folder.userId,
-    workspaceId: folder.workspaceId,
-    parentId: folder.parentId,
-    color: folder.color ?? '#6B7280',
-    isExpanded: folder.isExpanded,
-    locked: folder.locked,
-    sortOrder: folder.sortOrder,
-    createdAt: new Date(folder.createdAt),
-    updatedAt: new Date(folder.updatedAt),
-    archivedAt: folder.archivedAt ? new Date(folder.archivedAt) : null,
-  }
-}
-
-async function fetchFolders(
-  workspaceId: string,
-  scope: FolderQueryScope = 'active',
-  signal?: AbortSignal
-): Promise<WorkflowFolder[]> {
-  const { folders } = await requestJson(listFoldersContract, {
-    query: { workspaceId, scope },
-    signal,
-  })
-  return folders.map(mapFolder)
-}
-
-export function useFolders(workspaceId?: string, options?: { scope?: FolderQueryScope }) {
-  const scope = options?.scope ?? 'active'
-  return useQuery({
-    queryKey: folderKeys.list(workspaceId, scope),
-    queryFn: ({ signal }) => fetchFolders(workspaceId as string, scope, signal),
-    enabled: Boolean(workspaceId),
-    placeholderData: keepPreviousData,
-    staleTime: 60 * 1000,
-  })
-}
-
-const selectFolderMap = (folders: WorkflowFolder[]): Record<string, WorkflowFolder> =>
-  Object.fromEntries(folders.map((folder) => [folder.id, folder]))
-
-export function useFolderMap(workspaceId?: string) {
-  return useQuery({
-    queryKey: folderKeys.list(workspaceId),
-    queryFn: ({ signal }) => fetchFolders(workspaceId as string, 'active', signal),
-    enabled: Boolean(workspaceId),
-    placeholderData: keepPreviousData,
-    staleTime: 60 * 1000,
-    select: selectFolderMap,
-  })
-}
+export {
+  FOLDER_LIST_STALE_TIME,
+  mapFolder,
+  useFolderMap,
+  useFolders,
+} from '@/hooks/queries/folder-list'
 
 interface CreateFolderVariables {
   workspaceId: string

@@ -2,16 +2,28 @@ import { AuditAction, AuditResourceType, recordAudit } from '@sim/audit'
 import { db } from '@sim/db'
 import { workflow, workflowFolder } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
+import { isFolderInWorkspace } from '@sim/platform-authz/workflow'
 import { toError } from '@sim/utils/errors'
 import { generateId } from '@sim/utils/id'
-import { isFolderInWorkspace } from '@sim/workflow-authz'
-import { and, eq, isNull, min, ne } from 'drizzle-orm'
+import { and, eq, isNull, min } from 'drizzle-orm'
 import { generateRequestId } from '@/lib/core/utils/request'
 import { buildDefaultWorkflowArtifacts } from '@/lib/workflows/defaults'
-import { archiveWorkflow, restoreWorkflow } from '@/lib/workflows/lifecycle'
+import { restoreWorkflow } from '@/lib/workflows/lifecycle'
 import type { OrchestrationErrorCode } from '@/lib/workflows/orchestration/types'
+import { workflowNameExistsInFolder } from '@/lib/workflows/orchestration/workflow-update'
 import { saveWorkflowToNormalizedTables } from '@/lib/workflows/persistence/utils'
 import { deduplicateWorkflowName } from '@/lib/workflows/utils'
+
+export {
+  type PerformDeleteWorkflowParams,
+  type PerformDeleteWorkflowResult,
+  performDeleteWorkflow,
+} from '@/lib/workflows/orchestration/workflow-delete'
+export {
+  type PerformUpdateWorkflowParams,
+  type PerformUpdateWorkflowResult,
+  performUpdateWorkflow,
+} from '@/lib/workflows/orchestration/workflow-update'
 
 const logger = createLogger('WorkflowLifecycle')
 
@@ -43,54 +55,6 @@ export interface PerformCreateWorkflowResult {
     startBlockId?: string
     subBlockValues: Record<string, unknown>
   }
-}
-
-export interface PerformUpdateWorkflowParams {
-  workflowId: string
-  userId: string
-  workspaceId: string
-  currentName: string
-  currentFolderId?: string | null
-  name?: string
-  description?: string | null
-  folderId?: string | null
-  sortOrder?: number
-  locked?: boolean
-  requestId?: string
-}
-
-export interface PerformUpdateWorkflowResult {
-  success: boolean
-  error?: string
-  errorCode?: OrchestrationErrorCode
-  workflow?: {
-    id: string
-    name: string
-    description: string | null
-    workspaceId: string | null
-    folderId: string | null
-    sortOrder: number | null
-    locked: boolean | null
-    createdAt: Date
-    updatedAt: Date
-    archivedAt: Date | null
-  }
-}
-
-export interface PerformDeleteWorkflowParams {
-  workflowId: string
-  userId: string
-  requestId?: string
-  /** When true, allows deleting the last workflow in a workspace (used by admin API). */
-  skipLastWorkflowGuard?: boolean
-  /** Override the actor ID used in audit logs. Defaults to `userId`. */
-  actorId?: string
-}
-
-export interface PerformDeleteWorkflowResult {
-  success: boolean
-  error?: string
-  errorCode?: OrchestrationErrorCode
 }
 
 export interface PerformRestoreWorkflowParams {
@@ -143,36 +107,6 @@ async function nextWorkflowSortOrder(
   }, null)
 
   return minSortOrder != null ? minSortOrder - 1 : 0
-}
-
-async function workflowNameExistsInFolder(params: {
-  workspaceId: string
-  name: string
-  folderId?: string | null
-  excludeWorkflowId?: string
-}): Promise<boolean> {
-  const conditions = [
-    eq(workflow.workspaceId, params.workspaceId),
-    isNull(workflow.archivedAt),
-    eq(workflow.name, params.name),
-  ]
-
-  if (params.excludeWorkflowId) {
-    conditions.push(ne(workflow.id, params.excludeWorkflowId))
-  }
-
-  if (params.folderId) {
-    conditions.push(eq(workflow.folderId, params.folderId))
-  } else {
-    conditions.push(isNull(workflow.folderId))
-  }
-
-  const [duplicateWorkflow] = await db
-    .select({ id: workflow.id })
-    .from(workflow)
-    .where(and(...conditions))
-    .limit(1)
-  return Boolean(duplicateWorkflow)
 }
 
 export async function performCreateWorkflow(
@@ -271,139 +205,6 @@ export async function performCreateWorkflow(
     logger.error(`[${requestId}] Failed to create workflow`, { error })
     return { success: false, error: toError(error).message, errorCode: 'internal' }
   }
-}
-
-export async function performUpdateWorkflow(
-  params: PerformUpdateWorkflowParams
-): Promise<PerformUpdateWorkflowResult> {
-  const requestId = params.requestId ?? generateRequestId()
-
-  try {
-    const targetName = params.name ?? params.currentName
-    const targetFolderId =
-      params.folderId !== undefined ? params.folderId || null : params.currentFolderId || null
-
-    if (
-      params.folderId !== undefined &&
-      !(await isFolderInWorkspace(targetFolderId, params.workspaceId))
-    ) {
-      return { success: false, error: 'Target folder not found', errorCode: 'validation' }
-    }
-
-    if (params.name !== undefined || params.folderId !== undefined) {
-      const duplicate = await workflowNameExistsInFolder({
-        workspaceId: params.workspaceId,
-        name: targetName,
-        folderId: targetFolderId,
-        excludeWorkflowId: params.workflowId,
-      })
-      if (duplicate) {
-        return {
-          success: false,
-          error: `A workflow named "${targetName}" already exists in this folder`,
-          errorCode: 'conflict',
-        }
-      }
-    }
-
-    const updateData: Record<string, unknown> = { updatedAt: new Date() }
-    if (params.name !== undefined) updateData.name = params.name
-    if (params.description !== undefined) updateData.description = params.description
-    if (params.folderId !== undefined) updateData.folderId = params.folderId
-    if (params.sortOrder !== undefined) updateData.sortOrder = params.sortOrder
-    if (params.locked !== undefined) updateData.locked = params.locked
-
-    const [updatedWorkflow] = await db
-      .update(workflow)
-      .set(updateData)
-      .where(eq(workflow.id, params.workflowId))
-      .returning({
-        id: workflow.id,
-        name: workflow.name,
-        description: workflow.description,
-        workspaceId: workflow.workspaceId,
-        folderId: workflow.folderId,
-        sortOrder: workflow.sortOrder,
-        locked: workflow.locked,
-        createdAt: workflow.createdAt,
-        updatedAt: workflow.updatedAt,
-        archivedAt: workflow.archivedAt,
-      })
-
-    if (!updatedWorkflow) {
-      return { success: false, error: 'Workflow not found', errorCode: 'not_found' }
-    }
-
-    logger.info(`[${requestId}] Successfully updated workflow ${params.workflowId}`, {
-      updates: updateData,
-    })
-
-    return { success: true, workflow: updatedWorkflow }
-  } catch (error) {
-    logger.error(`[${requestId}] Failed to update workflow ${params.workflowId}`, { error })
-    return { success: false, error: toError(error).message, errorCode: 'internal' }
-  }
-}
-
-/**
- * Performs a full workflow deletion: enforces the last-workflow guard,
- * archives the workflow via `archiveWorkflow`, and records an audit entry.
- * Both the workflow API DELETE handler and the copilot delete_workflow tool
- * must use this function.
- */
-export async function performDeleteWorkflow(
-  params: PerformDeleteWorkflowParams
-): Promise<PerformDeleteWorkflowResult> {
-  const { workflowId, userId, skipLastWorkflowGuard = false } = params
-  const actorId = params.actorId ?? userId
-  const requestId = params.requestId ?? generateRequestId()
-
-  const [workflowRecord] = await db
-    .select()
-    .from(workflow)
-    .where(eq(workflow.id, workflowId))
-    .limit(1)
-
-  if (!workflowRecord) {
-    return { success: false, error: 'Workflow not found', errorCode: 'not_found' }
-  }
-
-  if (!skipLastWorkflowGuard && workflowRecord.workspaceId) {
-    const totalWorkflows = await db
-      .select({ id: workflow.id })
-      .from(workflow)
-      .where(and(eq(workflow.workspaceId, workflowRecord.workspaceId), isNull(workflow.archivedAt)))
-
-    if (totalWorkflows.length <= 1) {
-      return {
-        success: false,
-        error: 'Cannot delete the only workflow in the workspace',
-        errorCode: 'validation',
-      }
-    }
-  }
-
-  const archiveResult = await archiveWorkflow(workflowId, { requestId })
-  if (!archiveResult.workflow) {
-    return { success: false, error: 'Workflow not found', errorCode: 'not_found' }
-  }
-
-  logger.info(`[${requestId}] Successfully archived workflow ${workflowId}`)
-
-  recordAudit({
-    workspaceId: workflowRecord.workspaceId || null,
-    actorId: actorId,
-    action: AuditAction.WORKFLOW_DELETED,
-    resourceType: AuditResourceType.WORKFLOW,
-    resourceId: workflowId,
-    resourceName: workflowRecord.name,
-    description: `Archived workflow "${workflowRecord.name}"`,
-    metadata: {
-      archived: archiveResult.archived,
-    },
-  })
-
-  return { success: true }
 }
 
 export async function performRestoreWorkflow(

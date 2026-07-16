@@ -22,110 +22,65 @@ System truth lives here:
 - `apps/sim/docs/center/operations-and-dogfood.md`
 - `apps/sim/docs/center/morning-dogfood-runbook.md`
 
-Implementation truth lives in code:
-
-- `apps/sim/app/center/[workspaceId]/center-surface.tsx`
-- `apps/sim/lib/center/types.ts`
-- `apps/sim/lib/center/local-spine.ts`
-- `apps/sim/lib/center/file-storage.ts`
-- `apps/sim/lib/center/workspace-storage.ts`
-- `apps/sim/lib/center/producer-import.ts`
-- `apps/sim/lib/center/producers/`
-- `apps/sim/lib/api/contracts/center.ts`
-- `apps/sim/app/api/center/`
-- `scripts/check-center-import-boundary.ts`
-- `scripts/package-center-app.ts`
-
-Evolution and governance truth lives in `.ai-bridge`:
-
-- `.ai-bridge/current-plan.md`
-- `.ai-bridge/decisions.md`
-- `.ai-bridge/projects/center/decisions.md`
-- `.ai-bridge/projects/center/roadmap.md`
-- `.ai-bridge/projects/center/reviews/RP-20260629-003-dogfood-readiness-capability-enforcement.md`
-- `.ai-bridge/projects/center/reviews/RP-20260629-004-pre-dogfood-overnight-hardening.md`
-- `.ai-bridge/projects/center/audits/phase-0-12-integration-audit-20260629.md`
-
-Do not duplicate Center system explanations in `.ai-bridge`. `.ai-bridge` records why the system changed, what was approved or rejected, and what evidence was produced.
+Implementation truth lives in code under `apps/sim/app/center/`, `apps/sim/app/api/center/`, and `apps/sim/lib/center/`.
 
 ## Read Order
 
-1. `apps/sim/docs/center/architecture.md`
-2. `apps/sim/docs/center/ontology-and-local-spine.md`
-3. `apps/sim/docs/center/producer-model.md`
-4. `apps/sim/docs/center/capability-system.md`
-5. `apps/sim/docs/center/operations-and-dogfood.md`
-6. `apps/sim/docs/center/morning-dogfood-runbook.md`
-7. `.ai-bridge/projects/center/roadmap.md`
-8. `.ai-bridge/projects/center/reviews/RP-20260629-003-dogfood-readiness-capability-enforcement.md`
-9. `.ai-bridge/projects/center/reviews/RP-20260629-004-pre-dogfood-overnight-hardening.md`
+1. `apps/sim/docs/architecture/README.md`
+2. `apps/sim/docs/center/architecture.md`
+3. `apps/sim/docs/center/ontology-and-local-spine.md`
+4. `apps/sim/docs/center/producer-model.md`
+5. `apps/sim/docs/center/capability-system.md`
+6. `apps/sim/docs/center/operations-and-dogfood.md`
+7. `apps/sim/docs/center/morning-dogfood-runbook.md`
 
-## Current Implementation Coverage
+## Runtime Inputs
+
+Source-controlled inputs:
+
+```text
+apps/sim/config/center/        capability metadata, connections, schemas
+apps/sim/fixtures/center/      producer and review-packet fixtures
+```
+
+Mutable local outputs:
+
+```text
+var/center/storage/            workspace datasets
+var/center/evidence/           generated local verification evidence
+var/center/apps/               generated Center.app bundles
+```
+
+`var/` is ignored and never owns durable system truth.
+
+## Dependency Boundary
+
+Center must not statically import workflow editor stores, executable block registries, connector registries, Monaco, Mermaid, the execution sandbox, or provider SDK registries. The boundary is enforced by:
+
+```text
+bun run check:center-boundary
+```
+
+## Current Coverage
 
 Implemented:
 
-- Phase 0 CPU/RAM stabilization and Center import boundary.
-- Phase 3 local spine.
-- Phase 4 lightweight Center route and surface.
-- Phase 5 MS2Scheduler import adapter.
-- Phase 6 baseline prediction.
-- Phase 7 review packet import and worker gate display.
-- Phase 8 GitHub producer import.
-- Phase 9 Plane producer import.
-- Phase 10 Learn/Understand producer import.
-- Phase 11 Worker lane producer import.
-- Phase 12 local `Center.app` packaging.
-- Registered-id capability enforcement for producer imports.
-- Workspace-scoped local-server storage with browser-local fallback.
-- Profile export/delete actions in the Center UI.
-- Derived prediction outcome scoring for explicit prediction outcomes.
-- Read-only live GitHub and Plane import paths behind explicit environment configuration.
+- Lightweight Center route and local profile spine.
+- Workspace-scoped local storage with browser-local fallback.
+- Producer imports for MS2Scheduler, GitHub, Plane, Learn/Understand, workers, and review packets.
+- Metadata-backed capability gates and local capability connections.
+- Profile export/delete, baseline prediction, and explicit local-only sync status.
+- Read-only live GitHub and Plane import paths behind environment configuration.
 
 Not complete:
 
-- Real external API connectors for Learn/Understand and workers.
-- GitHub and Plane live dogfood import on this machine until credential/source-id environment variables are configured.
 - Production sync beyond local workspace JSON storage.
-- Full authority/truth-impact/policy capability enforcement beyond registered-id import gating.
-
-## Dependencies
-
-Center depends on:
-
-- Sim app shell for route hosting, styling primitives, proxy routing, and build tooling.
-- Center contracts in `apps/sim/lib/api/contracts/center.ts`.
-- Local producer sample/event files under `.ai-bridge/projects/*/sample-events.json` for current development imports when live source variables are not configured.
-- MS2Scheduler data at `/Users/kyin/Projects/MS2Scheduler/app/data` for the local MS2 import path.
-
-Center must not depend on:
-
-- Workflow editor stores.
-- Block registry.
-- Connector registry.
-- Monaco.
-- Mermaid.
-- Document parsers.
-- Execution sandbox.
-- Provider SDK registries.
-
-The import boundary is enforced by `scripts/check-center-import-boundary.ts`.
-
-## Dependents
-
-Current dependents:
-
-- Center UI route at `/workspace/[workspaceId]/center`.
-- Local import APIs under `apps/sim/app/api/center/`.
-- Review packet workflow through `.ai-bridge/projects/center/reviews/`.
-- `Center.app` generated by `scripts/package-center-app.ts`.
-
-Future dependents should consume Center through typed producer packets, capability metadata, or Center-owned contracts. They should not import private producer internals.
+- External execution beyond local gated proposal-state transitions.
+- Live Learn/Understand and worker connectors.
 
 ## Related Documents
 
 - `apps/sim/docs/LOCAL_DEV_PROFILES.md`
 - `apps/sim/docs/DEV_COMPILE_PERF.md`
-- `.ai-bridge/protocols/execution-authority.md`
-- `.ai-bridge/ontology/freeze-v1.md`
-- `.ai-bridge/schemas/capability.schema.json`
-- `.ai-bridge/capabilities/metadata-contract.md`
+- `apps/sim/config/center/schemas/capability.schema.json`
+- `apps/sim/config/center/capabilities/`

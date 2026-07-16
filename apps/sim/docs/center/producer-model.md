@@ -26,7 +26,7 @@ producer source
 Review packets use a separate import record because they are governance files rather than ordinary event producers:
 
 ```text
-.ai-bridge/projects/center/reviews/*.md
+apps/sim/fixtures/center/review-packets/*.md
   -> CenterReviewPacketImportRecord[]
   -> applyCenterReviewPacketImport
   -> profile-scoped CenterDataset
@@ -79,18 +79,28 @@ apps/sim/app/center/[workspaceId]/center-surface.tsx
 
 The applier is idempotent by `sourceRef` for evidence, raw events, observations, loops, recommendations, and action proposals. Duplicate source refs increment `skippedExisting`.
 
-Observation source refs are resolved through raw event source refs. Evidence refs are resolved through evidence source refs. Recommendation refs are resolved before action proposals are attached.
+Every imported record must carry a non-empty `sourceRef`. Empty source refs are malformed and block before mutation because `sourceRef` is the dedupe and provenance key.
+
+Required record identity/display fields must be non-empty strings. Reference arrays must contain non-empty strings. Observation source refs are resolved through raw event source refs. Evidence refs are resolved through evidence source refs. Recommendation refs are resolved before action proposals are attached.
+
+Raw event `occurredAt` and optional observation `observedAt` values must be parseable ISO instant strings with an explicit timezone before import mutation. Malformed timestamp text blocks the whole packet before any actor or record is written.
+
+Action proposal `recommendationRef` is optional, but when supplied it must be non-empty. Blank recommendation refs are malformed because they erase recommendation-to-action provenance while looking like an intentional reference.
+
+Loop `nextAction` and `blockedBy` are optional, but supplied values must be non-empty. Blank loop next-step or blocker text is malformed because Center uses those fields for daily review and blocker resolution.
+
+Evidence `uri` is optional, but when supplied it must be non-empty. Blank evidence URIs are malformed because they look like inspection targets without giving the user anywhere to inspect.
 
 ## Current Producers
 
 | Producer | Source | Mapper | Route | Center output |
 | --- | --- | --- | --- | --- |
 | MS2Scheduler | `/Users/kyin/Projects/MS2Scheduler/app/data` or `MS2SCHEDULER_DATA_DIR` | `apps/sim/lib/center/producers/ms2scheduler.ts` | `apps/sim/app/api/center/ms2scheduler/import/route.ts` | plan evidence, study events, observations, study loop, recovery recommendations, action proposals |
-| GitHub | `.ai-bridge/projects/github-producer/sample-events.json`, `CENTER_GITHUB_PRODUCER_FILE`, or live `CENTER_GITHUB_LIVE_REPOS` | `apps/sim/lib/center/producers/github.ts`, `apps/sim/lib/center/producers/github-files.ts`, `apps/sim/lib/center/producers/github-live.ts` | `apps/sim/app/api/center/github/import/route.ts` | commits, issues, pull requests, reviews, CI runs, repo loops |
-| Plane | `.ai-bridge/projects/plane-producer/sample-events.json`, `CENTER_PLANE_PRODUCER_FILE`, or live `CENTER_PLANE_WORKSPACE_SLUG` + `CENTER_PLANE_PROJECT_ID(S)` | `apps/sim/lib/center/producers/plane.ts`, `apps/sim/lib/center/producers/plane-files.ts`, `apps/sim/lib/center/producers/plane-live.ts` | `apps/sim/app/api/center/plane/import/route.ts` | projects, cycles, modules, issues/work-items, comments/statuses from sample files, project loops |
-| Learn/Understand | `.ai-bridge/projects/learn-understand-producers/sample-events.json` or `CENTER_LEARN_UNDERSTAND_PRODUCER_FILE` | `apps/sim/lib/center/producers/learn-understand.ts` | `apps/sim/app/api/center/learn-understand/import/route.ts` | learning gaps, practice tasks, review evidence, system maps, dependency observations, risk evidence |
-| Worker Lane | `.ai-bridge/projects/worker-lane/sample-events.json` or `CENTER_WORKER_LANE_PRODUCER_FILE` | `apps/sim/lib/center/producers/worker-lane.ts` | `apps/sim/app/api/center/workers/import/route.ts` | run starts/completions, failures, diffs, test results, artifacts, review-needed proposals |
-| Review Packets | `.ai-bridge/projects/center/reviews/*.md` or `CENTER_REVIEW_PACKET_DIR` | `apps/sim/lib/center/review-packet-files.ts` | `apps/sim/app/api/center/review-packets/import/route.ts` | review packet records and source evidence |
+| GitHub | `apps/sim/fixtures/center/producers/github/sample-events.json`, `CENTER_GITHUB_PRODUCER_FILE`, or live `CENTER_GITHUB_LIVE_REPOS` | `apps/sim/lib/center/producers/github.ts`, `apps/sim/lib/center/producers/github-files.ts`, `apps/sim/lib/center/producers/github-live.ts` | `apps/sim/app/api/center/github/import/route.ts` | commits, issues, pull requests, reviews, CI runs, repo loops |
+| Plane | `apps/sim/fixtures/center/producers/plane/sample-events.json`, `CENTER_PLANE_PRODUCER_FILE`, or live `CENTER_PLANE_WORKSPACE_SLUG` + `CENTER_PLANE_PROJECT_ID(S)` | `apps/sim/lib/center/producers/plane.ts`, `apps/sim/lib/center/producers/plane-files.ts`, `apps/sim/lib/center/producers/plane-live.ts` | `apps/sim/app/api/center/plane/import/route.ts` | projects, cycles, modules, issues/work-items, comments/statuses from sample files, project loops |
+| Learn/Understand | `apps/sim/fixtures/center/producers/learn-understand/sample-events.json` or `CENTER_LEARN_UNDERSTAND_PRODUCER_FILE` | `apps/sim/lib/center/producers/learn-understand.ts` | `apps/sim/app/api/center/learn-understand/import/route.ts` | learning gaps, practice tasks, review evidence, system maps, dependency observations, risk evidence |
+| Worker Lane | `apps/sim/fixtures/center/producers/worker-lane/sample-events.json` or `CENTER_WORKER_LANE_PRODUCER_FILE` | `apps/sim/lib/center/producers/worker-lane.ts` | `apps/sim/app/api/center/workers/import/route.ts` | run starts/completions, failures, diffs, test results, artifacts, review-needed proposals |
+| Review Packets | `apps/sim/fixtures/center/review-packets/*.md` or `CENTER_REVIEW_PACKET_DIR` | `apps/sim/lib/center/review-packet-files.ts` | `apps/sim/app/api/center/review-packets/import/route.ts` | review packet records and source evidence |
 
 ## Local Development Gate
 
@@ -164,7 +174,7 @@ Producer import implementation and capability metadata are separate:
 Current capability files live under:
 
 ```text
-.ai-bridge/capabilities/*.json
+apps/sim/config/center/capabilities/*.json
 ```
 
 The capability system is documented in:
@@ -183,7 +193,7 @@ Capability metadata is enforced at the first runtime boundary: import packets de
 4. Map records into `CenterProducerImportPacket`.
 5. Add a route contract in `apps/sim/lib/api/contracts/center.ts`.
 6. Add a local import route under `apps/sim/app/api/center/<producer>/import/route.ts`.
-7. Add capability metadata under `.ai-bridge/capabilities/`.
+7. Add capability metadata under `apps/sim/config/center/capabilities/`.
 8. Add targeted tests beside the mapper and live reader.
 9. Add UI projection only after the packet and spine behavior exist.
 
@@ -194,8 +204,3 @@ Do not import live SDKs or heavy provider registries into the Center route.
 - `apps/sim/docs/center/architecture.md`
 - `apps/sim/docs/center/ontology-and-local-spine.md`
 - `apps/sim/docs/center/capability-system.md`
-- `.ai-bridge/projects/center/phase-5-implementation.md`
-- `.ai-bridge/projects/center/phase-8-implementation.md`
-- `.ai-bridge/projects/center/phase-9-implementation.md`
-- `.ai-bridge/projects/center/phase-10-implementation.md`
-- `.ai-bridge/projects/center/phase-11-implementation.md`

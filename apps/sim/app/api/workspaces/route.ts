@@ -3,18 +3,15 @@ import { db } from '@sim/db'
 import { permissions, settings, type WorkspaceMode, workflow, workspace } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
 import { generateId } from '@sim/utils/id'
-import { and, desc, eq, isNull, sql } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
-import { listWorkspacesQuerySchema } from '@/lib/api/contracts'
-import { createWorkspaceContract } from '@/lib/api/contracts/workspaces'
+import { createWorkspaceContract, listWorkspacesQuerySchema } from '@/lib/api/contracts/workspaces'
 import { parseRequest } from '@/lib/api/server'
-import { getSession } from '@/lib/auth'
+import { getSession } from '@/lib/auth/api-session'
 import type { PlanCategory } from '@/lib/billing/plan-helpers'
 import { PlatformEvents } from '@/lib/core/telemetry'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { captureServerEvent } from '@/lib/posthog/server'
-import { buildDefaultWorkflowArtifacts } from '@/lib/workflows/defaults'
-import { saveWorkflowToNormalizedTables } from '@/lib/workflows/persistence/utils'
 import { getRandomWorkspaceColor } from '@/lib/workspaces/colors'
 import {
   CONTACT_OWNER_TO_UPGRADE_REASON,
@@ -26,6 +23,7 @@ import {
   UPGRADE_TO_INVITE_REASON,
   WORKSPACE_MODE,
 } from '@/lib/workspaces/policy'
+import { listAccessibleWorkspaceRowsForUser } from '@/lib/workspaces/utils'
 
 const logger = createLogger('Workspaces')
 
@@ -62,29 +60,7 @@ export const GET = withRouteHandler(async (request: Request) => {
     .limit(1)
 
   const [userWorkspaces, userSettings] = await Promise.all([
-    db
-      .select({
-        workspace: workspace,
-        permissionType: permissions.permissionType,
-      })
-      .from(permissions)
-      .innerJoin(workspace, eq(permissions.entityId, workspace.id))
-      .where(
-        scope === 'all'
-          ? and(eq(permissions.userId, session.user.id), eq(permissions.entityType, 'workspace'))
-          : scope === 'archived'
-            ? and(
-                eq(permissions.userId, session.user.id),
-                eq(permissions.entityType, 'workspace'),
-                sql`${workspace.archivedAt} IS NOT NULL`
-              )
-            : and(
-                eq(permissions.userId, session.user.id),
-                eq(permissions.entityType, 'workspace'),
-                isNull(workspace.archivedAt)
-              )
-      )
-      .orderBy(desc(workspace.createdAt)),
+    listAccessibleWorkspaceRowsForUser(session.user.id, scope),
     settingsQuery,
   ])
 
@@ -355,6 +331,11 @@ async function createWorkspace({
       await tx.insert(permissions).values(permissionRows)
 
       if (!skipDefaultWorkflow) {
+        const [{ buildDefaultWorkflowArtifacts }, { saveWorkflowToNormalizedTables }] =
+          await Promise.all([
+            import('@/lib/workflows/defaults'),
+            import('@/lib/workflows/persistence/utils'),
+          ])
         await tx.insert(workflow).values({
           id: workflowId,
           userId,

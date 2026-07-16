@@ -13,7 +13,7 @@ import { useActiveSearchTarget } from '@/app/workspace/[workspaceId]/w/[workflow
 import { getBlock } from '@/blocks/registry'
 import type { SubBlockConfig } from '@/blocks/types'
 import { getDependsOnFields } from '@/blocks/utils'
-import { ResponseBlockHandler } from '@/executor/handlers/response/response-handler'
+import { convertBuilderDataToJsonString } from '@/executor/utils/builder-data'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 import { useSubBlockStore } from '@/stores/workflows/subblock/store'
 import { useWorkflowStore } from '@/stores/workflows/workflow/store'
@@ -322,7 +322,7 @@ export const Dropdown = memo(function Dropdown({
           Array.isArray(currentBuilderData) &&
           currentBuilderData.length > 0
         ) {
-          const jsonString = ResponseBlockHandler.convertBuilderDataToJsonString(currentBuilderData)
+          const jsonString = convertBuilderDataToJsonString(currentBuilderData)
           setData(jsonString)
         }
       } else if (currentMode === 'structured' && previousMode === 'json') {

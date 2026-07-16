@@ -24,8 +24,6 @@ Canonical Center project documentation lives with the Sim app:
 - [Center operations and dogfood](../apps/sim/docs/center/operations-and-dogfood.md)
 - [Center morning dogfood runbook](../apps/sim/docs/center/morning-dogfood-runbook.md)
 
-Center governance and evolution records live in `.ai-bridge/projects/center/`.
-
 ## Mothership Replacement
 
 - [Owned Mothership backend replacement architecture](superpowers/plans/mothership-backend-replacement-architecture.md)

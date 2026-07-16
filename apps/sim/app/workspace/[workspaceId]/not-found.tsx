@@ -1,11 +1,8 @@
 'use client'
 
-import { Compass } from 'lucide-react'
-import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { Button, buttonVariants } from '@/components/emcn'
-import { ArrowLeft, Home } from '@/components/emcn/icons'
-import { ErrorShell } from '@/app/workspace/[workspaceId]/components'
+import { ArrowLeft, CircleInfo, Home } from '@/components/emcn/icons'
+import { ErrorShell } from '@/app/workspace/[workspaceId]/components/error'
 
 export default function WorkspaceNotFound() {
   const router = useRouter()
@@ -16,16 +13,23 @@ export default function WorkspaceNotFound() {
     <ErrorShell
       title='Page not found'
       description="The page you're looking for doesn't exist or has been moved. Head back to your workspace to keep building."
-      icon={<Compass className='size-[22px]' strokeWidth={1.55} />}
+      icon={<CircleInfo className='size-[22px]' />}
     >
-      <Button variant='default' size='md' onClick={() => router.back()}>
+      <button
+        type='button'
+        onClick={() => router.back()}
+        className='inline-flex items-center justify-center rounded-[5px] border border-[var(--border)] bg-[var(--surface-4)] px-2 py-1.5 font-medium text-[12px] text-[var(--text-secondary)]'
+      >
         <ArrowLeft className='mr-1.5 size-[14px]' />
         Go back
-      </Button>
-      <Link href={homeHref} className={buttonVariants({ variant: 'primary', size: 'md' })}>
+      </button>
+      <a
+        href={homeHref}
+        className='inline-flex items-center justify-center rounded-[5px] bg-[var(--text-primary)] px-2 py-1.5 font-medium text-[12px] text-[var(--text-inverse)]'
+      >
         <Home className='mr-1.5 size-[14px]' />
         Return home
-      </Link>
+      </a>
     </ErrorShell>
   )
 }

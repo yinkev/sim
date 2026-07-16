@@ -1,7 +1,6 @@
 import { createLogger } from '@sim/logger'
 import { isValidUuid } from '@sim/utils/id'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { client } from '@/lib/auth/auth-client'
 
 const logger = createLogger('AdminUsersQuery')
 
@@ -24,6 +23,11 @@ interface AdminUser {
 interface AdminUserListData {
   users: AdminUser[]
   total: number
+}
+
+async function getAdminClient() {
+  const { client } = await import('@/lib/auth/auth-client')
+  return client.admin
 }
 
 function mapUser(u: {
@@ -50,17 +54,16 @@ async function fetchAdminUsers(
   searchQuery: string,
   signal?: AbortSignal
 ): Promise<AdminUserListData> {
+  const admin = await getAdminClient()
+
   if (isValidUuid(searchQuery.trim())) {
-    const { data, error } = await client.admin.getUser(
-      { query: { id: searchQuery.trim() } },
-      { signal }
-    )
+    const { data, error } = await admin.getUser({ query: { id: searchQuery.trim() } }, { signal })
     if (error) throw new Error(error.message ?? 'Failed to fetch user')
     if (!data) return { users: [], total: 0 }
     return { users: [mapUser(data)], total: 1 }
   }
 
-  const { data, error } = await client.admin.listUsers(
+  const { data, error } = await admin.listUsers(
     {
       query: {
         limit,
@@ -93,7 +96,8 @@ export function useSetUserRole() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: 'user' | 'admin' }) => {
-      const result = await client.admin.setRole({ userId, role })
+      const admin = await getAdminClient()
+      const result = await admin.setRole({ userId, role })
       return result
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: adminUserKeys.lists() }),
@@ -107,7 +111,8 @@ export function useBanUser() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ userId, banReason }: { userId: string; banReason?: string }) => {
-      const result = await client.admin.banUser({
+      const admin = await getAdminClient()
+      const result = await admin.banUser({
         userId,
         ...(banReason ? { banReason } : {}),
       })
@@ -124,7 +129,8 @@ export function useUnbanUser() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ userId }: { userId: string }) => {
-      const result = await client.admin.unbanUser({ userId })
+      const admin = await getAdminClient()
+      const result = await admin.unbanUser({ userId })
       return result
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: adminUserKeys.lists() }),
@@ -137,7 +143,8 @@ export function useUnbanUser() {
 export function useImpersonateUser() {
   return useMutation({
     mutationFn: async ({ userId }: { userId: string }) => {
-      const result = await client.admin.impersonateUser({ userId })
+      const admin = await getAdminClient()
+      const result = await admin.impersonateUser({ userId })
       return result
     },
     onError: (err) => {
@@ -149,7 +156,8 @@ export function useImpersonateUser() {
 export function useStopImpersonating() {
   return useMutation({
     mutationFn: async () => {
-      const result = await client.admin.stopImpersonating()
+      const admin = await getAdminClient()
+      const result = await admin.stopImpersonating()
       return result
     },
     onError: (err) => {

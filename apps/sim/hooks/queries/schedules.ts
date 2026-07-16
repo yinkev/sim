@@ -13,30 +13,19 @@ import {
   excludeOccurrenceContract,
   getScheduleByIdContract,
   getScheduleContract,
-  listWorkspaceSchedulesContract,
   reactivateScheduleContract,
   type UpdateScheduleBody,
   updateScheduleContract,
-  type WorkflowScheduleRow,
-  type WorkspaceScheduleRow,
 } from '@/lib/api/contracts/schedules'
 import { parseCronToHumanReadable } from '@/lib/workflows/schedules/utils'
-import { deploymentKeys } from '@/hooks/queries/deployments'
+import type { ScheduleData, WorkspaceScheduleData } from '@/hooks/queries/schedule-list'
+import { scheduleKeys, useWorkspaceSchedules } from '@/hooks/queries/schedule-list'
+import { deploymentKeys } from '@/hooks/queries/utils/deployment-keys'
 
 const logger = createLogger('ScheduleQueries')
 
-export const scheduleKeys = {
-  all: ['schedules'] as const,
-  lists: () => [...scheduleKeys.all, 'list'] as const,
-  list: (workspaceId: string) => [...scheduleKeys.lists(), workspaceId] as const,
-  details: () => [...scheduleKeys.all, 'detail'] as const,
-  schedule: (workflowId: string, blockId: string) =>
-    [...scheduleKeys.details(), workflowId, blockId] as const,
-  byId: (scheduleId: string) => [...scheduleKeys.details(), scheduleId] as const,
-}
-
-export type ScheduleData = WorkflowScheduleRow
-export type WorkspaceScheduleData = WorkspaceScheduleRow
+export { scheduleKeys, useWorkspaceSchedules }
+export type { ScheduleData, WorkspaceScheduleData }
 
 export interface ScheduleInfo {
   id: string
@@ -67,27 +56,6 @@ async function fetchSchedule(
     if (isApiClientError(error) && error.status === 404) return null
     throw error
   }
-}
-
-/**
- * Fetch all schedules for a workspace.
- */
-export function useWorkspaceSchedules(workspaceId?: string) {
-  return useQuery({
-    queryKey: scheduleKeys.list(workspaceId ?? ''),
-    queryFn: async ({ signal }) => {
-      if (!workspaceId) throw new Error('Workspace ID required')
-
-      const data = await requestJson(listWorkspaceSchedulesContract, {
-        query: { workspaceId },
-        signal,
-      })
-      return data.schedules || []
-    },
-    enabled: Boolean(workspaceId),
-    staleTime: 30 * 1000,
-    placeholderData: keepPreviousData,
-  })
 }
 
 /**

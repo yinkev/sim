@@ -18,23 +18,23 @@ import { SIM_RESOURCE_DRAG_TYPE, SIM_RESOURCES_DRAG_TYPE } from '@/lib/copilot/r
 import { cn } from '@/lib/core/utils/cn'
 import { CHAT_ACCEPT_ATTRIBUTE } from '@/lib/uploads/utils/validation'
 import { useChatSurface } from '@/app/workspace/[workspaceId]/home/components/chat-surface-context'
+import { AnimatedPlaceholderEffect } from '@/app/workspace/[workspaceId]/home/components/user-input/components/animated-placeholder-effect'
+import { AttachedFilesList } from '@/app/workspace/[workspaceId]/home/components/user-input/components/attached-files-list'
+import { DropOverlay } from '@/app/workspace/[workspaceId]/home/components/user-input/components/drop-overlay'
+import { MicButton } from '@/app/workspace/[workspaceId]/home/components/user-input/components/mic-button'
 import {
-  AnimatedPlaceholderEffect,
-  AttachedFilesList,
-  DropOverlay,
-  MicButton,
   PromptEditor,
-  SendButton,
   usePromptEditor,
-} from '@/app/workspace/[workspaceId]/home/components/user-input/components'
+} from '@/app/workspace/[workspaceId]/home/components/user-input/components/prompt-editor'
+import { SendButton } from '@/app/workspace/[workspaceId]/home/components/user-input/components/send-button'
 import type {
   FileAttachmentForApi,
   MothershipResource,
   QueuedMessage,
 } from '@/app/workspace/[workspaceId]/home/types'
-import { useFileAttachments } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/copilot/components/user-input/hooks'
 import type { AttachedFile } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/copilot/components/user-input/hooks/use-file-attachments'
-import { mentionifyIntegrations } from '@/blocks/integration-matcher'
+import { useFileAttachments } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/copilot/components/user-input/hooks/use-file-attachments'
+import { mentionifyIntegrations } from '@/blocks/integration-mention-matcher'
 import { useSettingsNavigation } from '@/hooks/use-settings-navigation'
 import { useSpeechToText } from '@/hooks/use-speech-to-text'
 import { useMothershipDraftsStore } from '@/stores/mothership-drafts/store'
@@ -46,6 +46,7 @@ const logger = createLogger('UserInput')
 
 interface UserInputProps {
   defaultValue?: string
+  autoFocus?: boolean
   draftScopeKey?: string
   onSubmit: (
     text: string,
@@ -64,7 +65,7 @@ export interface UserInputHandle {
   /** Populates the textarea with a CURATED prompt (suggested action, template,
    * etc. — never free-form user prose), running it through `mentionifyIntegrations`
    * (bare `Slack` → `@Slack`) and then auto-mention chipification so integration
-   * names chip with brand icons. Focuses the input and places the caret at the
+   * names chip with the generic integration icon. Focuses the input and places the caret at the
    * end. Does NOT submit. Safe to call with the same text twice in a row. */
   populatePrompt: (text: string) => void
 }
@@ -77,6 +78,7 @@ export interface UserInputHandle {
 const UserInputImpl = forwardRef<UserInputHandle, UserInputProps>(function UserInput(
   {
     defaultValue = '',
+    autoFocus = false,
     draftScopeKey,
     onSubmit,
     isSending,
@@ -532,6 +534,7 @@ const UserInputImpl = forwardRef<UserInputHandle, UserInputProps>(function UserI
       <PromptEditor
         editor={editor}
         placeholder='Ask Sim to '
+        autoFocus={autoFocus}
         onSubmit={handleEnterSubmit}
         onArrowUpOnEmpty={handleArrowUpOnEmpty}
         className={isInitialView ? 'max-h-[30vh]' : 'max-h-[200px]'}

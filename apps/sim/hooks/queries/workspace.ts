@@ -1,15 +1,11 @@
-import type { QueryClient } from '@tanstack/react-query'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ApiClientError } from '@/lib/api/client/errors'
 import { requestJson } from '@/lib/api/client/request'
 import type { ContractBodyInput } from '@/lib/api/contracts/types'
 import {
   createWorkspaceContract,
   deleteWorkspaceContract,
-  getWorkspaceContract,
   getWorkspaceMembersContract,
   getWorkspaceOwnerBillingContract,
-  getWorkspacePermissionsContract,
   listWorkspacesContract,
   updateWorkspaceContract,
   type Workspace,
@@ -20,27 +16,13 @@ import {
   type WorkspaceQueryScope,
   type WorkspacesResponse,
 } from '@/lib/api/contracts/workspaces'
-
-/**
- * Query key factory for workspace-related queries.
- * Provides hierarchical cache keys for workspaces, settings, and permissions.
- */
-export const workspaceKeys = {
-  all: ['workspace'] as const,
-  lists: () => [...workspaceKeys.all, 'list'] as const,
-  list: (scope: WorkspaceQueryScope = 'active') =>
-    [...workspaceKeys.lists(), 'user', scope] as const,
-  details: () => [...workspaceKeys.all, 'detail'] as const,
-  detail: (id: string) => [...workspaceKeys.details(), id] as const,
-  settings: (id: string) => [...workspaceKeys.detail(id), 'settings'] as const,
-  permissions: (id: string) => [...workspaceKeys.detail(id), 'permissions'] as const,
-  members: (id: string) => [...workspaceKeys.detail(id), 'members'] as const,
-  ownerBilling: (id: string) => [...workspaceKeys.detail(id), 'ownerBilling'] as const,
-  adminLists: () => [...workspaceKeys.all, 'adminList'] as const,
-  adminList: (userId: string | undefined) => [...workspaceKeys.adminLists(), userId ?? ''] as const,
-}
+import { workspaceKeys } from '@/hooks/queries/workspace-keys'
+import { fetchWorkspaceSettings } from '@/hooks/queries/workspace-settings-prefetch'
 
 export type { Workspace, WorkspaceCreationPolicy, WorkspaceMember, WorkspacePermissions }
+export { workspaceKeys }
+export { useWorkspacePermissionsQuery } from '@/hooks/queries/workspace-permissions'
+export { prefetchWorkspaceSettings } from '@/hooks/queries/workspace-settings-prefetch'
 
 async function fetchWorkspaces(
   scope: WorkspaceQueryScope = 'active',
@@ -221,40 +203,6 @@ export function useUpdateWorkspace() {
   })
 }
 
-async function fetchWorkspacePermissions(
-  workspaceId: string,
-  signal?: AbortSignal
-): Promise<WorkspacePermissions> {
-  try {
-    return await requestJson(getWorkspacePermissionsContract, {
-      params: { id: workspaceId },
-      signal,
-    })
-  } catch (error) {
-    if (error instanceof ApiClientError && error.status === 404) {
-      throw new Error('Workspace not found or access denied', { cause: error })
-    }
-    if (error instanceof ApiClientError && error.status === 401) {
-      throw new Error('Authentication required', { cause: error })
-    }
-    throw error
-  }
-}
-
-/**
- * Fetches permissions for a specific workspace.
- * @param workspaceId - The workspace ID to fetch permissions for
- */
-export function useWorkspacePermissionsQuery(workspaceId: string | null | undefined) {
-  return useQuery({
-    queryKey: workspaceKeys.permissions(workspaceId ?? ''),
-    queryFn: ({ signal }) => fetchWorkspacePermissions(workspaceId as string, signal),
-    enabled: Boolean(workspaceId),
-    staleTime: 30 * 1000,
-    placeholderData: keepPreviousData,
-  })
-}
-
 async function fetchWorkspaceMembers(
   workspaceId: string,
   signal?: AbortSignal
@@ -276,33 +224,6 @@ export function useWorkspaceMembersQuery(workspaceId: string | null | undefined)
     queryFn: ({ signal }) => fetchWorkspaceMembers(workspaceId as string, signal),
     enabled: Boolean(workspaceId),
     staleTime: 5 * 60 * 1000,
-  })
-}
-
-async function fetchWorkspaceSettings(workspaceId: string, signal?: AbortSignal) {
-  const [settings, permissions] = await Promise.all([
-    requestJson(getWorkspaceContract, { params: { id: workspaceId }, signal }),
-    requestJson(getWorkspacePermissionsContract, { params: { id: workspaceId }, signal }),
-  ])
-
-  return {
-    settings,
-    permissions,
-  }
-}
-
-/**
- * Prefetch a workspace's settings (and permissions) into the cache. Use on
- * hover to warm data before navigating to a settings-style route.
- * @param queryClient - The active QueryClient
- * @param workspaceId - The workspace ID to prefetch settings for
- */
-export function prefetchWorkspaceSettings(queryClient: QueryClient, workspaceId: string) {
-  if (!workspaceId) return
-  queryClient.prefetchQuery({
-    queryKey: workspaceKeys.settings(workspaceId),
-    queryFn: ({ signal }) => fetchWorkspaceSettings(workspaceId, signal),
-    staleTime: 30 * 1000,
   })
 }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { type ComponentPropsWithoutRef, memo, useEffect, useMemo, useRef } from 'react'
+import { highlight, languages } from 'prismjs'
 import { Streamdown } from 'streamdown'
 import 'streamdown/styles.css'
 import 'prismjs/components/prism-typescript'
@@ -8,7 +9,7 @@ import 'prismjs/components/prism-bash'
 import 'prismjs/components/prism-css'
 import 'prismjs/components/prism-markup'
 import '@/components/emcn/components/code/code.css'
-import { Checkbox, CopyCodeButton, highlight, languages } from '@/components/emcn'
+import { Checkbox, CopyCodeButton } from '@/components/emcn'
 import { cn } from '@/lib/core/utils/cn'
 import { extractTextContent } from '@/lib/core/utils/react-node-text'
 import {
@@ -279,6 +280,7 @@ interface ChatContentProps {
   isStreaming?: boolean
   onOptionSelect?: (id: string) => void
   onWorkspaceResourceSelect?: (resource: MothershipResource) => void
+  onRevealStateChange?: (isRevealing: boolean) => void
 }
 
 function ChatContentInner({
@@ -286,13 +288,21 @@ function ChatContentInner({
   isStreaming = false,
   onOptionSelect,
   onWorkspaceResourceSelect,
+  onRevealStateChange,
 }: ChatContentProps) {
   const onWorkspaceResourceSelectRef = useRef(onWorkspaceResourceSelect)
   onWorkspaceResourceSelectRef.current = onWorkspaceResourceSelect
 
+  const onRevealStateChangeRef = useRef(onRevealStateChange)
+  onRevealStateChangeRef.current = onRevealStateChange
+
   const displayContent = useMemo(() => sanitizeChatDisplayContent(content), [content])
   const streamedContent = useSmoothText(displayContent, isStreaming)
   const isRevealing = isStreaming || streamedContent.length < displayContent.length
+
+  useEffect(() => {
+    onRevealStateChangeRef.current?.(isRevealing)
+  }, [isRevealing])
 
   /**
    * One-way latch: once a message has streamed in this mount, keep rendering it

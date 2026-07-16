@@ -31,10 +31,10 @@ import {
   Search,
   Skeleton,
   Switch,
-  Tooltip,
   toast,
 } from '@/components/emcn'
 import { ArrowLeft } from '@/components/emcn/icons'
+import type { ShareAuthType } from '@/lib/api/contracts/public-shares'
 import { getEnv, isTruthy } from '@/lib/core/config/env'
 import { cn } from '@/lib/core/utils/cn'
 import { isBlockTypeAccessControlExempt } from '@/lib/permission-groups/block-access'
@@ -68,6 +68,15 @@ import { getAllProviderIds, getProviderFromModel } from '@/providers/utils'
 import type { ProviderName } from '@/stores/providers'
 
 const logger = createLogger('AccessControl')
+
+/** Public-file-share auth modes an admin can allow/disallow. `null` config = all allowed. */
+const FILE_SHARE_AUTH_TYPE_OPTIONS: { value: ShareAuthType; label: string }[] = [
+  { value: 'public', label: 'Anyone with link' },
+  { value: 'password', label: 'Password' },
+  { value: 'email', label: 'Email' },
+  { value: 'sso', label: 'SSO' },
+]
+const ALL_FILE_SHARE_AUTH_TYPES: ShareAuthType[] = FILE_SHARE_AUTH_TYPE_OPTIONS.map((o) => o.value)
 
 interface OrganizationMemberOption {
   userId: string
@@ -240,7 +249,6 @@ function AddMembersModal({
 }
 
 interface WorkspaceSelectProps {
-  /** Selected workspace ids; an empty array reads as "All workspaces". */
   workspaceIds: string[]
   onChange: (ids: string[]) => void
   options: { value: string; label: string }[]
@@ -248,13 +256,17 @@ interface WorkspaceSelectProps {
   isLoading?: boolean
   fullWidth?: boolean
   className?: string
+  /**
+   * When false, the "All workspaces" reset option is hidden and an empty
+   * selection reads as a prompt. Non-default groups must target ≥1 workspace.
+   */
+  allowAllWorkspaces?: boolean
 }
 
 /**
- * Workspace scope picker: a single multi-select where an empty selection means
- * "All workspaces" (via the built-in `allLabel` + reset row), so it owns the
- * all-vs-specific choice without a separate toggle. Shared by the create modal
- * and the inline scope control in a group's detail view.
+ * Workspace scope multi-select. With `allowAllWorkspaces` an empty selection
+ * reads as "All workspaces" (the default group); otherwise it prompts for a
+ * selection, since non-default groups must target specific workspaces.
  */
 function WorkspaceSelect({
   workspaceIds,
@@ -264,17 +276,26 @@ function WorkspaceSelect({
   isLoading = false,
   fullWidth = false,
   className,
+  allowAllWorkspaces = true,
 }: WorkspaceSelectProps) {
   return (
     <ChipDropdown
       multiple
       searchable
-      matchTriggerWidth={false}
+      align={fullWidth ? 'start' : 'end'}
+      matchTriggerWidth={fullWidth}
       options={options}
       value={workspaceIds}
       onChange={onChange}
       disabled={disabled || isLoading}
-      allLabel={isLoading ? 'Loading workspaces…' : 'All workspaces'}
+      showAllOption={allowAllWorkspaces}
+      allLabel={
+        isLoading
+          ? 'Loading workspaces…'
+          : allowAllWorkspaces
+            ? 'All workspaces'
+            : 'Select workspaces…'
+      }
       searchPlaceholder='Search workspaces…'
       fullWidth={fullWidth}
       className={className}
@@ -499,7 +520,7 @@ export function AccessControl() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [viewingGroup, setViewingGroup] = useState<PermissionGroup | null>(null)
   // Monotonic token for scope-affecting writes (workspace select + default
-  // toggle, which both set appliesToAllWorkspaces/workspaces). Only the most
+  // toggle, which both change the group's workspace scope). Only the most
   // recent write may reconcile or revert the local viewingGroup, so rapid
   // multi-select toggles can't settle on a stale, out-of-order response.
   const scopeWriteSeqRef = useRef(0)
@@ -518,7 +539,9 @@ export function AccessControl() {
   const removeMember = useRemovePermissionGroupMember()
 
   const [showConfigModal, setShowConfigModal] = useState(false)
-  const [configTab, setConfigTab] = useState<'providers' | 'blocks' | 'platform'>('providers')
+  const [configTab, setConfigTab] = useState<'members' | 'providers' | 'blocks' | 'platform'>(
+    'providers'
+  )
   const [editingConfig, setEditingConfig] = useState<PermissionGroupConfig | null>(null)
   const [showAddMembersModal, setShowAddMembersModal] = useState(false)
   const [addMembersError, setAddMembersError] = useState<string | null>(null)
@@ -644,6 +667,12 @@ export function AccessControl() {
         category: 'Features',
         configKey: 'disablePublicApi' as const,
       },
+      {
+        id: 'disable-public-file-sharing',
+        label: 'Public Sharing',
+        category: 'Files',
+        configKey: 'disablePublicFileSharing' as const,
+      },
     ],
     []
   )
@@ -675,7 +704,11 @@ export function AccessControl() {
     ]
 
     const assignedCategories = new Set(categoryGroups.flat())
-    const unassigned = Object.keys(platformCategories).filter((c) => !assignedCategories.has(c))
+    // Files has its own section below (with the file-sharing auth modes), so it
+    // stays out of the feature-toggle grid.
+    const unassigned = Object.keys(platformCategories).filter(
+      (c) => c !== 'Files' && !assignedCategories.has(c)
+    )
     const groups = unassigned.length > 0 ? [...categoryGroups, unassigned] : categoryGroups
 
     return groups
@@ -765,17 +798,15 @@ export function AccessControl() {
   const handleCreatePermissionGroup = useCallback(async () => {
     if (!newGroupName.trim() || !organizationId) return
     setCreateError(null)
-    // An empty workspace selection means "all workspaces"; the default group is
-    // always organization-wide.
-    const appliesToAllWorkspaces = newGroupIsDefault || newGroupWorkspaceIds.length === 0
     try {
       await createPermissionGroup.mutateAsync({
         organizationId,
         name: newGroupName.trim(),
         description: newGroupDescription.trim() || undefined,
         isDefault: newGroupIsDefault,
-        appliesToAllWorkspaces,
-        workspaceIds: appliesToAllWorkspaces ? undefined : newGroupWorkspaceIds,
+        // Only the default group is organization-wide; every other group targets
+        // specific workspaces (omitted for the default group).
+        workspaceIds: newGroupIsDefault ? undefined : newGroupWorkspaceIds,
       })
       setShowCreateModal(false)
       setNewGroupName('')
@@ -850,6 +881,9 @@ export function AccessControl() {
         })
       } catch (error) {
         logger.error('Failed to remove member', error)
+        toast.error("Couldn't remove member", {
+          description: getErrorMessage(error, 'Please try again in a moment.'),
+        })
       }
     },
     [viewingGroup, organizationId, removeMember]
@@ -858,6 +892,7 @@ export function AccessControl() {
   const handleOpenConfigModal = useCallback(() => {
     if (!viewingGroup) return
     setEditingConfig({ ...viewingGroup.config })
+    setConfigTab('providers')
     setShowConfigModal(true)
   }, [viewingGroup])
 
@@ -934,8 +969,9 @@ export function AccessControl() {
   const handleScopeChange = useCallback(
     async (workspaceIds: string[]) => {
       if (!viewingGroup || !organizationId) return
-      // An empty selection means "all workspaces".
-      const appliesToAllWorkspaces = workspaceIds.length === 0
+      // Zero workspaces is allowed: the group then governs nothing (the resolver
+      // inner-joins on the workspace link table, so an empty group never matches
+      // any workspace). Re-add a workspace to make it active again.
       const previous = viewingGroup
       const seq = ++scopeWriteSeqRef.current
 
@@ -943,10 +979,7 @@ export function AccessControl() {
         prev
           ? {
               ...prev,
-              appliesToAllWorkspaces,
-              workspaces: appliesToAllWorkspaces
-                ? []
-                : organizationWorkspaces.filter((ws) => workspaceIds.includes(ws.id)),
+              workspaces: organizationWorkspaces.filter((ws) => workspaceIds.includes(ws.id)),
             }
           : null
       )
@@ -954,8 +987,7 @@ export function AccessControl() {
         const result = await updatePermissionGroup.mutateAsync({
           id: viewingGroup.id,
           organizationId,
-          appliesToAllWorkspaces,
-          workspaceIds: appliesToAllWorkspaces ? undefined : workspaceIds,
+          workspaceIds,
         })
 
         if (seq !== scopeWriteSeqRef.current) return
@@ -963,7 +995,6 @@ export function AccessControl() {
           prev
             ? {
                 ...prev,
-                appliesToAllWorkspaces: result.permissionGroup.appliesToAllWorkspaces,
                 workspaces: organizationWorkspaces.filter((ws) =>
                   result.permissionGroup.workspaceIds.includes(ws.id)
                 ),
@@ -989,6 +1020,10 @@ export function AccessControl() {
       if (!viewingGroup || !organizationId) return
       const seq = ++scopeWriteSeqRef.current
       try {
+        // Promoting forces all-workspaces; demoting leaves the group non-default
+        // with no workspaces (inert) until it is re-scoped from the selector — the
+        // route handles this from `isDefault: false` alone, so no workspace list
+        // (bounded by the per-group cap) is sent.
         const result = await updatePermissionGroup.mutateAsync({
           id: viewingGroup.id,
           organizationId,
@@ -1001,8 +1036,11 @@ export function AccessControl() {
             ? {
                 ...prev,
                 isDefault: result.permissionGroup.isDefault,
-                appliesToAllWorkspaces: result.permissionGroup.appliesToAllWorkspaces,
-                workspaces: result.permissionGroup.appliesToAllWorkspaces ? [] : prev.workspaces,
+                workspaces: result.permissionGroup.isDefault
+                  ? []
+                  : organizationWorkspaces.filter((ws) =>
+                      result.permissionGroup.workspaceIds.includes(ws.id)
+                    ),
               }
             : null
         )
@@ -1013,7 +1051,7 @@ export function AccessControl() {
         })
       }
     },
-    [viewingGroup, organizationId, updatePermissionGroup]
+    [viewingGroup, organizationId, organizationWorkspaces, updatePermissionGroup]
   )
 
   const toggleIntegration = useCallback(
@@ -1062,6 +1100,36 @@ export function AccessControl() {
       }
     },
     [editingConfig, allProviderIds]
+  )
+
+  const isFileShareAuthAllowed = useCallback(
+    (authType: ShareAuthType) => {
+      if (!editingConfig) return true
+      return (
+        editingConfig.allowedFileShareAuthTypes === null ||
+        editingConfig.allowedFileShareAuthTypes.includes(authType)
+      )
+    },
+    [editingConfig]
+  )
+
+  const toggleFileShareAuthType = useCallback(
+    (authType: ShareAuthType) => {
+      if (!editingConfig) return
+      const current = editingConfig.allowedFileShareAuthTypes
+      const next =
+        current === null
+          ? ALL_FILE_SHARE_AUTH_TYPES.filter((t) => t !== authType)
+          : current.includes(authType)
+            ? current.filter((t) => t !== authType)
+            : [...current, authType]
+      // A full list collapses back to `null` ("all allowed").
+      setEditingConfig({
+        ...editingConfig,
+        allowedFileShareAuthTypes: next.length === ALL_FILE_SHARE_AUTH_TYPES.length ? null : next,
+      })
+    },
+    [editingConfig]
   )
 
   const isIntegrationAllowed = useCallback(
@@ -1157,10 +1225,34 @@ export function AccessControl() {
   if (!canManage) {
     return (
       <div className='flex h-full items-center justify-center text-[var(--text-muted)] text-sm'>
-        Only organization admins on Enterprise plans can manage Access Control settings.
+        {!organizationId
+          ? "Access Control applies to organization workspaces. This workspace isn't part of an organization."
+          : 'Only organization admins on Enterprise plans can manage Access Control settings.'}
       </div>
     )
   }
+
+  const deleteConfirmModal = (
+    <ChipConfirmModal
+      open={!!deletingGroup}
+      onOpenChange={() => setDeletingGroup(null)}
+      srTitle='Delete Permission Group'
+      title='Delete Permission Group'
+      text={[
+        'Are you sure you want to delete ',
+        { text: deletingGroup?.name ?? 'this group', bold: true },
+        '? ',
+        { text: 'All members will be removed from this group.', error: true },
+        ' This action cannot be undone.',
+      ]}
+      confirm={{
+        label: 'Delete',
+        onClick: confirmDelete,
+        pending: deletePermissionGroup.isPending,
+        pendingLabel: 'Deleting...',
+      }}
+    />
+  )
 
   if (viewingGroup) {
     return (
@@ -1189,6 +1281,15 @@ export function AccessControl() {
                 {viewingGroup.description && (
                   <p className='text-[var(--text-muted)] text-md'>{viewingGroup.description}</p>
                 )}
+                {!viewingGroup.isDefault && !membersLoading && (
+                  <p className='text-[var(--text-muted)] text-md'>
+                    {viewingGroup.workspaces.length === 0
+                      ? 'Applies to no one yet — add workspaces below to choose who this group governs.'
+                      : members.length === 0
+                        ? 'Applies to all members of its workspaces.'
+                        : `Restricted to ${members.length} member${members.length === 1 ? '' : 's'}.`}
+                  </p>
+                )}
               </div>
 
               <SettingsSection label='Default group'>
@@ -1206,63 +1307,113 @@ export function AccessControl() {
               </SettingsSection>
 
               <SettingsSection label='Workspaces'>
-                <div className='flex items-center justify-between gap-3'>
-                  <span className='min-w-0 text-[var(--text-muted)] text-small'>
-                    {viewingGroup.appliesToAllWorkspaces
-                      ? 'Governs every workspace in the organization'
-                      : viewingGroup.workspaces.length > 0
-                        ? `Governs ${viewingGroup.workspaces.length} workspace${
-                            viewingGroup.workspaces.length === 1 ? '' : 's'
-                          }: ${viewingGroup.workspaces.map((ws) => ws.name).join(', ')}`
-                        : 'No workspaces selected — this group governs nobody'}
-                  </span>
-                  {viewingGroup.isDefault ? (
-                    <Tooltip.Root>
-                      <Tooltip.Trigger asChild>
-                        <span className='inline-flex flex-shrink-0 cursor-not-allowed'>
-                          <WorkspaceSelect
-                            workspaceIds={[]}
-                            onChange={() => {}}
-                            options={workspaceOptions}
-                            disabled
-                            className='pointer-events-none'
+                {viewingGroup.isDefault ? (
+                  <div className='flex items-center justify-between gap-3'>
+                    <span className='text-[var(--text-muted)] text-small'>
+                      Governs every workspace in the organization
+                    </span>
+                  </div>
+                ) : (
+                  <div className='flex flex-col gap-3'>
+                    <div className='flex items-center justify-between gap-3'>
+                      <span className='min-w-0 text-[var(--text-muted)] text-small'>
+                        {viewingGroup.workspaces.length > 0
+                          ? `Governs ${viewingGroup.workspaces.length} workspace${
+                              viewingGroup.workspaces.length === 1 ? '' : 's'
+                            }`
+                          : 'Select the workspaces this group governs'}
+                      </span>
+                      <WorkspaceSelect
+                        workspaceIds={viewingGroup.workspaces.map((ws) => ws.id)}
+                        onChange={handleScopeChange}
+                        options={workspaceOptions}
+                        isLoading={workspacesLoading}
+                        allowAllWorkspaces={false}
+                        className='flex-shrink-0'
+                      />
+                    </div>
+                    {viewingGroup.workspaces.length > 0 && (
+                      <div className='-mx-2 flex flex-col gap-y-0.5'>
+                        {viewingGroup.workspaces.map((ws) => (
+                          <MemberRow
+                            key={ws.id}
+                            name={ws.name}
+                            email={ws.name}
+                            image={null}
+                            status=''
                           />
-                        </span>
-                      </Tooltip.Trigger>
-                      <Tooltip.Content>
-                        The default group always applies to all workspaces
-                      </Tooltip.Content>
-                    </Tooltip.Root>
-                  ) : (
-                    <WorkspaceSelect
-                      workspaceIds={
-                        viewingGroup.appliesToAllWorkspaces
-                          ? []
-                          : viewingGroup.workspaces.map((ws) => ws.id)
-                      }
-                      onChange={handleScopeChange}
-                      options={workspaceOptions}
-                      isLoading={workspacesLoading}
-                      className='flex-shrink-0'
-                    />
-                  )}
-                </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </SettingsSection>
+            </div>
+          </div>
+        </div>
 
-              <SettingsSection
-                label={`Members (${members.length})`}
-                headerAccessory={
+        <ChipModal
+          open={showConfigModal}
+          onOpenChange={(open) => {
+            if (!open && hasConfigChanges) {
+              setShowUnsavedChanges(true)
+            } else {
+              setShowConfigModal(open)
+              if (!open) {
+                setProviderSearchTerm('')
+                setIntegrationSearchTerm('')
+                setPlatformSearchTerm('')
+              }
+            }
+          }}
+          srTitle='Configure Permissions'
+          size='xl'
+          className='h-[84vh]'
+        >
+          <ChipModalHeader
+            onClose={() => {
+              if (hasConfigChanges) {
+                setShowUnsavedChanges(true)
+              } else {
+                setShowConfigModal(false)
+                setProviderSearchTerm('')
+                setIntegrationSearchTerm('')
+                setPlatformSearchTerm('')
+              }
+            }}
+          >
+            Configure Permissions
+          </ChipModalHeader>
+          <ChipModalBody>
+            <ChipModalTabs
+              tabs={[
+                { value: 'providers', label: 'Model Providers' },
+                { value: 'blocks', label: 'Blocks' },
+                { value: 'platform', label: 'Platform' },
+                ...(viewingGroup.isDefault ? [] : [{ value: 'members', label: 'Members' }]),
+              ]}
+              value={configTab}
+              onChange={(value) =>
+                setConfigTab(value as 'members' | 'providers' | 'blocks' | 'platform')
+              }
+            />
+            {configTab === 'members' && !viewingGroup.isDefault && (
+              <div className='flex min-h-0 flex-1 flex-col gap-3'>
+                <div className='flex items-center justify-between gap-3'>
+                  <span className='text-[var(--text-body)] text-sm'>
+                    {members.length === 0
+                      ? 'Applies to all members'
+                      : `Restricted to ${members.length} member${members.length === 1 ? '' : 's'}`}
+                  </span>
                   <Chip
                     variant='primary'
                     leftIcon={Plus}
-                    flush
                     onClick={handleOpenAddMembersModal}
-                    className='ml-auto'
+                    className='flex-shrink-0'
                   >
                     Add
                   </Chip>
-                }
-              >
+                </div>
                 {membersLoading ? (
                   <div className='-mx-2 flex flex-col gap-y-0.5'>
                     {[1, 2].map((i) => (
@@ -1273,8 +1424,11 @@ export function AccessControl() {
                     ))}
                   </div>
                 ) : members.length === 0 ? (
-                  <div className='py-4 text-center text-[var(--text-muted)] text-sm'>
-                    No members yet. Click "Add" to get started.
+                  <div className='flex flex-1 items-center justify-center px-6 text-center'>
+                    <span className='max-w-md text-[var(--text-muted)] text-sm'>
+                      This group applies to everyone in its workspaces, including external members.
+                      Add members to restrict it to specific people.
+                    </span>
                   </div>
                 ) : (
                   <div className='-mx-2 flex flex-col gap-y-0.5'>
@@ -1310,52 +1464,8 @@ export function AccessControl() {
                     ))}
                   </div>
                 )}
-              </SettingsSection>
-            </div>
-          </div>
-        </div>
-
-        <ChipModal
-          open={showConfigModal}
-          onOpenChange={(open) => {
-            if (!open && hasConfigChanges) {
-              setShowUnsavedChanges(true)
-            } else {
-              setShowConfigModal(open)
-              if (!open) {
-                setProviderSearchTerm('')
-                setIntegrationSearchTerm('')
-                setPlatformSearchTerm('')
-              }
-            }
-          }}
-          srTitle='Configure Permissions'
-          size='xl'
-        >
-          <ChipModalHeader
-            onClose={() => {
-              if (hasConfigChanges) {
-                setShowUnsavedChanges(true)
-              } else {
-                setShowConfigModal(false)
-                setProviderSearchTerm('')
-                setIntegrationSearchTerm('')
-                setPlatformSearchTerm('')
-              }
-            }}
-          >
-            Configure Permissions
-          </ChipModalHeader>
-          <ChipModalBody>
-            <ChipModalTabs
-              tabs={[
-                { value: 'providers', label: 'Model Providers' },
-                { value: 'blocks', label: 'Blocks' },
-                { value: 'platform', label: 'Platform' },
-              ]}
-              value={configTab}
-              onChange={(value) => setConfigTab(value as 'providers' | 'blocks' | 'platform')}
-            />
+              </div>
+            )}
             {configTab === 'providers' && (
               <div>
                 <div className='flex items-center gap-2 pb-3'>
@@ -1471,7 +1581,7 @@ export function AccessControl() {
                   {filteredToolBlocks.length > 0 && (
                     <div className='flex flex-col gap-1.5 border-[var(--border)] border-t pt-4'>
                       <span className='font-medium text-[var(--text-tertiary)] text-xs uppercase tracking-wide'>
-                        Tools
+                        Integrations and Triggers
                       </span>
                       <div className='grid grid-cols-3 gap-x-2 gap-y-0.5'>
                         {filteredToolBlocks.map((block) => {
@@ -1573,17 +1683,66 @@ export function AccessControl() {
                     </div>
                   ))}
                 </div>
+                <div className='mt-8 flex flex-col gap-1.5'>
+                  <span className='font-medium text-[var(--text-tertiary)] text-xs uppercase tracking-wide'>
+                    Files
+                  </span>
+                  <label
+                    htmlFor='disable-public-file-sharing'
+                    className='flex cursor-pointer items-center gap-2 rounded-md px-2 py-[5px] transition-colors hover-hover:bg-[var(--surface-active)]'
+                  >
+                    <Checkbox
+                      id='disable-public-file-sharing'
+                      checked={!editingConfig?.disablePublicFileSharing}
+                      onCheckedChange={(checked) =>
+                        setEditingConfig((prev) =>
+                          prev ? { ...prev, disablePublicFileSharing: checked !== true } : prev
+                        )
+                      }
+                    />
+                    <span className='font-normal text-sm'>Public Sharing</span>
+                  </label>
+                  <div
+                    className={cn(
+                      'flex flex-col gap-1 pt-1',
+                      editingConfig?.disablePublicFileSharing && 'opacity-50'
+                    )}
+                  >
+                    <span className='px-2 text-[var(--text-secondary)] text-xs'>
+                      Auth modes public file-share links may use
+                    </span>
+                    <div className='flex flex-wrap gap-x-4'>
+                      {FILE_SHARE_AUTH_TYPE_OPTIONS.map(({ value, label }) => (
+                        <label
+                          key={value}
+                          htmlFor={`fsauth-${value}`}
+                          className='flex cursor-pointer items-center gap-2 rounded-md px-2 py-[5px] transition-colors hover-hover:bg-[var(--surface-active)]'
+                        >
+                          <Checkbox
+                            id={`fsauth-${value}`}
+                            checked={isFileShareAuthAllowed(value)}
+                            onCheckedChange={() => toggleFileShareAuthType(value)}
+                            disabled={editingConfig?.disablePublicFileSharing}
+                          />
+                          <span className='font-normal text-sm'>{label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </ChipModalBody>
-          <ChipModalFooter
-            onCancel={handleCloseConfigModal}
-            primaryAction={{
-              label: updatePermissionGroup.isPending ? 'Saving...' : 'Save',
-              onClick: handleSaveConfig,
-              disabled: updatePermissionGroup.isPending || !hasConfigChanges,
-            }}
-          />
+          {configTab !== 'members' && (
+            <ChipModalFooter
+              onCancel={handleCloseConfigModal}
+              primaryAction={{
+                label: updatePermissionGroup.isPending ? 'Saving...' : 'Save',
+                onClick: handleSaveConfig,
+                disabled: updatePermissionGroup.isPending || !hasConfigChanges,
+              }}
+            />
+          )}
         </ChipModal>
 
         <ChipModal
@@ -1630,6 +1789,8 @@ export function AccessControl() {
           isAdding={bulkAddMembers.isPending}
           errorMessage={addMembersError}
         />
+
+        {deleteConfirmModal}
       </>
     )
   }
@@ -1695,10 +1856,15 @@ export function AccessControl() {
                           )}
                         </div>
                         <span className='truncate text-[12px] text-[var(--text-muted)]'>
-                          {group.memberCount} member{group.memberCount !== 1 ? 's' : ''} ·{' '}
-                          {group.appliesToAllWorkspaces
-                            ? 'All workspaces'
-                            : `${group.workspaces.length} workspace${
+                          {group.isDefault
+                            ? 'Everyone in the organization'
+                            : `${
+                                group.memberCount === 0
+                                  ? 'All members'
+                                  : `${group.memberCount} member${
+                                      group.memberCount === 1 ? '' : 's'
+                                    }`
+                              } · ${group.workspaces.length} workspace${
                                 group.workspaces.length === 1 ? '' : 's'
                               }`}
                         </span>
@@ -1755,14 +1921,23 @@ export function AccessControl() {
             </div>
           </ChipModalField>
           <ChipModalField type='custom' title='Workspaces'>
-            <WorkspaceSelect
-              workspaceIds={newGroupWorkspaceIds}
-              onChange={setNewGroupWorkspaceIds}
-              options={workspaceOptions}
-              disabled={newGroupIsDefault}
-              isLoading={workspacesLoading}
-              fullWidth
-            />
+            <div className='flex flex-col gap-1.5'>
+              <WorkspaceSelect
+                workspaceIds={newGroupWorkspaceIds}
+                onChange={setNewGroupWorkspaceIds}
+                options={workspaceOptions}
+                disabled={newGroupIsDefault}
+                isLoading={workspacesLoading}
+                allowAllWorkspaces={newGroupIsDefault}
+                fullWidth
+              />
+              {!newGroupIsDefault && (
+                <p className='text-[var(--text-muted)] text-xs'>
+                  Applies to all members of the selected workspaces. Restrict to specific people
+                  later from Configure → Members.
+                </p>
+              )}
+            </div>
           </ChipModalField>
           <ChipModalError>{createError}</ChipModalError>
         </ChipModalBody>
@@ -1771,30 +1946,15 @@ export function AccessControl() {
           primaryAction={{
             label: createPermissionGroup.isPending ? 'Creating...' : 'Create',
             onClick: handleCreatePermissionGroup,
-            disabled: !newGroupName.trim() || createPermissionGroup.isPending,
+            disabled:
+              !newGroupName.trim() ||
+              createPermissionGroup.isPending ||
+              (!newGroupIsDefault && newGroupWorkspaceIds.length === 0),
           }}
         />
       </ChipModal>
 
-      <ChipConfirmModal
-        open={!!deletingGroup}
-        onOpenChange={() => setDeletingGroup(null)}
-        srTitle='Delete Permission Group'
-        title='Delete Permission Group'
-        text={[
-          'Are you sure you want to delete ',
-          { text: deletingGroup?.name ?? 'this group', bold: true },
-          '? ',
-          { text: 'All members will be removed from this group.', error: true },
-          ' This action cannot be undone.',
-        ]}
-        confirm={{
-          label: 'Delete',
-          onClick: confirmDelete,
-          pending: deletePermissionGroup.isPending,
-          pendingLabel: 'Deleting...',
-        }}
-      />
+      {deleteConfirmModal}
     </>
   )
 }

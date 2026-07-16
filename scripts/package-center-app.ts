@@ -9,7 +9,7 @@ const DEFAULT_PORT = '6888'
 async function main() {
   const repoRoot = path.resolve(import.meta.dir, '..')
   const outputRoot = path.resolve(
-    process.env.CENTER_APP_OUTPUT_DIR ?? path.join(repoRoot, '.ai-bridge/artifacts/center-app')
+    process.env.CENTER_APP_OUTPUT_DIR ?? path.join(repoRoot, 'var/center/apps')
   )
   assertProjectLocal(repoRoot, outputRoot)
 

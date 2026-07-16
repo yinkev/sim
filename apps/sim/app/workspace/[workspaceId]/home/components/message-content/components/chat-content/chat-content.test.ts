@@ -1,6 +1,7 @@
 /**
  * @vitest-environment node
  */
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { sanitizeChatDisplayContent } from './chat-sanitize'
 
@@ -18,5 +19,19 @@ describe('sanitizeChatDisplayContent', () => {
     const content = 'Read `internal/tool-results/read-1.md` and found the issue.'
 
     expect(sanitizeChatDisplayContent(content)).toBe('Read  and found the issue.')
+  })
+})
+
+describe('Prism runtime boundary', () => {
+  it('loads the Prism runtime before language side effects', () => {
+    const source = readFileSync(new URL('./chat-content.tsx', import.meta.url), 'utf8')
+    const runtimeImport = source.indexOf("from 'prismjs'")
+
+    expect(runtimeImport).toBeGreaterThan(-1)
+    for (const language of ['typescript', 'bash', 'css', 'markup']) {
+      expect(runtimeImport).toBeLessThan(
+        source.indexOf(`import 'prismjs/components/prism-${language}'`)
+      )
+    }
   })
 })

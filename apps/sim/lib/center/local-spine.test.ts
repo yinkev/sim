@@ -227,7 +227,7 @@ describe('CenterLocalSpine', () => {
     })
     const evidence = await spine.attachEvidence({
       profileId: profile.id,
-      producerId: 'ai-bridge',
+      producerId: 'center-review',
       subjectType: 'review-packet',
       subjectId: 'RP-1',
       kind: 'source',
@@ -253,7 +253,7 @@ describe('CenterLocalSpine', () => {
       maxRounds: 20,
       evidenceRefs: [evidence.id],
       decisionRefs: [decision.id],
-      sourceRef: 'ai-bridge:review-packet:RP-1',
+      sourceRef: 'center-review:packet:RP-1',
     })
 
     const exported = await spine.exportProfile(profile.id)

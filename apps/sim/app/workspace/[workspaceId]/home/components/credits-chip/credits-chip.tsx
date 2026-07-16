@@ -1,39 +1,48 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useParams, useRouter } from 'next/navigation'
 import { Chip } from '@/components/emcn'
 import { Credit } from '@/components/emcn/icons'
 import { ON_DEMAND_UNLIMITED } from '@/lib/billing/constants'
 import { formatCredits } from '@/lib/billing/credits/conversion'
-import { isBillingEnabled } from '@/app/workspace/[workspaceId]/settings/navigation'
-import { useMyMemberCredits } from '@/hooks/queries/organization'
+import { buildUpgradeHref } from '@/lib/billing/upgrade-reasons'
+import { isBillingEnabled } from '@/app/workspace/[workspaceId]/settings/billing-enabled'
+import { useMyMemberCredits } from '@/hooks/queries/organization-member-credits'
 import { usePlanView } from '@/hooks/queries/plan-view'
-import { prefetchUpgradeBillingData, useSubscriptionData } from '@/hooks/queries/subscription'
-import { prefetchWorkspaceSettings } from '@/hooks/queries/workspace'
+import { prefetchUpgradeBillingData, useSubscriptionData } from '@/hooks/queries/subscription-data'
+import { prefetchWorkspaceSettings } from '@/hooks/queries/workspace-settings-prefetch'
 
-export function CreditsChip() {
-  if (!isBillingEnabled) return null
-
-  return <CreditsChipInner />
+interface CreditsChipProps {
+  deferData?: boolean
 }
 
-function CreditsChipInner() {
-  const { planView, isLoading, hasData } = usePlanView()
+export function CreditsChip({ deferData = false }: CreditsChipProps) {
+  if (!isBillingEnabled) return null
+
+  return <CreditsChipInner deferData={deferData} />
+}
+
+function CreditsChipInner({ deferData }: Required<CreditsChipProps>) {
+  const [hasDataIntent, setHasDataIntent] = useState(!deferData)
+  const dataEnabled = !deferData || hasDataIntent
+  const { planView, isLoading, hasData } = usePlanView({ enabled: dataEnabled })
   /**
    * `usePlanView` is built on top of `useSubscriptionData`, so the second call
    * dedups against the same React Query cache entry. We read the raw usage
    * fields here because `planView` intentionally only exposes plan-derived
    * decisions, not display math.
    */
-  const { data } = useSubscriptionData()
+  const { data } = useSubscriptionData({ enabled: dataEnabled })
   const router = useRouter()
   const queryClient = useQueryClient()
   const { workspaceId } = useParams<{ workspaceId: string }>()
-  const { data: memberCredits, isLoading: memberLoading } = useMyMemberCredits(workspaceId)
+  const { data: memberCredits, isLoading: memberLoading } = useMyMemberCredits(workspaceId, {
+    enabled: dataEnabled,
+  })
 
-  const upgradeHref = `/workspace/${workspaceId}/upgrade`
+  const upgradeHref = buildUpgradeHref(workspaceId, 'credits')
 
   /**
    * Warm the route bundle and the exact queries the Upgrade page gates on, so
@@ -45,17 +54,24 @@ function CreditsChipInner() {
     prefetchWorkspaceSettings(queryClient, workspaceId)
   }, [router, queryClient, upgradeHref, workspaceId])
 
-  const renderChip = (dollars: number) => (
+  const handleDataIntent = useCallback(() => {
+    setHasDataIntent(true)
+    prefetchUpgrade()
+  }, [prefetchUpgrade])
+
+  const renderChip = (label: string) => (
     <Chip
       aria-label='Credits remaining — upgrade plan'
       onClick={() => router.push(upgradeHref)}
-      onMouseEnter={prefetchUpgrade}
-      onFocus={prefetchUpgrade}
+      onMouseEnter={handleDataIntent}
+      onFocus={handleDataIntent}
       leftIcon={Credit}
     >
-      {formatCredits(dollars)}
+      {label}
     </Chip>
   )
+
+  if (deferData && (!dataEnabled || isLoading || memberLoading)) return renderChip('Credits')
 
   // Wait for the per-member cap result before rendering: until it resolves,
   // `limitDollars` is null and a capped member would briefly see the larger
@@ -90,10 +106,12 @@ function CreditsChipInner() {
   if (limitDollars !== null) {
     const personalRemaining = Math.max(0, limitDollars - (memberCredits?.usedDollars ?? 0))
     return renderChip(
-      pooledRemaining === null ? personalRemaining : Math.min(personalRemaining, pooledRemaining)
+      formatCredits(
+        pooledRemaining === null ? personalRemaining : Math.min(personalRemaining, pooledRemaining)
+      )
     )
   }
 
   if (pooledRemaining === null) return null
-  return renderChip(pooledRemaining)
+  return renderChip(formatCredits(pooledRemaining))
 }

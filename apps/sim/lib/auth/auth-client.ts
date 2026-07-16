@@ -1,4 +1,3 @@
-import { useContext } from 'react'
 import { ssoClient } from '@better-auth/sso/client'
 import { stripeClient } from '@better-auth/stripe/client'
 import {
@@ -13,7 +12,8 @@ import type { auth } from '@/lib/auth'
 import { env } from '@/lib/core/config/env'
 import { isBillingEnabled, isOrganizationsEnabled } from '@/lib/core/config/env-flags'
 import { getBaseUrl, getBrowserOrigin } from '@/lib/core/utils/urls'
-import { SessionContext, type SessionHookResult } from '@/app/_shell/providers/session-provider'
+
+export { useSession } from '@/app/_shell/providers/use-session'
 
 function getAuthBaseUrl(): string {
   return getBrowserOrigin() ?? getBaseUrl()
@@ -37,16 +37,6 @@ export const client = createAuthClient({
     ...(env.NEXT_PUBLIC_SSO_ENABLED ? [ssoClient()] : []),
   ],
 })
-
-export function useSession(): SessionHookResult {
-  const ctx = useContext(SessionContext)
-  if (!ctx) {
-    throw new Error(
-      'SessionProvider is not mounted. Wrap your app with <SessionProvider> in app/layout.tsx.'
-    )
-  }
-  return ctx
-}
 
 export const useActiveOrganization = isOrganizationsEnabled
   ? client.useActiveOrganization

@@ -10,7 +10,9 @@ import { describe, expect, it, vi } from 'vitest'
 
 const { svcConfig } = vi.hoisted(() => ({ svcConfig: { value: null as any } }))
 
-vi.mock('@/tools/utils', () => toolsUtilsMock)
+vi.mock('@/tools/client-summary-registry', () => ({
+  getClientToolSummary: toolsUtilsMock.getTool,
+}))
 vi.mock('@/blocks', () => ({
   ...blocksMock,
   getBlock: (type: string) => (type === 'svc' ? svcConfig.value : blocksMock.getBlock(type)),

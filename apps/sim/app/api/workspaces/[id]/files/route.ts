@@ -7,10 +7,11 @@ import {
   workspaceFilesParamsSchema,
 } from '@/lib/api/contracts/workspace-files'
 import { getValidationErrorMessage } from '@/lib/api/server'
-import { getSession } from '@/lib/auth'
+import { getSession } from '@/lib/auth/api-session'
 import { generateRequestId } from '@/lib/core/utils/request'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { captureServerEvent } from '@/lib/posthog/server'
+import { getSharesForResources } from '@/lib/public-shares/share-manager'
 import {
   FileConflictError,
   listWorkspaceFiles,
@@ -18,7 +19,6 @@ import {
 } from '@/lib/uploads/contexts/workspace'
 import { MAX_WORKSPACE_FORMDATA_FILE_SIZE } from '@/lib/uploads/shared/types'
 import { getUserEntityPermissions } from '@/lib/workspaces/permissions/utils'
-import { verifyWorkspaceMembership } from '@/app/api/workflows/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,7 +47,15 @@ export const GET = withRouteHandler(
       }
 
       // Check workspace permissions (requires read)
-      const userPermission = await verifyWorkspaceMembership(session.user.id, workspaceId)
+      let userPermission: Awaited<ReturnType<typeof getUserEntityPermissions>> = null
+      try {
+        userPermission = await getUserEntityPermissions(session.user.id, 'workspace', workspaceId)
+      } catch (error) {
+        logger.error(
+          `Error verifying workspace permissions for ${session.user.id} in ${workspaceId}:`,
+          error
+        )
+      }
       if (!userPermission) {
         logger.warn(
           `[${requestId}] User ${session.user.id} lacks permission for workspace ${workspaceId}`
@@ -68,11 +76,20 @@ export const GET = withRouteHandler(
 
       const files = await listWorkspaceFiles(workspaceId, { scope })
 
+      const shares = await getSharesForResources(
+        'file',
+        files.map((file) => file.id)
+      )
+      const filesWithShares = files.map((file) => ({
+        ...file,
+        share: shares.get(file.id) ?? null,
+      }))
+
       logger.info(`[${requestId}] Listed ${files.length} files for workspace ${workspaceId}`)
 
       return NextResponse.json({
         success: true,
-        files,
+        files: filesWithShares,
       })
     } catch (error) {
       logger.error(`[${requestId}] Error listing workspace files:`, error)
