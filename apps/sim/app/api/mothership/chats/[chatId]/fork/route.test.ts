@@ -10,6 +10,7 @@ const {
   mockAssertActiveWorkspaceAccess,
   mockAuthenticateCopilotRequestSessionOnly,
   mockCaptureServerEvent,
+  mockEnsureTaskForMothershipChat,
   mockGenerateId,
   mockGetMothershipBaseURL,
   mockLoadCopilotChatMessages,
@@ -23,6 +24,7 @@ const {
   mockAssertActiveWorkspaceAccess: vi.fn(),
   mockAuthenticateCopilotRequestSessionOnly: vi.fn(),
   mockCaptureServerEvent: vi.fn(),
+  mockEnsureTaskForMothershipChat: vi.fn(),
   mockGenerateId: vi.fn(),
   mockGetMothershipBaseURL: vi.fn(),
   mockLoadCopilotChatMessages: vi.fn(),
@@ -116,6 +118,10 @@ vi.mock('@/lib/posthog/server', () => ({
   captureServerEvent: mockCaptureServerEvent,
 }))
 
+vi.mock('@/lib/tasks/repository', () => ({
+  ensureTaskForMothershipChat: mockEnsureTaskForMothershipChat,
+}))
+
 vi.mock('@/lib/workspaces/permissions/utils', () => ({
   assertActiveWorkspaceAccess: mockAssertActiveWorkspaceAccess,
   isWorkspaceAccessDeniedError: vi.fn(() => false),
@@ -191,6 +197,41 @@ describe('POST /api/mothership/chats/[chatId]/fork', () => {
       chatId: 'new-chat',
       type: 'created',
     })
+  })
+
+  it('ensures the fork Task inside the existing chat transaction', async () => {
+    const response = await POST(createRequest(), createContext())
+
+    expect(response.status).toBe(200)
+    expect(mockTransaction).toHaveBeenCalledTimes(1)
+    expect(mockEnsureTaskForMothershipChat).toHaveBeenCalledWith('new-chat', mockTx)
+    expect(mockEnsureTaskForMothershipChat.mock.invocationCallOrder[0]).toBeLessThan(
+      mockAppendCopilotChatMessages.mock.invocationCallOrder[0]
+    )
+  })
+
+  it('keeps legacy Mothership forks without a workspace outside the Task cohort', async () => {
+    mockSelectLimit.mockResolvedValueOnce([
+      {
+        id: 'source-chat',
+        userId: 'user-1',
+        type: 'mothership',
+        workspaceId: null,
+        title: 'Legacy source chat',
+        model: 'mothership',
+        resources: [],
+        previewYaml: null,
+        planArtifact: null,
+        config: null,
+      },
+    ])
+    mockTxReturning.mockResolvedValueOnce([{ id: 'new-chat', workspaceId: null }])
+
+    const response = await POST(createRequest(), createContext())
+
+    expect(response.status).toBe(200)
+    expect(mockEnsureTaskForMothershipChat).not.toHaveBeenCalled()
+    expect(mockAppendCopilotChatMessages).toHaveBeenCalled()
   })
 
   it('still returns the local fork when the Mothership clone request fails', async () => {

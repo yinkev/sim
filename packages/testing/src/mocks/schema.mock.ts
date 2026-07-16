@@ -688,6 +688,12 @@ export const schemaMock = {
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
   },
+  tasks: {
+    id: 'id',
+    chatId: 'chatId',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt',
+  },
   copilotMessages: {
     id: 'id',
     chatId: 'chatId',

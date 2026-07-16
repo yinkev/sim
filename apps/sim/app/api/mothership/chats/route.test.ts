@@ -5,19 +5,39 @@ import { copilotHttpMock, copilotHttpMockFns, permissionsMock } from '@sim/testi
 import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockSelect, mockFrom, mockWhere, mockOrderBy, mockReconcileChatStreamMarkers } = vi.hoisted(
-  () => ({
-    mockSelect: vi.fn(),
-    mockFrom: vi.fn(),
-    mockWhere: vi.fn(),
-    mockOrderBy: vi.fn(),
-    mockReconcileChatStreamMarkers: vi.fn(),
-  })
-)
+const {
+  mockEnsureTaskForMothershipChat,
+  mockFrom,
+  mockOrderBy,
+  mockReconcileChatStreamMarkers,
+  mockSelect,
+  mockTransaction,
+  mockTxInsert,
+  mockTxReturning,
+  mockTxValues,
+  mockWhere,
+} = vi.hoisted(() => ({
+  mockEnsureTaskForMothershipChat: vi.fn(),
+  mockFrom: vi.fn(),
+  mockOrderBy: vi.fn(),
+  mockReconcileChatStreamMarkers: vi.fn(),
+  mockSelect: vi.fn(),
+  mockTransaction: vi.fn(),
+  mockTxInsert: vi.fn(),
+  mockTxReturning: vi.fn(),
+  mockTxValues: vi.fn(),
+  mockWhere: vi.fn(),
+}))
+
+const mockTx = {
+  insert: mockTxInsert,
+}
 
 vi.mock('@sim/db', () => ({
   db: {
+    insert: mockTxInsert,
     select: mockSelect,
+    transaction: mockTransaction,
   },
 }))
 
@@ -55,7 +75,11 @@ vi.mock('@/lib/posthog/server', () => ({
   captureServerEvent: vi.fn(),
 }))
 
-import { GET } from '@/app/api/mothership/chats/route'
+vi.mock('@/lib/tasks/repository', () => ({
+  ensureTaskForMothershipChat: mockEnsureTaskForMothershipChat,
+}))
+
+import { GET, POST } from '@/app/api/mothership/chats/route'
 
 function createRequest(workspaceId: string) {
   return new NextRequest(`http://localhost:3000/api/mothership/chats?workspaceId=${workspaceId}`, {
@@ -63,7 +87,15 @@ function createRequest(workspaceId: string) {
   })
 }
 
-describe('GET /api/mothership/chats', () => {
+function createPostRequest(workspaceId: string) {
+  return new NextRequest('http://localhost:3000/api/mothership/chats', {
+    method: 'POST',
+    body: JSON.stringify({ workspaceId }),
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+describe('/api/mothership/chats', () => {
   beforeEach(() => {
     vi.clearAllMocks()
 
@@ -76,6 +108,12 @@ describe('GET /api/mothership/chats', () => {
     mockWhere.mockReturnValue({ orderBy: mockOrderBy })
     mockFrom.mockReturnValue({ where: mockWhere })
     mockSelect.mockReturnValue({ from: mockFrom })
+    mockTxReturning.mockResolvedValue([{ id: 'chat-new' }])
+    mockTxValues.mockReturnValue({ returning: mockTxReturning })
+    mockTxInsert.mockReturnValue({ values: mockTxValues })
+    mockTransaction.mockImplementation(async (callback: (tx: typeof mockTx) => Promise<unknown>) =>
+      callback(mockTx)
+    )
 
     mockReconcileChatStreamMarkers.mockImplementation(
       async (candidates: Array<{ chatId: string; streamId: string | null }>) =>
@@ -90,6 +128,15 @@ describe('GET /api/mothership/chats', () => {
           ])
         )
     )
+  })
+
+  it('creates the Mothership chat and Task in the same transaction', async () => {
+    const response = await POST(createPostRequest('ws-1'))
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ success: true, id: 'chat-new' })
+    expect(mockTransaction).toHaveBeenCalledTimes(1)
+    expect(mockEnsureTaskForMothershipChat).toHaveBeenCalledWith('chat-new', mockTx)
   })
 
   it('clears activeStreamId on chats whose redis lock has expired (stuck-yellow bug)', async () => {

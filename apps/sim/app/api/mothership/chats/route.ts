@@ -17,6 +17,7 @@ import {
 } from '@/lib/copilot/request/http'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { captureServerEvent } from '@/lib/posthog/server'
+import { ensureTaskForMothershipChat } from '@/lib/tasks/repository'
 import {
   assertActiveWorkspaceAccess,
   isWorkspaceAccessDeniedError,
@@ -71,18 +72,24 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
     await assertActiveWorkspaceAccess(workspaceId, userId)
 
     const now = new Date()
-    const [chat] = await db
-      .insert(copilotChats)
-      .values({
-        userId,
-        workspaceId,
-        type: 'mothership',
-        title: null,
-        model: 'claude-opus-4-8',
-        updatedAt: now,
-        lastSeenAt: now,
-      })
-      .returning({ id: copilotChats.id })
+    const chat = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(copilotChats)
+        .values({
+          userId,
+          workspaceId,
+          type: 'mothership',
+          title: null,
+          model: 'claude-opus-4-8',
+          updatedAt: now,
+          lastSeenAt: now,
+        })
+        .returning({ id: copilotChats.id })
+
+      if (!created) throw new Error('Failed to create Mothership chat row')
+      await ensureTaskForMothershipChat(created.id, tx)
+      return created
+    })
 
     chatPubSub?.publishStatusChanged({ workspaceId, chatId: chat.id, type: 'created' })
 

@@ -6,10 +6,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@sim/db', () => dbChainMock)
 
-const { mockAuthorizeWorkflow, mockGetActiveWorkflow } = vi.hoisted(() => ({
-  mockAuthorizeWorkflow: vi.fn(),
-  mockGetActiveWorkflow: vi.fn(),
-}))
+const { mockAuthorizeWorkflow, mockEnsureTaskForMothershipChat, mockGetActiveWorkflow } =
+  vi.hoisted(() => ({
+    mockAuthorizeWorkflow: vi.fn(),
+    mockEnsureTaskForMothershipChat: vi.fn(),
+    mockGetActiveWorkflow: vi.fn(),
+  }))
 
 vi.mock('@sim/platform-authz/workflow', () => ({
   authorizeWorkflowByWorkspacePermission: mockAuthorizeWorkflow,
@@ -19,6 +21,10 @@ vi.mock('@sim/platform-authz/workflow', () => ({
 vi.mock('@/lib/workspaces/permissions/utils', () => ({
   assertActiveWorkspaceAccess: vi.fn(),
   checkWorkspaceAccess: vi.fn(),
+}))
+
+vi.mock('@/lib/tasks/repository', () => ({
+  ensureTaskForMothershipChat: mockEnsureTaskForMothershipChat,
 }))
 
 import {
@@ -161,5 +167,30 @@ describe('lifecycle copilot chat reads (cutover to copilot_messages)', () => {
     expect(Object.hasOwn(insertValues, 'messages')).toBe(false)
     // a brand-new chat must not trigger a messages read
     expect(dbChainMockFns.orderBy).not.toHaveBeenCalled()
+    expect(mockEnsureTaskForMothershipChat).not.toHaveBeenCalled()
+  })
+
+  it('resolveOrCreateChat ensures an eligible Mothership Task in the chat transaction', async () => {
+    const mothershipChat = {
+      ...chatRow,
+      id: 'mothership-chat-1',
+      workspaceId: 'workspace-1',
+      type: 'mothership',
+    }
+    dbChainMockFns.returning.mockResolvedValueOnce([mothershipChat])
+
+    const result = await resolveOrCreateChat({
+      userId: USER_ID,
+      workspaceId: 'workspace-1',
+      type: 'mothership',
+      model: 'm',
+    })
+
+    expect(result.chatId).toBe('mothership-chat-1')
+    expect(dbChainMockFns.transaction).toHaveBeenCalledTimes(1)
+    expect(mockEnsureTaskForMothershipChat).toHaveBeenCalledWith(
+      'mothership-chat-1',
+      dbChainMock.db
+    )
   })
 })

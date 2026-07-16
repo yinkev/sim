@@ -7,6 +7,8 @@ import {
 } from '@sim/platform-authz/workflow'
 import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 import { type PersistedMessage, stripToolResultOutput } from '@/lib/copilot/chat/persisted-message'
+import type { DbOrTx } from '@/lib/db/types'
+import { ensureTaskForMothershipChat } from '@/lib/tasks/repository'
 import {
   assertActiveWorkspaceAccess,
   checkWorkspaceAccess,
@@ -283,18 +285,30 @@ export async function resolveOrCreateChat(params: {
   }
 
   const now = new Date()
-  const [newChat] = await db
-    .insert(copilotChats)
-    .values({
-      userId,
-      ...(workflowId ? { workflowId } : {}),
-      ...(workspaceId ? { workspaceId } : {}),
-      type: type ?? 'copilot',
-      title: null,
-      model,
-      lastSeenAt: now,
-    })
-    .returning(copilotChatDetailColumns)
+  const createChat = async (executor: DbOrTx) => {
+    const [chat] = await executor
+      .insert(copilotChats)
+      .values({
+        userId,
+        ...(workflowId ? { workflowId } : {}),
+        ...(workspaceId ? { workspaceId } : {}),
+        type: type ?? 'copilot',
+        title: null,
+        model,
+        lastSeenAt: now,
+      })
+      .returning(copilotChatDetailColumns)
+    return chat
+  }
+
+  const newChat =
+    type === 'mothership' && workspaceId
+      ? await db.transaction(async (tx) => {
+          const chat = await createChat(tx)
+          if (chat) await ensureTaskForMothershipChat(chat.id, tx)
+          return chat
+        })
+      : await createChat(db)
 
   if (!newChat) {
     logger.warn('Failed to create new copilot chat row', { userId, workflowId, workspaceId })

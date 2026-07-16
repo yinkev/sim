@@ -24,6 +24,7 @@ import { getMothershipBaseURL } from '@/lib/copilot/server/agent-url'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { requestMothershipRuntime } from '@/lib/mothership/client'
 import { captureServerEvent } from '@/lib/posthog/server'
+import { ensureTaskForMothershipChat } from '@/lib/tasks/repository'
 import {
   assertActiveWorkspaceAccess,
   isWorkspaceAccessDeniedError,
@@ -115,6 +116,7 @@ export const POST = withRouteHandler(
 
         if (!row) return null
 
+        if (row.workspaceId) await ensureTaskForMothershipChat(newId, tx)
         await appendCopilotChatMessages(newId, forkedMessages, { chatModel: parent.model }, tx)
         return row
       })

@@ -1758,6 +1758,13 @@
       "when": 1782622230903,
       "tag": "0251_drop_permission_group_applies_to_all_workspaces",
       "breakpoints": true
+    },
+    {
+      "idx": 252,
+      "version": "7",
+      "when": 1784241453616,
+      "tag": "0252_phase_2_task_compatibility_spine",
+      "breakpoints": true
     }
   ]
 }

@@ -2052,6 +2052,21 @@ export const copilotChats = pgTable(
   })
 )
 
+export const tasks = pgTable(
+  'task',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    chatId: uuid('chat_id')
+      .notNull()
+      .references(() => copilotChats.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    chatIdUnique: uniqueIndex('task_chat_id_unique').on(table.chatId),
+  })
+)
+
 export const copilotMessages = pgTable(
   'copilot_messages',
   {
