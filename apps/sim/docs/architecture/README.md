@@ -46,6 +46,7 @@ evidence live in the applicable slice specification. Conversation history is nev
 8. [Minimal workspace shell](adr/0003-minimal-workspace-shell.md)
 9. [Development performance probe](performance-probe.md)
 10. [Phase 1 closeout](phase-1-closeout.md)
+11. [Pre-Phase 2 upstream v0.7.14 integration checkpoint](upstream-v0.7.14-integration-checkpoint.md)
 
 ## Slice Specification Contract
 

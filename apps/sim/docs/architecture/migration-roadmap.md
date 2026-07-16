@@ -4,7 +4,7 @@
 
 Repository path: `apps/sim/docs/architecture/migration-roadmap.md`
 Owner: Sim maintainers
-Current status: Phase 1 complete; Phase 2 pending
+Current status: Phase 1 complete; upstream v0.7.14 integration planned; Phase 2 pending
 Last verified: 2026-07-16
 
 This roadmap sequences migration from the current Sim implementation to the approved architecture.
@@ -19,6 +19,11 @@ No implementation slice is active.
 history, accepted evidence, rejected alternatives, preserved behavior, and remaining limitations are
 recorded in the [Phase 1 closeout](phase-1-closeout.md). Phase 2 is pending and was not started. Center UI
 work remains sequenced after the Task, Artifact, and Execution domain phases.
+
+Before Phase 2, the exact upstream `v0.7.14` baseline will be reconciled on a separate branch and
+worktree under the [pre-Phase 2 integration checkpoint](upstream-v0.7.14-integration-checkpoint.md).
+This is a technical-baseline sync, not an architecture phase or permission to begin Phase 2. The Phase 1
+checkpoint remains the fallback.
 
 ## Sequence
 
