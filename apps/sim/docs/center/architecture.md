@@ -7,7 +7,7 @@ This document explains what Center is, where it runs, which modules own it, and 
 Repository path: `apps/sim/docs/center/architecture.md`  
 Owning project: Center  
 Owner: Sim maintainers  
-Current status: Initial local implementation complete through Phase 12; dogfood hardening remains gated by `.ai-bridge/projects/center/reviews/RP-20260629-004-pre-dogfood-overnight-hardening.md`.
+Current status: Initial local implementation complete through Phase 12; live dogfooding remains credential- and policy-gated.
 
 ## Product Boundary
 
@@ -104,7 +104,7 @@ local source file or MS2 data dir
 Review packet import:
 
 ```text
-.ai-bridge/projects/center/reviews/*.md
+apps/sim/fixtures/center/review-packets/*.md
   -> apps/sim/lib/center/review-packet-files.ts
   -> CenterReviewPacketImportRecord[]
   -> applyCenterReviewPacketImport
@@ -171,7 +171,7 @@ apps/sim/lib/center/workspace-storage.ts
 Default storage path:
 
 ```text
-.ai-bridge/artifacts/center-storage/<workspaceId>.json
+var/center/storage/<workspaceId>.json
 ```
 
 Override:
@@ -182,7 +182,7 @@ CENTER_WORKSPACE_STORAGE_DIR=/path/to/storage
 
 If the local route is unavailable, `createWorkspaceCenterStorage()` falls back to `createBrowserCenterStorage()` with a workspace-scoped browser key.
 
-The current local implementation does not send profile data to telemetry. `CenterSurface` displays `telemetry off`, profile records have `telemetry: 'off'`, and the local dev profile sets `NEXT_TELEMETRY_DISABLED=1` through the app launcher path.
+The current local implementation does not send profile data to telemetry. `CenterSurface` displays `telemetry off`, profile records have `telemetry: 'off'`, the Center client instrumentation disables telemetry on `/center/*`, and `center:readiness` reports `telemetry-privacy=ready` only when `NEXT_TELEMETRY_DISABLED=1` is proven from shell or local app env and PostHog is not explicitly enabled.
 
 ## API Boundary
 
@@ -206,7 +206,7 @@ Use these extension seams:
 - Add a new producer mapper under `apps/sim/lib/center/producers/`.
 - Add route contracts in `apps/sim/lib/api/contracts/center.ts`.
 - Add local import routes under `apps/sim/app/api/center/<producer>/import/route.ts`.
-- Add capability metadata under `.ai-bridge/capabilities/`.
+- Add capability metadata under `apps/sim/config/center/capabilities/`.
 - Add Center UI projection only after the data exists in the local spine.
 
 Do not extend Center by importing producer private state into the route.
@@ -226,5 +226,5 @@ Do not extend Center by importing producer private state into the route.
 - `apps/sim/docs/center/capability-system.md`
 - `apps/sim/docs/center/operations-and-dogfood.md`
 - `apps/sim/docs/LOCAL_DEV_PROFILES.md`
-- `.ai-bridge/projects/center/roadmap.md`
-- `.ai-bridge/projects/center/audits/phase-0-12-integration-audit-20260629.md`
+- `apps/sim/docs/architecture/migration-roadmap.md`
+- `apps/sim/docs/architecture/architecture-invariants.md`

@@ -1,0 +1,27 @@
+{
+  "id": "emit.plane_comment",
+  "version": "1.0.0",
+  "producerId": "plane",
+  "kind": "emit",
+  "inputs": [
+    {
+      "id": "plane-snapshot-record",
+      "version": "1.0.0",
+      "uri": "apps/sim/fixtures/center/producers/plane/sample-events.json"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "center-producer-import-packet",
+      "version": "1.0.0",
+      "uri": "apps/sim/lib/center/producer-import.ts"
+    }
+  ],
+  "authorityRequired": "A1",
+  "truthImpact": "T2",
+  "policyRequirements": ["profile-scope", "explicit-local-import", "evidence-required"],
+  "evidenceProduced": ["Plane comment source link"],
+  "failureModes": ["snapshot is stale", "comment body is summarized or omitted"],
+  "requires": ["emit.plane_issue"],
+  "lifecycle": "available"
+}

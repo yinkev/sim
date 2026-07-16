@@ -7,7 +7,7 @@ This document maps the major repository folders so a new engineer can orient wit
 Repository path: `docs/REPOSITORY_MAP.md`  
 Owning project: Sim repository  
 Owner: Sim maintainers  
-Current status: Active orientation map, verified against the top-level directory tree on 2026-06-29.
+Current status: Active orientation map, updated on 2026-07-16.
 
 ## Applications
 
@@ -93,7 +93,18 @@ Important paths:
 - `apps/sim/docs/DEV_COMPILE_PERF.md`
 - `apps/sim/docs/LOCAL_DEV_PROFILES.md`
 - `apps/sim/docs/LOCAL_DEV_PLAYGROUND.md`
+- `apps/sim/docs/architecture/`
 - `apps/sim/docs/center/`
+
+`apps/sim/docs/architecture/`
+
+Canonical Sim product and architecture specification. It defines the north star, domain model, architecture invariants, migration roadmap, glossary, and accepted ADRs.
+
+Start at:
+
+```text
+apps/sim/docs/architecture/README.md
+```
 
 `apps/sim/docs/center/`
 
@@ -105,23 +116,21 @@ Start at:
 apps/sim/docs/center/README.md
 ```
 
-## Governance And Evolution
+## Source Configuration And Fixtures
 
-`.ai-bridge/`
+`apps/sim/config/center/`
 
-Agent coordination and governance layer. It is not source code and should not become a duplicate documentation site.
+Source-controlled Center capability metadata, connection policy, and schemas.
 
-Important paths:
+`apps/sim/fixtures/center/`
 
-- `.ai-bridge/README.md`
-- `.ai-bridge/current-plan.md`
-- `.ai-bridge/decisions.md`
-- `.ai-bridge/protocols/`
-- `.ai-bridge/ontology/`
-- `.ai-bridge/schemas/`
-- `.ai-bridge/capabilities/`
-- `.ai-bridge/projects/`
-- `.ai-bridge/projects/center/`
+Source-controlled development fixtures for producer imports and review packets.
+
+## Mutable Local Runtime Data
+
+`var/center/`
+
+Ignored local state for Center workspace storage, generated evidence, and packaged app bundles. Nothing under `var/` is canonical documentation or required source configuration.
 
 ## Agent And Editor Guidance
 
@@ -186,10 +195,10 @@ Do not broadly inspect or document generated/vendor folders unless debugging a s
 - `.cache`
 - `.turbo/cache`
 - coverage output
+- `var/`
 
 ## Related Documents
 
 - `docs/DOCUMENTATION_GUIDE.md`
 - `apps/sim/docs/center/README.md`
 - `packages/README.md`
-- `.ai-bridge/README.md`

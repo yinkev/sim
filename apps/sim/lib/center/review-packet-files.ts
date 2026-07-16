@@ -3,7 +3,7 @@ import path from 'node:path'
 import type { CenterReviewPacketImportRecord } from '@/lib/center/review-packets'
 import type { CenterReviewPacket } from '@/lib/center/types'
 
-const DEFAULT_REVIEW_DIR = path.join(getRepoRoot(), '.ai-bridge/projects/center/reviews')
+const DEFAULT_REVIEW_DIR = path.join(getRepoRoot(), 'apps/sim/fixtures/center/review-packets')
 const FRONTMATTER_KEYS = new Set([
   'id',
   'type',
@@ -59,7 +59,7 @@ export async function parseCenterReviewPacketFile(
   const title = extractTitle(text) ?? frontmatter.topic ?? frontmatter.id
 
   return {
-    sourceRef: `ai-bridge:review-packet:${frontmatter.id}`,
+    sourceRef: `center-review:packet:${frontmatter.id}`,
     packetId: frontmatter.id,
     projectId: frontmatter.project,
     title,

@@ -50,7 +50,7 @@ export async function applyCenterReviewPacketImport(
       const evidence: CenterEvidence = {
         id: generateId(),
         profileId,
-        producerId: 'ai-bridge',
+        producerId: 'center-review',
         subjectType: 'review-packet',
         subjectId: record.packetId,
         kind: 'source',

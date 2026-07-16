@@ -20,25 +20,31 @@ apps/sim/docs/center/capability-system.md
 Machine-readable schema:
 
 ```text
-.ai-bridge/schemas/capability.schema.json
+apps/sim/config/center/schemas/capability.schema.json
 ```
 
 Capability registry files:
 
 ```text
-.ai-bridge/capabilities/*.json
+apps/sim/config/center/capabilities/*.json
+```
+
+Local connection registry:
+
+```text
+apps/sim/config/center/capabilities/connections/center-local-import.json
 ```
 
 Governance protocol:
 
 ```text
-.ai-bridge/protocols/execution-authority.md
+apps/sim/docs/architecture/architecture-invariants.md
 ```
 
 Dogfood-readiness review:
 
 ```text
-.ai-bridge/projects/center/reviews/RP-20260629-003-dogfood-readiness-capability-enforcement.md
+apps/sim/fixtures/center/review-packets/center-capability-review.md
 ```
 
 ## Definition
@@ -68,7 +74,7 @@ Optional dependency list:
 
 - `requires`
 
-The schema is enforced by `.ai-bridge/schemas/capability.schema.json`.
+The schema is enforced by `apps/sim/config/center/schemas/capability.schema.json`.
 
 ## Capability Ids
 
@@ -80,22 +86,22 @@ Capability ids follow this pattern:
 
 Examples currently registered:
 
-- `.ai-bridge/capabilities/emit.github_commit.json`
-- `.ai-bridge/capabilities/emit.github_pull_request.json`
-- `.ai-bridge/capabilities/emit.ms2.study_activity.json`
-- `.ai-bridge/capabilities/emit.ms2.recovery_proposal.json`
-- `.ai-bridge/capabilities/emit.plane_issue.json`
-- `.ai-bridge/capabilities/emit.learn_learning_gap.json`
-- `.ai-bridge/capabilities/emit.understand_system_map.json`
-- `.ai-bridge/capabilities/emit.agent_run_started.json`
-- `.ai-bridge/capabilities/emit.agent_review_needed.json`
+- `apps/sim/config/center/capabilities/emit.github_commit.json`
+- `apps/sim/config/center/capabilities/emit.github_pull_request.json`
+- `apps/sim/config/center/capabilities/emit.ms2.study_activity.json`
+- `apps/sim/config/center/capabilities/emit.ms2.recovery_proposal.json`
+- `apps/sim/config/center/capabilities/emit.plane_issue.json`
+- `apps/sim/config/center/capabilities/emit.learn_learning_gap.json`
+- `apps/sim/config/center/capabilities/emit.understand_system_map.json`
+- `apps/sim/config/center/capabilities/emit.agent_run_started.json`
+- `apps/sim/config/center/capabilities/emit.agent_review_needed.json`
 
 ## Authority And Truth Impact
 
 Capability execution must be gated by:
 
-- authority level from `.ai-bridge/protocols/execution-authority.md`
-- truth impact from `.ai-bridge/protocols/execution-authority.md`
+- authority level from `apps/sim/docs/architecture/architecture-invariants.md`
+- truth impact from `apps/sim/docs/architecture/architecture-invariants.md`
 - profile scope
 - policy requirements
 - evidence requirements
@@ -142,28 +148,59 @@ Discovery is read-only until a capability is explicitly connected. Capability me
 
 Implemented:
 
-- Capability schema exists at `.ai-bridge/schemas/capability.schema.json`.
-- Capability metadata exists under `.ai-bridge/capabilities/`.
+- Capability schema exists at `apps/sim/config/center/schemas/capability.schema.json`.
+- Capability metadata exists under `apps/sim/config/center/capabilities/`.
 - Producers are documented with capability ids in governance records.
 - Center import adapters can map producer records into Center packets.
 - Producer import packets declare packet-level capability ids.
 - Producer records can optionally declare record-level capability ids.
-- Local import routes read `.ai-bridge/capabilities/*.json` and reject packets with unknown declared capability ids.
+- Local import routes read `apps/sim/config/center/capabilities/*.json` and reject packets with unknown declared capability ids.
+- The capability registry loader rejects malformed capability schema fields, unknown top-level keys, duplicate ids, malformed connection registry ids, and connection ids that do not exist in registered capability metadata.
 - Browser-local imports verify declared capability ids before mutating profile data.
 - Unknown capability ids are surfaced in `CenterProducerImportSummary.blockedUnknownCapabilityIds`.
+- Malformed declared capability ids are blocked before producer import mutation, even when no optional runtime registry is supplied.
+- Malformed packet-shape blocker output only displays canonical capability ids or `malformed capability id`.
+- Malformed explicit `registeredCapabilityIds` runtime inputs return blocked summaries instead of throwing.
+- Empty producer record `sourceRef` values are blocked before mutation so capability-gated imports cannot create non-dedupable records.
+- Empty producer reference values are blocked before mutation so capability-gated imports cannot create blank unresolved refs.
+- Empty action-proposal `recommendationRef` values are blocked before mutation so capability-gated imports cannot silently drop recommendation-to-action provenance.
+- Empty required producer record fields are blocked before mutation so capability-gated imports cannot create blank event, subject, title, domain, reason, or action-target data.
+- Malformed producer timestamps are blocked before mutation so capability-gated imports cannot create invalid event or observation chronology.
+- Empty loop `nextAction` and `blockedBy` values are blocked before mutation so capability-gated imports cannot create blank blocker or next-step text.
+- Empty evidence `uri` values are blocked before mutation so capability-gated imports cannot create blank inspection targets.
+- Local producer imports require declared capabilities to be connected in `apps/sim/config/center/capabilities/connections/center-local-import.json`.
+- Local producer import gates reject capabilities above A2 authority or T3 truth impact.
+- Local producer import gates reject non-importable lifecycle states.
+- Local producer import gates reject unsupported or unmet import policy requirements.
+- Local producer import and action proposal gates reject non-plain runtime capability metadata entries before trusting capability metadata.
+- Local producer import and action proposal gates reject explicitly supplied malformed runtime capability registry roots instead of treating them as absent.
+- Local producer import gates require explicit local-import context for capabilities that declare `explicit-local-import`.
+- Local producer import gates require packet evidence for capabilities that declare `evidence-required`.
+- Capability metadata violations are surfaced in `CenterProducerImportSummary.blockedCapabilityGateViolations`.
+- MS2 recovery and worker review action proposals persist their capability ids.
+- `CenterLocalSpine.approveActionProposal()` and `CenterLocalSpine.executeActionProposal()` gate status transitions through connected capability metadata.
+- Action proposals without capability ids fail closed before approval or execution status changes.
+- A3/A4 action proposal status transitions remain blocked.
+- `center:readiness` now includes a `capability-system` gate that loads local capability metadata plus the connection registry and fails closed on registry load, connection, authority, truth-impact, lifecycle, or policy violations.
+- `center:readiness` now includes an `action-execution-authority` gate that reports ready only when external execution is not enabled and A3/A4 authority remains locked.
 
 Not implemented:
 
-- Center does not yet enforce `authorityRequired`.
-- Center does not yet enforce `truthImpact`.
-- Center does not yet enforce `policyRequirements`.
-- Center does not yet produce a runtime capability connection registry.
+- Center does not yet unlock A3/A4 authority.
+- Center does not yet execute external actions after an action proposal reaches `executed` local state.
+- Center does not yet provide signed per-profile policy state beyond capability files, local connection registry, and explicit review context.
 
-This means Center now has a first import-time capability boundary, but live autonomous expansion is still gated on full authority, truth-impact, policy, profile-scope, and evidence enforcement.
+This means Center now has a metadata-backed import boundary and local action transition boundary. Live autonomous expansion is still gated on reviewed credential handling, production sync, explicit A3/A4 policy, and any future external execution engine.
 
 ## Runtime Entry Points
 
-Capability registry reader:
+Pure capability gate enforcement:
+
+```text
+apps/sim/lib/center/capability-gates.ts
+```
+
+Server-only capability registry reader:
 
 ```text
 apps/sim/lib/center/capability-registry.ts
@@ -195,16 +232,16 @@ apps/sim/lib/center/all-producer-smoke.test.ts
 
 When adding or changing a capability:
 
-1. Add or update a JSON file under `.ai-bridge/capabilities/`.
-2. Validate it against `.ai-bridge/schemas/capability.schema.json`.
-3. Link it from the relevant producer implementation record in `.ai-bridge/projects/center/phase-*.md` or a new decision.
+1. Add or update a JSON file under `apps/sim/config/center/capabilities/`.
+2. Validate it against `apps/sim/config/center/schemas/capability.schema.json`.
+3. Link it from the owning feature documentation or an accepted ADR.
 4. Update producer docs in `apps/sim/docs/center/producer-model.md` only if system behavior or source paths changed.
-5. Do not change runtime enforcement semantics without a decision in `.ai-bridge/projects/center/decisions.md`.
+5. Do not change runtime enforcement semantics without an accepted architecture ADR.
 
 ## Related Documents
 
 - `apps/sim/docs/center/producer-model.md`
 - `apps/sim/docs/center/ontology-and-local-spine.md`
-- `.ai-bridge/protocols/execution-authority.md`
-- `.ai-bridge/schemas/capability.schema.json`
-- `.ai-bridge/projects/center/reviews/RP-20260629-003-dogfood-readiness-capability-enforcement.md`
+- `apps/sim/docs/architecture/architecture-invariants.md`
+- `apps/sim/config/center/schemas/capability.schema.json`
+- `apps/sim/fixtures/center/review-packets/center-capability-review.md`

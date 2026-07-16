@@ -15,8 +15,7 @@ Read:
 
 ```text
 apps/sim/docs/center/operations-and-dogfood.md
-.ai-bridge/projects/center/reviews/RP-20260629-003-dogfood-readiness-capability-enforcement.md
-.ai-bridge/projects/center/reviews/RP-20260629-004-pre-dogfood-overnight-hardening.md
+apps/sim/fixtures/center/review-packets/center-capability-review.md
 ```
 
 Required local command:

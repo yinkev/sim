@@ -1,0 +1,27 @@
+{
+  "id": "emit.understand_risk_evidence",
+  "version": "1.0.0",
+  "producerId": "understand",
+  "kind": "emit",
+  "inputs": [
+    {
+      "id": "learn-understand-snapshot-record",
+      "version": "1.0.0",
+      "uri": "apps/sim/fixtures/center/producers/learn-understand/sample-events.json"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "center-producer-import-packet",
+      "version": "1.0.0",
+      "uri": "apps/sim/lib/center/producer-import.ts"
+    }
+  ],
+  "authorityRequired": "A1",
+  "truthImpact": "T2",
+  "policyRequirements": ["profile-scope", "explicit-local-import", "evidence-required"],
+  "evidenceProduced": ["Risk evidence source"],
+  "failureModes": ["snapshot is stale", "risk severity is misclassified"],
+  "requires": ["emit.understand_system_map"],
+  "lifecycle": "available"
+}

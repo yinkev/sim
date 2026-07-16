@@ -63,14 +63,15 @@ Current clean smoke:
 - Browser smoke created a profile, loop, and event using system Chrome at `/workspace/local-test/center`.
 - Browser smoke created a profile and imported MS2Scheduler records through the explicit `Import MS2` action.
 - Browser smoke created a profile, saved three manual captures, and verified the prediction section moved from insufficient data to baseline.
-- Browser smoke created a profile, imported `.ai-bridge` review packets, and rendered an `approved-for-execution` worker gate.
+- Browser smoke created a profile, imported the source-controlled review-packet fixtures, and rendered an `approved-for-execution` worker gate.
 - `GET /api/center/ms2scheduler/import` returned `v001`, 6 evidence receipts, 1 raw event, 1 loop, 5 recommendations, and 5 action proposals from `/Users/kyin/Projects/MS2Scheduler/app/data`.
-- `GET /api/center/review-packets/import` returned `RP-20260628-002`, `converged`, `approved-with-required-changes`, `approved-for-execution`, round `2/20`.
+- `GET /api/center/review-packets/import` returned `center-capability-review`, `converged`, `approved-with-required-changes`, `approved-for-execution`, round `1/5`.
 - Center browser smoke did not request or compile `/api/auth/get-session`; Center auth stayed in `proxy.ts`.
 - Center dev memory snapshots held at `rssMB: 2433` after one and two minutes.
 - Center dev with the MS2 import route loaded held at `rssMB: 1207` after one minute during smoke.
 - Center dev with baseline prediction UI held at `rssMB: 1127` after one minute during smoke.
 - Center dev with review packet import held at `rssMB: 1192` after one minute during smoke.
+- Center dev fresh runtime sample on 2026-07-01 loaded `/center/import-failure-ui` twice with raw Chrome CDP, peaked at `1478 MB` total listener-tree RSS during load, then held at `1340 MB` RSS and `0%` CPU through the 15s, 30s, 45s, and 60s steady-state samples.
 - Parsed Center server route bundle had no tools, blocks, stores, triggers, workflow, auth, billing, or webhook chunks.
 - Parsed Center page client entry had no tools, blocks, stores, workflows, auth, Monaco, or mermaid chunks.
 - Targeted Center page/API artifacts after MS2 import had no workflow, block, store, auth, provider, Monaco, or mermaid imports.

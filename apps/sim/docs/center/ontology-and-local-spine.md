@@ -32,7 +32,7 @@ apps/sim/lib/center/local-spine.test.ts
 Governance freeze record:
 
 ```text
-.ai-bridge/ontology/freeze-v1.md
+apps/sim/docs/architecture/domain-model.md
 ```
 
 The implementation files are canonical for exact field names. The governance file records the approved primitive split and freeze rule.
@@ -77,7 +77,7 @@ Implemented storage adapters today:
 - `createBrowserCenterStorage()` for browser-local fallback.
 - `createWorkspaceCenterStorage()` for workspace-scoped local-server storage.
 
-Workspace storage uses the local API route at `apps/sim/app/api/center/storage/[workspaceId]/route.ts` and stores JSON under `.ai-bridge/artifacts/center-storage/` by default. If the route is unavailable, the UI falls back to workspace-scoped browser-local storage.
+Workspace storage uses the local API route at `apps/sim/app/api/center/storage/[workspaceId]/route.ts` and stores JSON under `var/center/storage/` by default. If the route is unavailable, the UI falls back to workspace-scoped browser-local storage.
 
 ### Actor
 
@@ -152,7 +152,7 @@ Loops are first-class UI records in Center.
 Runtime type: `CenterDecision`  
 Purpose: accepted choice with actor, reason, evidence, consequence, and revisit condition.
 
-Decisions are runtime records in Center and governance records in `.ai-bridge` when they change project truth.
+Decisions are runtime records in Center; product or architecture changes require an accepted ADR.
 
 ### Recommendation
 
@@ -205,15 +205,15 @@ Purpose: visible governance record with status, approval state, worker gate, rou
 Source records come from:
 
 ```text
-.ai-bridge/projects/center/reviews/*.md
+apps/sim/fixtures/center/review-packets/*.md
 ```
 
 ## Governance-Only Or Separate Primitives
 
 These approved primitives are not stored as ordinary `CenterDataset` arrays today:
 
-- Policy: governed by `.ai-bridge/protocols/execution-authority.md` and future Center policy work.
-- Capability: registered as metadata under `.ai-bridge/capabilities/*.json` and explained in `apps/sim/docs/center/capability-system.md`.
+- Policy: governed by `apps/sim/docs/architecture/architecture-invariants.md` and future Center policy work.
+- Capability: registered as metadata under `apps/sim/config/center/capabilities/*.json` and explained in `apps/sim/docs/center/capability-system.md`.
 - Producer: represented by producer ids, import packet builders, route contracts, and capability metadata.
 
 ## Local Spine Operations
@@ -270,12 +270,12 @@ When adding fields:
 - Update `apps/sim/lib/center/local-spine.ts` if the field affects writes or invariants.
 - Update `apps/sim/lib/api/contracts/center.ts` if it crosses an HTTP boundary.
 - Update producer import tests.
-- Record the decision in `.ai-bridge/projects/center/decisions.md` if project truth changes.
+- Add or supersede an ADR if project truth changes.
 
 ## Related Documents
 
 - `apps/sim/docs/center/architecture.md`
 - `apps/sim/docs/center/producer-model.md`
 - `apps/sim/docs/center/capability-system.md`
-- `.ai-bridge/ontology/freeze-v1.md`
-- `.ai-bridge/projects/center/decisions.md`
+- `apps/sim/docs/architecture/domain-model.md`
+- `apps/sim/docs/architecture/adr/`

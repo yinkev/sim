@@ -1,0 +1,27 @@
+{
+  "id": "emit.github_pull_request",
+  "version": "1.0.0",
+  "producerId": "github",
+  "kind": "emit",
+  "inputs": [
+    {
+      "id": "github-snapshot-record",
+      "version": "1.0.0",
+      "uri": "apps/sim/fixtures/center/producers/github/sample-events.json"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "center-producer-import-packet",
+      "version": "1.0.0",
+      "uri": "apps/sim/lib/center/producer-import.ts"
+    }
+  ],
+  "authorityRequired": "A1",
+  "truthImpact": "T2",
+  "policyRequirements": ["profile-scope", "explicit-local-import", "evidence-required"],
+  "evidenceProduced": ["GitHub pull request source link"],
+  "failureModes": ["snapshot is stale", "pull request review or CI state is incomplete"],
+  "requires": [],
+  "lifecycle": "available"
+}

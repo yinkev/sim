@@ -24,7 +24,8 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
   }
 
   const records = await readCenterReviewPacketRecords()
-  const reviewDir = process.env.CENTER_REVIEW_PACKET_DIR || '.ai-bridge/projects/center/reviews'
+  const reviewDir =
+    process.env.CENTER_REVIEW_PACKET_DIR || 'apps/sim/fixtures/center/review-packets'
   logger.info('Prepared Center review packet import records', {
     reviewDir,
     records: records.length,

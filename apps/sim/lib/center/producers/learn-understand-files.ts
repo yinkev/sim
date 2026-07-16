@@ -14,7 +14,7 @@ import type {
 
 const DEFAULT_LEARN_UNDERSTAND_PRODUCER_FILE = path.join(
   getRepoRoot(),
-  '.ai-bridge/projects/learn-understand-producers/sample-events.json'
+  'apps/sim/fixtures/center/producers/learn-understand/sample-events.json'
 )
 
 export async function readCenterLearnUnderstandSnapshot(

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This guide defines where project knowledge belongs in this repository.
+This guide defines where durable project knowledge belongs.
 
 Repository path: `docs/DOCUMENTATION_GUIDE.md`  
 Owning project: Sim repository  
@@ -11,152 +11,84 @@ Current status: Active documentation placement rule.
 
 ## Core Rule
 
-Repository docs own stable truth about the system.
+The repository owns all durable system and project truth. Do not create a separate hidden coordination or governance documentation tree.
 
-`.ai-bridge` owns truth about the evolution of the system.
-
-Use this split:
+Use these canonical locations:
 
 ```text
-repository docs = what the system is, how it works, how to extend it, how to operate it
-.ai-bridge = why decisions were made, what was approved or rejected, what evidence was captured, what is currently planned
+apps/sim/docs/architecture/  product model, target architecture, invariants, roadmap, ADRs
+apps/sim/docs/<feature>/      stable feature architecture, operation, and extension docs
+docs/                         repository-wide orientation and cross-project notes
+packages/*/README.md          package contracts and usage
 ```
 
-## Project Documentation Goes With The Project
+## Decision Records
 
-Use project-local docs for:
-
-- Architecture.
-- API.
-- Interfaces.
-- Contracts.
-- Runtime schemas.
-- Design rationale that remains true after implementation.
-- Developer guide.
-- Operator guide.
-- Extension guide.
-- Troubleshooting.
-- Diagrams.
-- Producer documentation.
-
-Examples:
+Consequential product and architecture decisions belong in Architecture Decision Records:
 
 ```text
-apps/sim/docs/
-apps/sim/docs/center/
-docs/
-packages/*/docs/
-packages/*/README.md
+apps/sim/docs/architecture/adr/
 ```
 
-## Governance Goes In `.ai-bridge`
+An ADR should state the context, decision, alternatives, consequences, and revisit conditions. Update the north star, domain model, glossary, or invariants when the accepted decision changes canonical system truth.
 
-Use `.ai-bridge` for:
+## Active Work
 
-- Current plan.
-- Decisions.
-- Review packets.
-- Audits.
-- Protocols.
-- Ontology freeze records.
-- Capability registry metadata.
-- Session history and worker handoffs.
-- Cross-project coordination.
-
-Examples:
+The architecture migration sequence and current blockers live in:
 
 ```text
-.ai-bridge/current-plan.md
-.ai-bridge/decisions.md
-.ai-bridge/projects/center/decisions.md
-.ai-bridge/projects/center/reviews/
-.ai-bridge/projects/center/audits/
-.ai-bridge/protocols/execution-authority.md
+apps/sim/docs/architecture/migration-roadmap.md
 ```
+
+A substantial implementation slice should have a bounded slice specification linked from the roadmap or owning issue/PR. Temporary command output, logs, and generated evidence are not canonical documentation.
+
+## Generated Local State
+
+Mutable local runtime data and generated evidence belong under:
+
+```text
+var/center/
+```
+
+`var/` is ignored by Git. Do not store specifications, decisions, source configuration, or required fixtures there.
 
 ## Canonical Truth Rule
 
-Every important topic should have one canonical explanatory document.
-
-Other documents should link to that canonical document instead of restating it.
+Every important topic has one canonical explanatory document. Other documents link to it instead of restating it.
 
 When duplicate truth exists:
 
-1. Pick the owner and canonical path.
-2. Merge useful content into the canonical document.
-3. Replace stale copies with pointers.
-4. Record a decision in `.ai-bridge` if project truth changed.
-
-## Reference Style
-
-Use explicit repository paths.
-
-Good:
-
-```text
-apps/sim/docs/center/producer-model.md
-.ai-bridge/projects/center/reviews/RP-20260629-004-pre-dogfood-overnight-hardening.md
-```
-
-Avoid:
-
-```text
-Vague references to the coordination folder.
-References to prior conversations.
-Unqualified references to docs.
-```
+1. Select the canonical owner and path.
+2. Merge still-valid content into that document.
+3. Remove or replace stale copies with links.
+4. Add or supersede an ADR when the underlying decision changed.
 
 ## Required Content For Major Docs
 
-Major documents should answer the following where relevant:
+Major documents should answer, where relevant:
 
-- What is this?
-- Why does it exist?
-- Which repository path owns it?
-- Which project owns it?
+- What is this and why does it exist?
+- Which path and project own it?
 - What is its current status?
 - What code is canonical?
-- What depends on it?
-- What does it depend on?
-- What are its assumptions and limitations?
-- How should it be extended?
+- What depends on it and what does it depend on?
+- What assumptions, invariants, and limitations apply?
+- How should it be operated or extended?
 - What should be read next?
-
-## Center Example
-
-Canonical Center system docs:
-
-```text
-apps/sim/docs/center/README.md
-apps/sim/docs/center/architecture.md
-apps/sim/docs/center/ontology-and-local-spine.md
-apps/sim/docs/center/producer-model.md
-apps/sim/docs/center/capability-system.md
-apps/sim/docs/center/operations-and-dogfood.md
-```
-
-Center governance/evolution docs:
-
-```text
-.ai-bridge/projects/center/roadmap.md
-.ai-bridge/projects/center/decisions.md
-.ai-bridge/projects/center/reviews/
-.ai-bridge/projects/center/audits/
-```
 
 ## Maintenance Checks
 
 Before finishing documentation work:
 
-- Check that explicit local paths exist.
-- Check that stale `.ai-bridge` docs do not duplicate project docs.
-- Check that docs do not reference chat history.
+- Confirm referenced repository paths exist.
+- Confirm the document does not rely on conversation history.
+- Confirm one canonical source remains for each claim.
 - Run `git diff --check`.
-- Run targeted project checks if documentation claims runtime behavior.
+- Run targeted project checks only when documentation asserts changed runtime behavior.
 
 ## Related Documents
 
+- `docs/README.md`
 - `docs/REPOSITORY_MAP.md`
+- `apps/sim/docs/architecture/README.md`
 - `apps/sim/docs/center/README.md`
-- `.ai-bridge/README.md`
-- `.ai-bridge/protocols/execution-authority.md`

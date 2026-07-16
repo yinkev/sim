@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sim.local/schemas/center-capability.schema.json",
+  "title": "Capability",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "version",
+    "producerId",
+    "kind",
+    "inputs",
+    "outputs",
+    "authorityRequired",
+    "truthImpact",
+    "policyRequirements",
+    "evidenceProduced",
+    "failureModes",
+    "lifecycle"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^(emit|read|write|run|predict|summarize|review|feature)\\.[a-z0-9][a-z0-9_.-]*$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^v?[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "producerId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["emit", "read", "write", "run", "predict", "summarize", "review"]
+    },
+    "inputs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/schemaRef" }
+    },
+    "outputs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/schemaRef" }
+    },
+    "authorityRequired": {
+      "type": "string",
+      "enum": ["A0", "A1", "A2", "A3", "A4"]
+    },
+    "truthImpact": {
+      "type": "string",
+      "enum": ["T0", "T1", "T2", "T3", "T4"]
+    },
+    "policyRequirements": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "evidenceProduced": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "failureModes": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "requires": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "default": []
+    },
+    "lifecycle": {
+      "type": "string",
+      "enum": ["draft", "registered", "available", "connected", "disabled", "deprecated", "removed"]
+    }
+  },
+  "$defs": {
+    "schemaRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "type": "string" },
+        "uri": { "type": "string" }
+      }
+    }
+  }
+}
