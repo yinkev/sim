@@ -5,16 +5,13 @@ import { createLogger } from '@sim/logger'
 import { generateId } from '@sim/utils/id'
 import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
-import { listWorkspacesQuerySchema } from '@/lib/api/contracts'
-import { createWorkspaceContract } from '@/lib/api/contracts/workspaces'
+import { createWorkspaceContract, listWorkspacesQuerySchema } from '@/lib/api/contracts/workspaces'
 import { parseRequest } from '@/lib/api/server'
-import { getSession } from '@/lib/auth'
+import { getSession } from '@/lib/auth/api-session'
 import type { PlanCategory } from '@/lib/billing/plan-helpers'
 import { PlatformEvents } from '@/lib/core/telemetry'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { captureServerEvent } from '@/lib/posthog/server'
-import { buildDefaultWorkflowArtifacts } from '@/lib/workflows/defaults'
-import { saveWorkflowToNormalizedTables } from '@/lib/workflows/persistence/utils'
 import { getRandomWorkspaceColor } from '@/lib/workspaces/colors'
 import {
   CONTACT_OWNER_TO_UPGRADE_REASON,
@@ -355,6 +352,11 @@ async function createWorkspace({
       await tx.insert(permissions).values(permissionRows)
 
       if (!skipDefaultWorkflow) {
+        const [{ buildDefaultWorkflowArtifacts }, { saveWorkflowToNormalizedTables }] =
+          await Promise.all([
+            import('@/lib/workflows/defaults'),
+            import('@/lib/workflows/persistence/utils'),
+          ])
         await tx.insert(workflow).values({
           id: workflowId,
           userId,

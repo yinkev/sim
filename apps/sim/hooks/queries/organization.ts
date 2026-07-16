@@ -16,12 +16,10 @@ import {
 } from '@/lib/api/contracts/invitations'
 import {
   createOrganizationContract,
-  getMyMemberCreditsContract,
   getOrganizationMemberUsageLimitContract,
   getOrganizationRosterContract,
   inviteOrganizationMembersContract,
   listOrganizationMembersContract,
-  type MyMemberCreditsData,
   type OrganizationMembersResponse,
   type OrganizationMemberUsageLimitData,
   type OrganizationRoster,
@@ -43,8 +41,9 @@ import { client } from '@/lib/auth/auth-client'
 import { isEnterprise, isPaid, isTeam } from '@/lib/billing/plan-helpers'
 import { hasPaidSubscriptionStatus } from '@/lib/billing/subscriptions/utils'
 import { workspaceCredentialKeys } from '@/hooks/queries/credentials'
-import { subscriptionKeys } from '@/hooks/queries/subscription'
-import { workspaceKeys } from '@/hooks/queries/workspace'
+import { organizationKeys } from '@/hooks/queries/organization-keys'
+import { subscriptionKeys } from '@/hooks/queries/subscription-keys'
+import { workspaceKeys } from '@/hooks/queries/workspace-keys'
 
 const logger = createLogger('OrganizationQueries')
 const invitationListsKey = ['invitations', 'list'] as const
@@ -93,27 +92,10 @@ function readNumber(value: unknown): number | undefined {
   return undefined
 }
 
-/**
- * Query key factories for organization-related queries
- * This ensures consistent cache invalidation across the app
- */
-export const organizationKeys = {
-  all: ['organizations'] as const,
-  lists: () => [...organizationKeys.all, 'list'] as const,
-  details: () => [...organizationKeys.all, 'detail'] as const,
-  detail: (id: string) => [...organizationKeys.details(), id] as const,
-  subscription: (id: string) => [...organizationKeys.detail(id), 'subscription'] as const,
-  billing: (id: string) => [...organizationKeys.detail(id), 'billing'] as const,
-  members: (id: string) => [...organizationKeys.detail(id), 'members'] as const,
-  memberUsage: (id: string) => [...organizationKeys.detail(id), 'member-usage'] as const,
-  memberUsageLimit: (id: string, userId: string) =>
-    [...organizationKeys.detail(id), 'member-usage-limit', userId] as const,
-  roster: (id: string) => [...organizationKeys.detail(id), 'roster'] as const,
-  myMemberCredits: (workspaceId: string) =>
-    [...organizationKeys.all, 'my-member-credits', workspaceId] as const,
-}
-
 export type { OrganizationRoster, RosterMember, RosterPendingInvitation, RosterWorkspaceAccess }
+export { organizationKeys }
+export { useOrganizations } from '@/hooks/queries/organization-list'
+export { useMyMemberCredits } from '@/hooks/queries/organization-member-credits'
 
 async function fetchOrganizationRoster(
   orgId: string,
@@ -142,34 +124,6 @@ export function useOrganizationRoster(orgId: string | undefined | null) {
     enabled: !!orgId,
     staleTime: 30 * 1000,
     placeholderData: keepPreviousData,
-  })
-}
-
-/**
- * Fetch all organizations for the current user
- * Note: Billing data is fetched separately via useSubscriptionData() to avoid duplicate calls
- * Note: better-auth client does not support AbortSignal, so signal is accepted but not forwarded
- */
-async function fetchOrganizations(_signal?: AbortSignal) {
-  const [orgsResponse, activeOrgResponse] = await Promise.all([
-    client.organization.list(),
-    client.organization.getFullOrganization(),
-  ])
-
-  return {
-    organizations: orgsResponse.data || [],
-    activeOrganization: activeOrgResponse.data,
-  }
-}
-
-/**
- * Hook to fetch all organizations
- */
-export function useOrganizations() {
-  return useQuery({
-    queryKey: organizationKeys.lists(),
-    queryFn: ({ signal }) => fetchOrganizations(signal),
-    staleTime: 30 * 1000,
   })
 }
 
@@ -541,31 +495,6 @@ export function useUpdateOrganizationMemberUsageLimit() {
         queryKey: organizationKeys.memberUsageLimit(variables.orgId, variables.userId),
       })
     },
-  })
-}
-
-async function fetchMyMemberCredits(
-  workspaceId: string,
-  signal?: AbortSignal
-): Promise<MyMemberCreditsData> {
-  const response = await requestJson(getMyMemberCreditsContract, {
-    query: { workspaceId },
-    signal,
-  })
-  return response.data
-}
-
-/**
- * The caller's OWN per-member credit usage + cap for a workspace's organization.
- * `creditLimit` is null when no per-member cap applies (non-hosted, non-org
- * workspace, or no cap set) — callers then fall back to the plan-level view.
- */
-export function useMyMemberCredits(workspaceId?: string) {
-  return useQuery({
-    queryKey: organizationKeys.myMemberCredits(workspaceId ?? ''),
-    queryFn: ({ signal }) => fetchMyMemberCredits(workspaceId as string, signal),
-    enabled: Boolean(workspaceId),
-    staleTime: 30 * 1000,
   })
 }
 

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createLogger } from '@sim/logger'
 import { usePathname } from 'next/navigation'
 import type { PostHog } from 'posthog-js'
-import { getEnv, isTruthy } from '@/lib/core/config/env'
+import { getEnv, isTruthy } from '@/lib/core/config/public-env'
 
 const logger = createLogger('PostHogProvider')
 

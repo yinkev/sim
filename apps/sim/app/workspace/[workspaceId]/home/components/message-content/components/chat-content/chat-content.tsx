@@ -1,6 +1,7 @@
 'use client'
 
 import { type ComponentPropsWithoutRef, memo, useEffect, useMemo, useRef } from 'react'
+import { highlight, languages } from 'prismjs'
 import { Streamdown } from 'streamdown'
 import 'streamdown/styles.css'
 import 'prismjs/components/prism-typescript'
@@ -8,7 +9,7 @@ import 'prismjs/components/prism-bash'
 import 'prismjs/components/prism-css'
 import 'prismjs/components/prism-markup'
 import '@/components/emcn/components/code/code.css'
-import { Checkbox, CopyCodeButton, highlight, languages } from '@/components/emcn'
+import { Checkbox, CopyCodeButton } from '@/components/emcn'
 import { cn } from '@/lib/core/utils/cn'
 import { extractTextContent } from '@/lib/core/utils/react-node-text'
 import {

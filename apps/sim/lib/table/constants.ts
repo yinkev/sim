@@ -124,6 +124,9 @@ export const USER_TABLE_ROWS_SQL_NAME = 'user_table_rows'
  */
 export const CSV_ASYNC_IMPORT_THRESHOLD_BYTES = 8 * 1024 * 1024
 
+/** Maximum CSV/TSV file size accepted by import routes (25 MB). */
+export const CSV_MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024
+
 const TABLE_NAME_ADJECTIVES = [
   'Radiant',
   'Luminous',

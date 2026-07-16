@@ -25,47 +25,46 @@ import { BLOCK_DIMENSIONS, CONTAINER_DIMENSIONS } from '@/lib/workflows/blocks/b
 import { TriggerUtils } from '@/lib/workflows/triggers/triggers'
 import { ConnectOAuthModal } from '@/app/workspace/[workspaceId]/components/connect-oauth-modal'
 import { useWorkspacePermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
-import {
-  CommandList,
-  DiffControls,
-  Panel,
-  Terminal,
-} from '@/app/workspace/[workspaceId]/w/[workflowId]/components'
 import { BlockMenu } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/block-menu'
 import { CanvasMenu } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/canvas-menu'
+import { CommandList } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/command-list/command-list'
 import { Cursors } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/cursors/cursors'
+import { DiffControls } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/diff-controls/diff-controls'
 import { ErrorBoundary } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/error/index'
-import { WorkflowSearchReplace } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/search-replace/workflow-search-replace'
+import { Panel } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/panel'
 import type { SubflowNodeData } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/subflows/subflow-node'
+import { Terminal } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/terminal/terminal'
 import { WorkflowControls } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/workflow-controls/workflow-controls'
+import { useAutoLayout } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks/use-auto-layout'
+import { useCanvasContextMenu } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks/use-canvas-context-menu'
+import { useCurrentWorkflow } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks/use-current-workflow'
+import { useDynamicHandleRefresh } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks/use-dynamic-handle-refresh'
+import { useNodeUtilities } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks/use-node-utilities'
+import { useShiftSelectionLock } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks/use-shift-selection-lock'
+import { useWorkflowExecution } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks/use-workflow-execution'
 import {
-  useAutoLayout,
-  useCanvasContextMenu,
-  useCurrentWorkflow,
-  useDynamicHandleRefresh,
-  useNodeUtilities,
-  useShiftSelectionLock,
-  useWorkflowExecution,
-} from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks'
+  filterProtectedBlocks,
+  getWorkflowLockToggleIds,
+  isBlockProtected,
+  isEdgeProtected,
+} from '@/app/workspace/[workspaceId]/w/[workflowId]/utils/block-protection-utils'
 import {
   calculateContainerDimensions,
   clampPositionToContainer,
+  estimateBlockDimensions,
+} from '@/app/workspace/[workspaceId]/w/[workflowId]/utils/node-position-utils'
+import {
   clearDragHighlights,
   computeClampedPositionUpdates,
-  estimateBlockDimensions,
-  filterProtectedBlocks,
   getClampedPositionForNode,
   getDescendantBlockIds,
   getEdgeSelectionContextId,
   getNodeSelectionContextId,
-  getWorkflowLockToggleIds,
-  isBlockProtected,
-  isEdgeProtected,
   isInEditableElement,
   isPositionalTriggerBlock,
   resolveSelectionConflicts,
   validateTriggerPaste,
-} from '@/app/workspace/[workspaceId]/w/[workflowId]/utils'
+} from '@/app/workspace/[workspaceId]/w/[workflowId]/utils/workflow-canvas-helpers'
 import {
   defaultEdgeOptions,
   edgeTypes,
@@ -79,7 +78,6 @@ import {
 import { useSocket } from '@/app/workspace/providers/socket-provider'
 import { getBlock } from '@/blocks'
 import { isAnnotationOnlyBlock } from '@/executor/constants'
-import { useWorkspaceEnvironment } from '@/hooks/queries/environment'
 import { useFolderMap } from '@/hooks/queries/folders'
 import { useAutoConnect, useSnapToGridSize } from '@/hooks/queries/general-settings'
 import {
@@ -109,6 +107,12 @@ const LazyChat = lazy(() =>
   import('@/app/workspace/[workspaceId]/w/[workflowId]/components/chat/chat').then((mod) => ({
     default: mod.Chat,
   }))
+)
+
+const LazyWorkflowSearchReplace = lazy(() =>
+  import(
+    '@/app/workspace/[workspaceId]/w/[workflowId]/components/search-replace/workflow-search-replace'
+  ).then((mod) => ({ default: mod.WorkflowSearchReplace }))
 )
 
 const logger = createLogger('Workflow')
@@ -336,6 +340,7 @@ const WorkflowContent = React.memo(
     // Panel open states for context menu
     const isVariablesOpen = useVariablesModalStore((state) => state.isOpen)
     const isChatOpen = useChatStore((state) => state.isChatOpen)
+    const isWorkflowSearchReplaceOpen = useWorkflowSearchReplaceStore((state) => state.isOpen)
 
     const snapGrid: [number, number] = useMemo(
       () => [snapToGridSize, snapToGridSize],
@@ -2348,8 +2353,6 @@ const WorkflowContent = React.memo(
       workspaceId,
     ])
 
-    useWorkspaceEnvironment(sandbox ? '' : workspaceId)
-
     const workflowCount = useMemo(() => Object.keys(workflows).length, [workflows])
 
     /** Handles navigation validation and redirects for invalid workflow IDs. */
@@ -4215,7 +4218,11 @@ const WorkflowContent = React.memo(
               </>
             )}
 
-            {!embedded && <WorkflowSearchReplace />}
+            {!embedded && isWorkflowSearchReplaceOpen && (
+              <Suspense fallback={null}>
+                <LazyWorkflowSearchReplace />
+              </Suspense>
+            )}
 
             {!embedded && isWorkflowReady && isWorkflowEmpty && effectivePermissions.canEdit && (
               <CommandList />

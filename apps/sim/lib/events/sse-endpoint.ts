@@ -7,7 +7,7 @@
 
 import { createLogger } from '@sim/logger'
 import type { NextRequest } from 'next/server'
-import { getSession } from '@/lib/auth'
+import { getSession } from '@/lib/auth/api-session'
 import { SSE_HEADERS } from '@/lib/core/utils/sse'
 import { getUserEntityPermissions } from '@/lib/workspaces/permissions/utils'
 

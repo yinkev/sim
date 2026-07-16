@@ -25,17 +25,16 @@ import type {
   MothershipResource,
   MothershipResourceType,
 } from '@/app/workspace/[workspaceId]/home/types'
-import { formatDate } from '@/app/workspace/[workspaceId]/logs/utils'
-import { listIntegrations } from '@/blocks/integration-matcher'
-import { useFolders } from '@/hooks/queries/folders'
-import { useKnowledgeBasesQuery } from '@/hooks/queries/kb/knowledge'
-import { useLogsList } from '@/hooks/queries/logs'
-import { useMothershipChats } from '@/hooks/queries/mothership-chats'
-import { useWorkspaceSchedules } from '@/hooks/queries/schedules'
-import { useTablesList } from '@/hooks/queries/tables'
-import { useWorkflows } from '@/hooks/queries/workflows'
+import { listIntegrationMentions } from '@/blocks/integration-mention-matcher'
+import { useFolders } from '@/hooks/queries/folder-list'
+import { useKnowledgeBasesQuery } from '@/hooks/queries/kb/knowledge-list'
+import { useLogsList } from '@/hooks/queries/log-list'
+import { useMothershipChats } from '@/hooks/queries/mothership-chat-list'
+import { useWorkspaceSchedules } from '@/hooks/queries/schedule-list'
+import { useTablesList } from '@/hooks/queries/table-list'
+import { useWorkflows } from '@/hooks/queries/workflow-list'
 import { useWorkspaceFileFolders } from '@/hooks/queries/workspace-file-folders'
-import { useWorkspaceFiles } from '@/hooks/queries/workspace-files'
+import { useWorkspaceFiles } from '@/hooks/queries/workspace-file-list'
 
 export interface AddResourceDropdownProps {
   workspaceId: string
@@ -55,6 +54,19 @@ interface AvailableItemsByType {
 
 const LOG_DROPDOWN_LIMIT = 50
 
+const COMPACT_LOG_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hourCycle: 'h23',
+})
+
+export function formatCompactLogDate(dateString: string): string {
+  return COMPACT_LOG_DATE_FORMATTER.format(new Date(dateString)).replace(',', '')
+}
+
 const LOG_DROPDOWN_FILTERS = {
   timeRange: 'All time' as const,
   level: 'all',
@@ -70,17 +82,19 @@ const LOG_DROPDOWN_FILTERS = {
 export function useAvailableResources(
   workspaceId: string,
   existingKeys: Set<string>,
-  excludeTypes?: readonly MothershipResourceType[]
+  excludeTypes?: readonly MothershipResourceType[],
+  options?: { enabled?: boolean }
 ): AvailableItemsByType[] {
-  const { data: workflows = [] } = useWorkflows(workspaceId)
-  const { data: tables = [] } = useTablesList(workspaceId)
-  const { data: files = [] } = useWorkspaceFiles(workspaceId)
-  const { data: knowledgeBases } = useKnowledgeBasesQuery(workspaceId)
-  const { data: folders = [] } = useFolders(workspaceId)
-  const { data: fileFolders = [] } = useWorkspaceFileFolders(workspaceId)
-  const { data: tasks = [] } = useMothershipChats(workspaceId)
-  const { data: schedules = [] } = useWorkspaceSchedules(workspaceId)
-  const { data: logsData } = useLogsList(workspaceId, LOG_DROPDOWN_FILTERS)
+  const enabled = options?.enabled ?? true
+  const { data: workflows = [] } = useWorkflows(workspaceId, { enabled })
+  const { data: tables = [] } = useTablesList(workspaceId, 'active', { enabled })
+  const { data: files = [] } = useWorkspaceFiles(workspaceId, 'active', { enabled })
+  const { data: knowledgeBases } = useKnowledgeBasesQuery(workspaceId, { enabled })
+  const { data: folders = [] } = useFolders(workspaceId, { enabled })
+  const { data: fileFolders = [] } = useWorkspaceFileFolders(workspaceId, 'active', { enabled })
+  const { data: tasks = [] } = useMothershipChats(workspaceId, { enabled })
+  const { data: schedules = [] } = useWorkspaceSchedules(workspaceId, { enabled })
+  const { data: logsData } = useLogsList(workspaceId, LOG_DROPDOWN_FILTERS, { enabled })
   const logs = useMemo(() => (logsData?.pages ?? []).flatMap((page) => page.logs), [logsData])
 
   return useMemo(() => {
@@ -142,11 +156,9 @@ export function useAvailableResources(
       },
       {
         type: 'integration' as const,
-        items: listIntegrations().map((integration) => ({
+        items: listIntegrationMentions().map((integration) => ({
           id: integration.blockType,
           name: integration.name,
-          iconComponent: integration.icon,
-          bgColor: integration.bgColor,
           isOpen: existingKeys.has(`integration:${integration.blockType}`),
         })),
       },
@@ -172,7 +184,7 @@ export function useAvailableResources(
         type: 'log' as const,
         items: logs.map((log) => {
           const workflowName = log.workflow?.name ?? log.workflowId ?? 'Unknown'
-          const time = formatDate(log.createdAt).compact
+          const time = formatCompactLogDate(log.createdAt)
           return {
             id: log.id,
             name: `${workflowName} · ${time}`,
@@ -391,10 +403,12 @@ export function AddResourceDropdown({
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
-  const available = useAvailableResources(workspaceId, existingKeys, [
-    ...(excludeTypes ?? []),
-    'integration',
-  ])
+  const available = useAvailableResources(
+    workspaceId,
+    existingKeys,
+    [...(excludeTypes ?? []), 'integration'],
+    { enabled: open }
+  )
   const handleOpenChange = (next: boolean) => {
     setOpen(next)
     if (!next) {

@@ -5,8 +5,8 @@ import { createLogger } from '@sim/logger'
 import { RefreshCw } from 'lucide-react'
 import { ReactFlowProvider } from 'reactflow'
 import { Button } from '@/components/emcn'
-import { Panel } from '@/app/workspace/[workspaceId]/w/[workflowId]/components'
-import { usePreventZoom } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks'
+import { Panel } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/panel'
+import { usePreventZoom } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks/use-prevent-zoom'
 import { Sidebar } from '@/app/workspace/[workspaceId]/w/components/sidebar/sidebar'
 
 const logger = createLogger('ErrorBoundary')

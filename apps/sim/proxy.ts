@@ -1,10 +1,7 @@
 import { createLogger } from '@sim/logger'
-import { getSessionCookie } from 'better-auth/cookies'
 import { type NextRequest, NextResponse } from 'next/server'
-import { sendToProfound } from './lib/analytics/profound'
-import { getEnv } from './lib/core/config/env'
-import { isAuthDisabled, isHosted } from './lib/core/config/env-flags'
-import { generateRuntimeCSP } from './lib/core/security/csp'
+import { isAuthDisabled, isHosted, proxyAppUrl } from './lib/core/config/proxy-env'
+import { generateRuntimeCSP } from './lib/core/security/runtime-csp'
 import { getClientIp } from './lib/core/utils/request'
 
 const logger = createLogger('Proxy')
@@ -90,7 +87,7 @@ export function resolveApiCorsPolicy(request: NextRequest): CorsPolicy {
     if (rule.match(pathname)) return rule.policy(request)
   }
   return {
-    origin: getEnv('NEXT_PUBLIC_APP_URL') || 'http://localhost:3001',
+    origin: proxyAppUrl || 'http://localhost:3001',
     credentials: true,
     methods: 'GET,POST,OPTIONS,PUT,DELETE',
     headers: DEFAULT_API_ALLOWED_HEADERS,
@@ -250,8 +247,11 @@ export async function proxy(request: NextRequest) {
     return response
   }
 
-  const sessionCookie = getSessionCookie(request)
-  const hasActiveSession = isAuthDisabled || !!sessionCookie
+  let hasActiveSession = isAuthDisabled
+  if (!isAuthDisabled) {
+    const { getSessionCookie } = await import('better-auth/cookies')
+    hasActiveSession = !!getSessionCookie(request)
+  }
 
   const redirect = handleRootPathRedirects(request, hasActiveSession)
   if (redirect) return track(request, redirect)
@@ -316,7 +316,9 @@ export async function proxy(request: NextRequest) {
  * Sends request data to Profound analytics (fire-and-forget) and returns the response.
  */
 function track(request: NextRequest, response: NextResponse): NextResponse {
-  sendToProfound(request, response.status)
+  void import('@/lib/analytics/profound')
+    .then(({ sendToProfound }) => sendToProfound(request, response.status))
+    .catch((error) => logger.error('Failed to load Profound analytics', error))
   return response
 }
 

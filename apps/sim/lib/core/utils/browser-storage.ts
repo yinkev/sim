@@ -272,6 +272,24 @@ export class LandingWorkflowSeedStorage {
     })
   }
 
+  static hasSeed(maxAge: number = 24 * 60 * 60 * 1000): boolean {
+    const data = BrowserStorage.getItem<(LandingWorkflowSeed & { timestamp: number }) | null>(
+      LandingWorkflowSeedStorage.KEY,
+      null
+    )
+
+    if (!data || !data.templateId || !data.workflowName || !data.timestamp || !data.workflowJson) {
+      return false
+    }
+
+    if (Date.now() - data.timestamp > maxAge) {
+      LandingWorkflowSeedStorage.clear()
+      return false
+    }
+
+    return true
+  }
+
   static consume(maxAge: number = 24 * 60 * 60 * 1000): LandingWorkflowSeed | null {
     const data = BrowserStorage.getItem<(LandingWorkflowSeed & { timestamp: number }) | null>(
       LandingWorkflowSeedStorage.KEY,

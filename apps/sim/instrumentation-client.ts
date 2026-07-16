@@ -3,8 +3,8 @@
  */
 
 import { randomFloat } from '@sim/utils/random'
-import { env } from './lib/core/config/env'
-import { sanitizeEventData } from './lib/core/security/redaction'
+import { getEnv } from '@/lib/core/config/public-env'
+import { sanitizeEventData } from '@/lib/core/security/redaction'
 
 if (typeof window !== 'undefined') {
   const TELEMETRY_STATUS_KEY = 'simstudio-telemetry-status'
@@ -15,7 +15,9 @@ if (typeof window !== 'undefined') {
   let batchTimer: NodeJS.Timeout | null = null
 
   try {
-    if (env.NEXT_TELEMETRY_DISABLED === '1') {
+    const telemetryDisabled =
+      getEnv('NEXT_TELEMETRY_DISABLED') === '1' || window.location.pathname.startsWith('/center/')
+    if (telemetryDisabled) {
       telemetryEnabled = false
     } else {
       const storedPreference = localStorage.getItem(TELEMETRY_STATUS_KEY)

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getVoiceSettingsContract } from '@/lib/api/contracts'
+import { getVoiceSettingsContract } from '@/lib/api/contracts/common'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { hasSTTService } from '@/lib/speech/config'
 

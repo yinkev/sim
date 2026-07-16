@@ -1,7 +1,12 @@
 import path from 'node:path'
 import type { NextConfig } from 'next'
+import { PHASE_DEVELOPMENT_SERVER } from 'next/constants'
+import {
+  EMCN_ICON_MODULAR_IMPORTS,
+  EMCN_MODULAR_IMPORTS,
+} from './lib/build-config/emcn-modular-imports'
 import { env, isTruthy } from './lib/core/config/env'
-import { isDev } from './lib/core/config/env-flags'
+import { isAuthDisabled, isDev, isHosted } from './lib/core/config/env-flags'
 import {
   getChatEmbedCSPPolicy,
   getMainCSPPolicy,
@@ -9,10 +14,66 @@ import {
 } from './lib/core/security/csp'
 
 const repoRoot = path.resolve(process.cwd(), '../..')
+const isPostHogDisabled = !isTruthy(env.NEXT_PUBLIC_POSTHOG_ENABLED) || !env.NEXT_PUBLIC_POSTHOG_KEY
+const isTelemetryDisabled = env.NEXT_TELEMETRY_DISABLED?.trim() === '1'
+const areRootOptionalScriptsDisabled =
+  !isHosted && (!isDev || (!isTruthy(env.REACT_GRAB_ENABLED) && !isTruthy(env.REACT_SCAN_ENABLED)))
 
-const nextConfig: NextConfig = {
+const createNextConfig = (phase: string): NextConfig => ({
   turbopack: {
     root: repoRoot,
+    ...(phase === PHASE_DEVELOPMENT_SERVER &&
+      (isAuthDisabled ||
+        isPostHogDisabled ||
+        isTelemetryDisabled ||
+        areRootOptionalScriptsDisabled ||
+        !isHosted) && {
+        resolveAlias: {
+          ...(isTelemetryDisabled && {
+            '@/instrumentation-client': '@/instrumentation-disabled',
+            '@/instrumentation-edge': '@/instrumentation-disabled',
+            '@/instrumentation-node': '@/instrumentation-disabled',
+          }),
+          ...(areRootOptionalScriptsDisabled && {
+            '@/app/_shell/root-optional-scripts': '@/app/_shell/root-optional-scripts-disabled',
+          }),
+          ...(isAuthDisabled && {
+            'better-auth/cookies': '@/lib/auth/better-auth-cookies-disabled',
+            '@/app/_shell/providers/session-provider':
+              '@/app/_shell/providers/session-provider-anonymous',
+            '@/app/workspace/[workspaceId]/components/impersonation-banner':
+              '@/app/workspace/[workspaceId]/components/impersonation-banner/impersonation-banner-disabled',
+            '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider':
+              '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider-anonymous',
+            '@/ee/whitelabeling/components/branding-provider':
+              '@/ee/whitelabeling/components/branding-provider-disabled',
+            '@/ee/whitelabeling/org-branding': '@/ee/whitelabeling/org-branding-disabled',
+            '@/ee/access-control/hooks/use-user-permission-config':
+              '@/ee/access-control/hooks/use-user-permission-config-disabled',
+            '@/lib/auth/page-session': '@/lib/auth/page-session-anonymous',
+            '@/lib/auth/server-session': '@/lib/auth/server-session-anonymous',
+          }),
+          ...(!isHosted && {
+            '@/lib/analytics/profound': '@/lib/analytics/profound-disabled',
+          }),
+          ...(isPostHogDisabled && {
+            '@/app/_shell/providers/posthog-provider':
+              '@/app/_shell/providers/posthog-provider-disabled',
+            'posthog-js/react': '@/lib/posthog/dev-disabled-react',
+            'posthog-js': '@/lib/posthog/dev-disabled',
+          }),
+        },
+      }),
+  },
+  modularizeImports: {
+    '@/components/emcn': {
+      transform: EMCN_MODULAR_IMPORTS,
+      skipDefaultConversion: true,
+    },
+    '@/components/emcn/icons': {
+      transform: EMCN_ICON_MODULAR_IMPORTS,
+      skipDefaultConversion: true,
+    },
   },
   devIndicators: false,
   poweredByHeader: false,
@@ -83,6 +144,7 @@ const nextConfig: NextConfig = {
   output: isTruthy(env.DOCKER_BUILD) ? 'standalone' : undefined,
   serverExternalPackages: [
     '@1password/sdk',
+    '@opentelemetry/api',
     'unpdf',
     'ffmpeg-static',
     'fluent-ffmpeg',
@@ -100,6 +162,11 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
+    // Next 16 enables Turbopack's dev filesystem cache by default. On this app's
+    // large workspace graph it expands to multiple GiB and spends minutes compacting.
+    turbopackFileSystemCacheForDev: false,
+    // Bound Turbopack's native task graph; NODE_OPTIONS only limits the V8 heap.
+    turbopackMemoryLimit: 6 * 1024 * 1024 * 1024,
     optimizeCss: true,
     preloadEntriesOnStart: false,
     optimizePackageImports: [
@@ -342,6 +409,6 @@ const nextConfig: NextConfig = {
       },
     ]
   },
-}
+})
 
-export default nextConfig
+export default createNextConfig

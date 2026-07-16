@@ -10,7 +10,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query'
 import type { SyntheticFilePreviewPayload } from '@/lib/copilot/request/session'
 import type { FilePreviewSession } from '@/lib/copilot/request/session/file-preview-session-contract'
-import { invalidateResourceQueries } from '@/app/workspace/[workspaceId]/home/components/mothership-view/components/resource-registry'
+import { invalidateResourceQueries } from '@/app/workspace/[workspaceId]/home/components/mothership-view/components/resource-registry/resource-query-invalidation'
 import { deriveFilePreviewSession } from '@/app/workspace/[workspaceId]/home/hooks/preview/apply-file-preview-phase'
 import {
   buildCompletedPreviewSessions,

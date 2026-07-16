@@ -23,6 +23,7 @@ vi.mock('drizzle-orm', () => drizzleOrmMock)
 vi.mock('@sim/logger', () => loggerMock)
 vi.mock('@sim/workflow-authz', () => workflowAuthzMock)
 vi.mock('@/lib/auth', () => authMock)
+vi.mock('@/lib/auth/api-session', () => authMock)
 vi.mock('@/lib/auth/hybrid', () => hybridAuthMock)
 vi.mock('@/lib/core/utils/request', () => requestUtilsMock)
 

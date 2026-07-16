@@ -13,7 +13,7 @@ import type {
   MothershipResource,
   MothershipResourceType,
 } from '@/app/workspace/[workspaceId]/home/types'
-import type { MothershipChatHistory } from '@/hooks/queries/mothership-chats'
+import type { MothershipChatHistory } from '@/hooks/queries/mothership-chat-history'
 
 export type ActiveTurn = {
   userMessageId: string

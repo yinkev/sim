@@ -1,6 +1,6 @@
+import { stripVersionSuffix } from '@sim/utils/string'
 import { getExposedIntegrationTools } from '@/lib/copilot/integration-tools'
 import type { ExecutionContext, ToolCallResult } from '@/lib/copilot/request/types'
-import { stripVersionSuffix } from '@/tools/utils'
 
 export async function executeListIntegrationTools(
   params: Record<string, unknown>,

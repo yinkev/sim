@@ -29,13 +29,13 @@ import type {
   MothershipResourceType,
 } from '@/app/workspace/[workspaceId]/home/types'
 import { useFolders } from '@/hooks/queries/folders'
-import { useKnowledgeBasesQuery } from '@/hooks/queries/kb/knowledge'
+import { useKnowledgeBasesQuery } from '@/hooks/queries/kb/knowledge-list'
 import {
   useAddChatResource,
   useRemoveChatResource,
   useReorderChatResources,
 } from '@/hooks/queries/mothership-chats'
-import { useTablesList } from '@/hooks/queries/tables'
+import { useTablesList } from '@/hooks/queries/table-list'
 import { useWorkflows } from '@/hooks/queries/workflows'
 import { useWorkspaceFiles } from '@/hooks/queries/workspace-files'
 

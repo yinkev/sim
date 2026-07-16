@@ -40,9 +40,10 @@ import {
 import { VFS_DIR_TO_RESOURCE } from '@/lib/copilot/resources/types'
 import type { ContentBlock, MothershipResource } from '@/app/workspace/[workspaceId]/home/types'
 import { ToolCallStatus } from '@/app/workspace/[workspaceId]/home/types'
-import { getWorkflowById } from '@/hooks/queries/utils/workflow-cache'
-import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
-import { useWorkflowStore } from '@/stores/workflows/workflow/store'
+import {
+  findCachedWorkflowBlockById,
+  findCachedWorkflowById,
+} from '@/hooks/queries/utils/workflow-cache'
 
 const logger = createLogger('StreamHelpers')
 
@@ -209,15 +210,13 @@ function stringArrayParam(value: unknown): string[] {
 function resolveWorkflowNameForDisplay(workflowId: unknown): string | undefined {
   const id = stringParam(workflowId)
   if (!id) return undefined
-  const workspaceId = useWorkflowRegistry.getState().hydration.workspaceId
-  if (!workspaceId) return undefined
-  return getWorkflowById(workspaceId, id)?.name
+  return findCachedWorkflowById(id)?.name
 }
 
 function resolveBlockNameForDisplay(blockId: unknown): string | undefined {
   const id = stringParam(blockId)
   if (!id) return undefined
-  return useWorkflowStore.getState().blocks[id]?.name
+  return findCachedWorkflowBlockById(id)?.name
 }
 
 function resolveWorkspaceFileDisplayTitle(

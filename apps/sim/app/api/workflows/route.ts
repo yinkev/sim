@@ -9,9 +9,7 @@ import { checkSessionOrInternalAuth } from '@/lib/auth/hybrid'
 import { generateRequestId } from '@/lib/core/utils/request'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { captureServerEvent } from '@/lib/posthog/server'
-import { performCreateWorkflow } from '@/lib/workflows/orchestration'
 import { getUserEntityPermissions, workspaceExists } from '@/lib/workspaces/permissions/utils'
-import { verifyWorkspaceMembership } from '@/app/api/workflows/utils'
 
 const logger = createLogger('WorkflowAPI')
 
@@ -50,7 +48,15 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
         )
       }
 
-      const userRole = await verifyWorkspaceMembership(userId, workspaceId)
+      let userRole: Awaited<ReturnType<typeof getUserEntityPermissions>> = null
+      try {
+        userRole = await getUserEntityPermissions(userId, 'workspace', workspaceId)
+      } catch (error) {
+        logger.error(
+          `Error verifying workspace permissions for ${userId} in ${workspaceId}:`,
+          error
+        )
+      }
 
       if (!userRole) {
         logger.warn(
@@ -177,6 +183,9 @@ export const POST = withRouteHandler(async (req: NextRequest) => {
       )
     }
 
+    const { performCreateWorkflow } = await import(
+      '@/lib/workflows/orchestration/workflow-lifecycle'
+    )
     const result = await performCreateWorkflow({
       id: clientId,
       name: requestedName,

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { userPermissionConfigQuerySchema } from '@/lib/api/contracts/permission-groups'
-import { getSession } from '@/lib/auth'
+import { getSession } from '@/lib/auth/api-session'
 import { isOrganizationOnEnterprisePlan } from '@/lib/billing'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import {

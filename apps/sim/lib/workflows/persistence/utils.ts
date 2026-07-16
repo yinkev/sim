@@ -1,29 +1,28 @@
-import { db, runOutsideTransactionContext, workflow, workflowDeploymentVersion } from '@sim/db'
-import { credential } from '@sim/db/schema'
+import { db, workflow, workflowDeploymentVersion } from '@sim/db'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { generateId } from '@sim/utils/id'
 import { getActiveWorkflowContext } from '@sim/workflow-authz'
-import {
-  loadWorkflowFromNormalizedTablesRaw,
-  persistMigratedBlocks,
-} from '@sim/workflow-persistence/load'
 import { saveWorkflowToNormalizedTables as saveWorkflowToNormalizedTablesRaw } from '@sim/workflow-persistence/save'
 import type { DbOrTx, NormalizedWorkflowData } from '@sim/workflow-persistence/types'
 import type { BlockState, Loop, Parallel, WorkflowState } from '@sim/workflow-types/workflow'
 import type { InferSelectModel } from 'drizzle-orm'
-import { and, desc, eq, inArray, lt, sql } from 'drizzle-orm'
+import { and, desc, eq, lt, sql } from 'drizzle-orm'
 import type { Edge } from 'reactflow'
 import { remapConditionBlockIds, remapConditionEdgeHandle } from '@/lib/workflows/condition-ids'
 import {
-  backfillCanonicalModes,
-  migrateSubblockIds,
-} from '@/lib/workflows/migrations/subblock-migrations'
-import { sanitizeAgentToolsInBlocks } from '@/lib/workflows/sanitization/validation'
+  applyBlockMigrations,
+  loadWorkflowFromNormalizedTables,
+} from '@/lib/workflows/persistence/load'
 
 const logger = createLogger('WorkflowDBHelpers')
 
 export type { DbOrTx, NormalizedWorkflowData } from '@sim/workflow-persistence/types'
+export {
+  CREDENTIAL_SUBBLOCK_IDS,
+  loadWorkflowFromNormalizedTables,
+  migrateAgentBlocksToMessagesFormat,
+} from '@/lib/workflows/persistence/load'
 
 export type WorkflowDeploymentVersion = InferSelectModel<typeof workflowDeploymentVersion>
 
@@ -153,279 +152,6 @@ export async function loadDeployedWorkflowState(
   } catch (error) {
     logger.error(`Error loading deployed workflow state ${workflowId}:`, error)
     throw error
-  }
-}
-
-interface MigrationContext {
-  blocks: Record<string, BlockState>
-  workspaceId: string
-  executor: DbOrTx
-  migrated: boolean
-}
-
-type BlockMigration = (ctx: MigrationContext) => MigrationContext | Promise<MigrationContext>
-
-function createMigrationPipeline(migrations: BlockMigration[]) {
-  return async (
-    blocks: Record<string, BlockState>,
-    workspaceId: string,
-    executor: DbOrTx = db
-  ): Promise<{ blocks: Record<string, BlockState>; migrated: boolean }> => {
-    let ctx: MigrationContext = { blocks, workspaceId, executor, migrated: false }
-    for (const migration of migrations) {
-      ctx = await migration(ctx)
-    }
-    return { blocks: ctx.blocks, migrated: ctx.migrated }
-  }
-}
-
-const applyBlockMigrations = createMigrationPipeline([
-  (ctx) => {
-    const { blocks } = sanitizeAgentToolsInBlocks(ctx.blocks)
-    return { ...ctx, blocks }
-  },
-
-  (ctx) => ({
-    ...ctx,
-    blocks: migrateAgentBlocksToMessagesFormat(ctx.blocks),
-  }),
-
-  (ctx) => {
-    const { blocks, migrated } = migrateSubblockIds(ctx.blocks)
-    return { ...ctx, blocks, migrated: ctx.migrated || migrated }
-  },
-
-  async (ctx) => {
-    const { blocks, migrated } = await migrateCredentialIds(
-      ctx.blocks,
-      ctx.workspaceId,
-      ctx.executor
-    )
-    return { ...ctx, blocks, migrated: ctx.migrated || migrated }
-  },
-
-  (ctx) => {
-    const { blocks, migrated } = backfillCanonicalModes(ctx.blocks)
-    return { ...ctx, blocks, migrated: ctx.migrated || migrated }
-  },
-])
-
-/**
- * Migrates agent blocks from old format (systemPrompt/userPrompt) to new format (messages array)
- */
-export function migrateAgentBlocksToMessagesFormat(
-  blocks: Record<string, BlockState>
-): Record<string, BlockState> {
-  return Object.fromEntries(
-    Object.entries(blocks).map(([id, block]) => {
-      if (block.type === 'agent') {
-        const systemPrompt = block.subBlocks.systemPrompt?.value
-        const userPrompt = block.subBlocks.userPrompt?.value
-        const messages = block.subBlocks.messages?.value
-
-        if ((systemPrompt || userPrompt) && !messages) {
-          const newMessages: Array<{ role: string; content: string }> = []
-
-          if (systemPrompt) {
-            newMessages.push({
-              role: 'system',
-              content: typeof systemPrompt === 'string' ? systemPrompt : String(systemPrompt),
-            })
-          }
-
-          if (userPrompt) {
-            let userContent = userPrompt
-
-            if (typeof userContent === 'object' && userContent !== null) {
-              if ('input' in userContent) {
-                userContent = (userContent as any).input
-              } else {
-                userContent = JSON.stringify(userContent)
-              }
-            }
-
-            newMessages.push({
-              role: 'user',
-              content: String(userContent),
-            })
-          }
-
-          return [
-            id,
-            {
-              ...block,
-              subBlocks: {
-                ...block.subBlocks,
-                messages: {
-                  id: 'messages',
-                  type: 'messages-input',
-                  value: newMessages,
-                },
-              },
-            },
-          ]
-        }
-      }
-      return [id, block]
-    })
-  )
-}
-
-export const CREDENTIAL_SUBBLOCK_IDS = new Set([
-  'credential',
-  'manualCredential',
-  'triggerCredentials',
-])
-
-async function migrateCredentialIds(
-  blocks: Record<string, BlockState>,
-  workspaceId: string,
-  executor: DbOrTx
-): Promise<{ blocks: Record<string, BlockState>; migrated: boolean }> {
-  const potentialLegacyIds = new Set<string>()
-
-  for (const block of Object.values(blocks)) {
-    for (const [subBlockId, subBlock] of Object.entries(block.subBlocks || {})) {
-      if (!subBlock || typeof subBlock !== 'object') continue
-      const value = (subBlock as { value?: unknown }).value
-      if (
-        CREDENTIAL_SUBBLOCK_IDS.has(subBlockId) &&
-        typeof value === 'string' &&
-        value &&
-        !value.startsWith('cred_')
-      ) {
-        potentialLegacyIds.add(value)
-      }
-
-      if (subBlockId === 'tools' && Array.isArray(value)) {
-        for (const tool of value) {
-          const credParam = tool?.params?.credential
-          if (typeof credParam === 'string' && credParam && !credParam.startsWith('cred_')) {
-            potentialLegacyIds.add(credParam)
-          }
-        }
-      }
-    }
-  }
-
-  if (potentialLegacyIds.size === 0) {
-    return { blocks, migrated: false }
-  }
-
-  const rows = await executor
-    .select({ id: credential.id, accountId: credential.accountId })
-    .from(credential)
-    .where(
-      and(
-        inArray(credential.accountId, [...potentialLegacyIds]),
-        eq(credential.workspaceId, workspaceId)
-      )
-    )
-
-  if (rows.length === 0) {
-    return { blocks, migrated: false }
-  }
-
-  const accountToCredential = new Map(rows.map((r) => [r.accountId!, r.id]))
-
-  const migratedBlocks = Object.fromEntries(
-    Object.entries(blocks).map(([blockId, block]) => {
-      let blockChanged = false
-      const newSubBlocks = { ...block.subBlocks }
-
-      for (const [subBlockId, subBlock] of Object.entries(newSubBlocks)) {
-        if (CREDENTIAL_SUBBLOCK_IDS.has(subBlockId) && typeof subBlock.value === 'string') {
-          const newId = accountToCredential.get(subBlock.value)
-          if (newId) {
-            newSubBlocks[subBlockId] = { ...subBlock, value: newId }
-            blockChanged = true
-          }
-        }
-
-        if (subBlockId === 'tools' && Array.isArray(subBlock.value)) {
-          let toolsChanged = false
-          const newTools = (subBlock.value as any[]).map((tool: any) => {
-            const credParam = tool?.params?.credential
-            if (typeof credParam === 'string') {
-              const newId = accountToCredential.get(credParam)
-              if (newId) {
-                toolsChanged = true
-                return { ...tool, params: { ...tool.params, credential: newId } }
-              }
-            }
-            return tool
-          })
-          if (toolsChanged) {
-            newSubBlocks[subBlockId] = { ...subBlock, value: newTools as any }
-            blockChanged = true
-          }
-        }
-      }
-
-      return [blockId, blockChanged ? { ...block, subBlocks: newSubBlocks } : block]
-    })
-  )
-
-  const anyBlockChanged = Object.keys(migratedBlocks).some(
-    (id) => migratedBlocks[id] !== blocks[id]
-  )
-
-  return { blocks: migratedBlocks, migrated: anyBlockChanged }
-}
-
-/**
- * Load workflow from normalized tables and apply all block migrations
- * (credential ID rewrites, agent message migration, subblock ID migrations,
- * canonical-mode backfill, tool sanitization). Returns null if the workflow
- * has not been migrated to normalized tables yet.
- */
-export async function loadWorkflowFromNormalizedTables(
-  workflowId: string,
-  externalTx?: DbOrTx
-): Promise<NormalizedWorkflowData | null> {
-  const raw = await loadWorkflowFromNormalizedTablesRaw(workflowId, externalTx)
-  if (!raw) return null
-
-  const { blocks: finalBlocks, migrated } = await applyBlockMigrations(
-    raw.blocks,
-    raw.workspaceId,
-    externalTx ?? db
-  )
-
-  if (migrated) {
-    // Deliberate fire-and-forget persistence on the global pool: it must not
-    // join (or block) a read transaction this load may be running inside, so
-    // it escapes the transaction context instead of tripping the wire.
-    runOutsideTransactionContext(() => {
-      Promise.resolve().then(() =>
-        persistMigratedBlocks(workflowId, raw.blocks, finalBlocks, raw.blockUpdatedAtById)
-      )
-    })
-  }
-
-  const patchedLoops: Record<string, Loop> = { ...raw.loops }
-  const patchedParallels: Record<string, Parallel> = { ...raw.parallels }
-
-  for (const id of Object.keys(raw.loops)) {
-    if (finalBlocks[id]) {
-      patchedLoops[id] = { ...raw.loops[id], enabled: finalBlocks[id].enabled ?? true }
-    }
-  }
-  for (const id of Object.keys(raw.parallels)) {
-    if (finalBlocks[id]) {
-      patchedParallels[id] = {
-        ...raw.parallels[id],
-        enabled: finalBlocks[id].enabled ?? true,
-      }
-    }
-  }
-
-  return {
-    blocks: finalBlocks,
-    edges: raw.edges,
-    loops: patchedLoops,
-    parallels: patchedParallels,
-    isFromNormalizedTables: true,
   }
 }
 

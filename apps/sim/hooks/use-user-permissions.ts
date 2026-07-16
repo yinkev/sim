@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { createLogger } from '@sim/logger'
-import { useSession } from '@/lib/auth/auth-client'
-import type { WorkspacePermissions } from '@/hooks/queries/workspace'
+import { useSession } from '@/app/_shell/providers/use-session'
+import type { WorkspacePermissions } from '@/hooks/queries/workspace-permissions'
 
 export type PermissionType = 'admin' | 'write' | 'read'
 

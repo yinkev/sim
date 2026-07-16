@@ -1,0 +1,860 @@
+{
+  "integrations": [
+    {
+      "blockType": "onepassword",
+      "name": "1Password"
+    },
+    {
+      "blockType": "agentmail",
+      "name": "AgentMail"
+    },
+    {
+      "blockType": "agentphone",
+      "name": "AgentPhone"
+    },
+    {
+      "blockType": "agiloft",
+      "name": "Agiloft"
+    },
+    {
+      "blockType": "ahrefs",
+      "name": "Ahrefs"
+    },
+    {
+      "blockType": "airtable",
+      "name": "Airtable"
+    },
+    {
+      "blockType": "airweave",
+      "name": "Airweave"
+    },
+    {
+      "blockType": "algolia",
+      "name": "Algolia"
+    },
+    {
+      "blockType": "dynamodb",
+      "name": "Amazon DynamoDB"
+    },
+    {
+      "blockType": "rds",
+      "name": "Amazon RDS"
+    },
+    {
+      "blockType": "sqs",
+      "name": "Amazon SQS"
+    },
+    {
+      "blockType": "amplitude",
+      "name": "Amplitude"
+    },
+    {
+      "blockType": "apify",
+      "name": "Apify"
+    },
+    {
+      "blockType": "apollo",
+      "name": "Apollo"
+    },
+    {
+      "blockType": "arxiv",
+      "name": "ArXiv"
+    },
+    {
+      "blockType": "asana",
+      "name": "Asana"
+    },
+    {
+      "blockType": "ashby",
+      "name": "Ashby"
+    },
+    {
+      "blockType": "athena",
+      "name": "Athena"
+    },
+    {
+      "blockType": "attio",
+      "name": "Attio"
+    },
+    {
+      "blockType": "appconfig",
+      "name": "AWS AppConfig"
+    },
+    {
+      "blockType": "iam",
+      "name": "AWS IAM"
+    },
+    {
+      "blockType": "identity_center",
+      "name": "AWS Identity Center"
+    },
+    {
+      "blockType": "secrets_manager",
+      "name": "AWS Secrets Manager"
+    },
+    {
+      "blockType": "ses",
+      "name": "AWS SES"
+    },
+    {
+      "blockType": "sts",
+      "name": "AWS STS"
+    },
+    {
+      "blockType": "textract_v2",
+      "name": "AWS Textract"
+    },
+    {
+      "blockType": "microsoft_ad",
+      "name": "Azure AD"
+    },
+    {
+      "blockType": "azure_devops",
+      "name": "Azure DevOps"
+    },
+    {
+      "blockType": "box",
+      "name": "Box"
+    },
+    {
+      "blockType": "brandfetch",
+      "name": "Brandfetch"
+    },
+    {
+      "blockType": "brex",
+      "name": "Brex"
+    },
+    {
+      "blockType": "brightdata",
+      "name": "Bright Data"
+    },
+    {
+      "blockType": "browser_use",
+      "name": "Browser Use"
+    },
+    {
+      "blockType": "calcom",
+      "name": "Cal.com"
+    },
+    {
+      "blockType": "calendly",
+      "name": "Calendly"
+    },
+    {
+      "blockType": "clay",
+      "name": "Clay"
+    },
+    {
+      "blockType": "clerk",
+      "name": "Clerk"
+    },
+    {
+      "blockType": "clickhouse",
+      "name": "ClickHouse"
+    },
+    {
+      "blockType": "cloudflare",
+      "name": "Cloudflare"
+    },
+    {
+      "blockType": "cloudformation",
+      "name": "CloudFormation"
+    },
+    {
+      "blockType": "cloudwatch",
+      "name": "CloudWatch"
+    },
+    {
+      "blockType": "codepipeline",
+      "name": "CodePipeline"
+    },
+    {
+      "blockType": "confluence_v2",
+      "name": "Confluence"
+    },
+    {
+      "blockType": "context_dev",
+      "name": "Context.dev"
+    },
+    {
+      "blockType": "convex",
+      "name": "Convex"
+    },
+    {
+      "blockType": "crowdstrike",
+      "name": "CrowdStrike"
+    },
+    {
+      "blockType": "cursor_v2",
+      "name": "Cursor"
+    },
+    {
+      "blockType": "dagster",
+      "name": "Dagster"
+    },
+    {
+      "blockType": "databricks",
+      "name": "Databricks"
+    },
+    {
+      "blockType": "datadog",
+      "name": "Datadog"
+    },
+    {
+      "blockType": "daytona",
+      "name": "Daytona"
+    },
+    {
+      "blockType": "devin",
+      "name": "Devin"
+    },
+    {
+      "blockType": "discord",
+      "name": "Discord"
+    },
+    {
+      "blockType": "docusign",
+      "name": "DocuSign"
+    },
+    {
+      "blockType": "dropbox",
+      "name": "Dropbox"
+    },
+    {
+      "blockType": "dspy",
+      "name": "DSPy"
+    },
+    {
+      "blockType": "dub",
+      "name": "Dub"
+    },
+    {
+      "blockType": "duckduckgo",
+      "name": "DuckDuckGo"
+    },
+    {
+      "blockType": "elasticsearch",
+      "name": "Elasticsearch"
+    },
+    {
+      "blockType": "elevenlabs",
+      "name": "ElevenLabs"
+    },
+    {
+      "blockType": "emailbison",
+      "name": "Email Bison"
+    },
+    {
+      "blockType": "openai",
+      "name": "Embeddings"
+    },
+    {
+      "blockType": "enrich",
+      "name": "Enrich"
+    },
+    {
+      "blockType": "evernote",
+      "name": "Evernote"
+    },
+    {
+      "blockType": "exa",
+      "name": "Exa"
+    },
+    {
+      "blockType": "extend_v2",
+      "name": "Extend"
+    },
+    {
+      "blockType": "fathom",
+      "name": "Fathom"
+    },
+    {
+      "blockType": "findymail",
+      "name": "Findymail"
+    },
+    {
+      "blockType": "firecrawl",
+      "name": "Firecrawl"
+    },
+    {
+      "blockType": "fireflies_v2",
+      "name": "Fireflies"
+    },
+    {
+      "blockType": "gamma",
+      "name": "Gamma"
+    },
+    {
+      "blockType": "github_v2",
+      "name": "GitHub"
+    },
+    {
+      "blockType": "gitlab",
+      "name": "GitLab"
+    },
+    {
+      "blockType": "gmail_v2",
+      "name": "Gmail"
+    },
+    {
+      "blockType": "gong",
+      "name": "Gong"
+    },
+    {
+      "blockType": "google_ads",
+      "name": "Google Ads"
+    },
+    {
+      "blockType": "google_bigquery",
+      "name": "Google BigQuery"
+    },
+    {
+      "blockType": "google_books",
+      "name": "Google Books"
+    },
+    {
+      "blockType": "google_calendar_v2",
+      "name": "Google Calendar"
+    },
+    {
+      "blockType": "google_contacts",
+      "name": "Google Contacts"
+    },
+    {
+      "blockType": "google_docs",
+      "name": "Google Docs"
+    },
+    {
+      "blockType": "google_drive",
+      "name": "Google Drive"
+    },
+    {
+      "blockType": "google_forms",
+      "name": "Google Forms"
+    },
+    {
+      "blockType": "google_groups",
+      "name": "Google Groups"
+    },
+    {
+      "blockType": "google_maps",
+      "name": "Google Maps"
+    },
+    {
+      "blockType": "google_meet",
+      "name": "Google Meet"
+    },
+    {
+      "blockType": "google_pagespeed",
+      "name": "Google PageSpeed"
+    },
+    {
+      "blockType": "google_search",
+      "name": "Google Search"
+    },
+    {
+      "blockType": "google_sheets_v2",
+      "name": "Google Sheets"
+    },
+    {
+      "blockType": "google_slides_v2",
+      "name": "Google Slides"
+    },
+    {
+      "blockType": "google_tasks",
+      "name": "Google Tasks"
+    },
+    {
+      "blockType": "google_translate",
+      "name": "Google Translate"
+    },
+    {
+      "blockType": "google_vault",
+      "name": "Google Vault"
+    },
+    {
+      "blockType": "grafana",
+      "name": "Grafana"
+    },
+    {
+      "blockType": "grain",
+      "name": "Grain"
+    },
+    {
+      "blockType": "granola",
+      "name": "Granola"
+    },
+    {
+      "blockType": "greenhouse",
+      "name": "Greenhouse"
+    },
+    {
+      "blockType": "greptile",
+      "name": "Greptile"
+    },
+    {
+      "blockType": "hex",
+      "name": "Hex"
+    },
+    {
+      "blockType": "hubspot",
+      "name": "HubSpot"
+    },
+    {
+      "blockType": "huggingface",
+      "name": "Hugging Face"
+    },
+    {
+      "blockType": "hunter",
+      "name": "Hunter.io"
+    },
+    {
+      "blockType": "incidentio",
+      "name": "incident.io"
+    },
+    {
+      "blockType": "infisical",
+      "name": "Infisical"
+    },
+    {
+      "blockType": "instantly",
+      "name": "Instantly"
+    },
+    {
+      "blockType": "intercom_v2",
+      "name": "Intercom"
+    },
+    {
+      "blockType": "jina",
+      "name": "Jina"
+    },
+    {
+      "blockType": "jira",
+      "name": "Jira"
+    },
+    {
+      "blockType": "jira_service_management",
+      "name": "Jira Service Management"
+    },
+    {
+      "blockType": "kalshi_v2",
+      "name": "Kalshi"
+    },
+    {
+      "blockType": "ketch",
+      "name": "Ketch"
+    },
+    {
+      "blockType": "langsmith",
+      "name": "LangSmith"
+    },
+    {
+      "blockType": "latex",
+      "name": "LaTeX"
+    },
+    {
+      "blockType": "launchdarkly",
+      "name": "LaunchDarkly"
+    },
+    {
+      "blockType": "lemlist",
+      "name": "Lemlist"
+    },
+    {
+      "blockType": "linear_v2",
+      "name": "Linear"
+    },
+    {
+      "blockType": "linkedin",
+      "name": "LinkedIn"
+    },
+    {
+      "blockType": "linkup",
+      "name": "Linkup"
+    },
+    {
+      "blockType": "linq",
+      "name": "Linq"
+    },
+    {
+      "blockType": "loops",
+      "name": "Loops"
+    },
+    {
+      "blockType": "luma",
+      "name": "Luma"
+    },
+    {
+      "blockType": "mailchimp",
+      "name": "Mailchimp"
+    },
+    {
+      "blockType": "mailgun",
+      "name": "Mailgun"
+    },
+    {
+      "blockType": "mem0",
+      "name": "Mem0"
+    },
+    {
+      "blockType": "microsoft_dataverse",
+      "name": "Microsoft Dataverse"
+    },
+    {
+      "blockType": "microsoft_excel_v2",
+      "name": "Microsoft Excel"
+    },
+    {
+      "blockType": "microsoft_planner",
+      "name": "Microsoft Planner"
+    },
+    {
+      "blockType": "microsoft_teams",
+      "name": "Microsoft Teams"
+    },
+    {
+      "blockType": "millionverifier",
+      "name": "MillionVerifier"
+    },
+    {
+      "blockType": "mistral_parse_v3",
+      "name": "Mistral Parser"
+    },
+    {
+      "blockType": "monday",
+      "name": "Monday"
+    },
+    {
+      "blockType": "mongodb",
+      "name": "MongoDB"
+    },
+    {
+      "blockType": "mysql",
+      "name": "MySQL"
+    },
+    {
+      "blockType": "neo4j",
+      "name": "Neo4j"
+    },
+    {
+      "blockType": "neverbounce",
+      "name": "NeverBounce"
+    },
+    {
+      "blockType": "new_relic",
+      "name": "New Relic"
+    },
+    {
+      "blockType": "notion_v2",
+      "name": "Notion"
+    },
+    {
+      "blockType": "obsidian",
+      "name": "Obsidian"
+    },
+    {
+      "blockType": "okta",
+      "name": "Okta"
+    },
+    {
+      "blockType": "onedrive",
+      "name": "OneDrive"
+    },
+    {
+      "blockType": "outlook",
+      "name": "Outlook"
+    },
+    {
+      "blockType": "pagerduty",
+      "name": "PagerDuty"
+    },
+    {
+      "blockType": "parallel_ai",
+      "name": "Parallel AI"
+    },
+    {
+      "blockType": "peopledatalabs",
+      "name": "People Data Labs"
+    },
+    {
+      "blockType": "perplexity",
+      "name": "Perplexity"
+    },
+    {
+      "blockType": "persona",
+      "name": "Persona"
+    },
+    {
+      "blockType": "pinecone",
+      "name": "Pinecone"
+    },
+    {
+      "blockType": "pipedrive",
+      "name": "Pipedrive"
+    },
+    {
+      "blockType": "polymarket",
+      "name": "Polymarket"
+    },
+    {
+      "blockType": "postgresql",
+      "name": "PostgreSQL"
+    },
+    {
+      "blockType": "posthog",
+      "name": "PostHog"
+    },
+    {
+      "blockType": "profound",
+      "name": "Profound"
+    },
+    {
+      "blockType": "prospeo",
+      "name": "Prospeo"
+    },
+    {
+      "blockType": "pulse_v2",
+      "name": "Pulse"
+    },
+    {
+      "blockType": "qdrant",
+      "name": "Qdrant"
+    },
+    {
+      "blockType": "quartr",
+      "name": "Quartr"
+    },
+    {
+      "blockType": "quiver",
+      "name": "Quiver"
+    },
+    {
+      "blockType": "railway",
+      "name": "Railway"
+    },
+    {
+      "blockType": "rb2b",
+      "name": "RB2B"
+    },
+    {
+      "blockType": "reddit",
+      "name": "Reddit"
+    },
+    {
+      "blockType": "redis",
+      "name": "Redis"
+    },
+    {
+      "blockType": "reducto_v2",
+      "name": "Reducto"
+    },
+    {
+      "blockType": "resend",
+      "name": "Resend"
+    },
+    {
+      "blockType": "revenuecat",
+      "name": "RevenueCat"
+    },
+    {
+      "blockType": "rippling",
+      "name": "Rippling"
+    },
+    {
+      "blockType": "rootly",
+      "name": "Rootly"
+    },
+    {
+      "blockType": "s3",
+      "name": "S3"
+    },
+    {
+      "blockType": "salesforce",
+      "name": "Salesforce"
+    },
+    {
+      "blockType": "sap_concur",
+      "name": "SAP Concur"
+    },
+    {
+      "blockType": "sap_s4hana",
+      "name": "SAP S4HANA"
+    },
+    {
+      "blockType": "sendblue",
+      "name": "Sendblue"
+    },
+    {
+      "blockType": "sendgrid",
+      "name": "SendGrid"
+    },
+    {
+      "blockType": "sentry",
+      "name": "Sentry"
+    },
+    {
+      "blockType": "serper",
+      "name": "Serper"
+    },
+    {
+      "blockType": "servicenow",
+      "name": "ServiceNow"
+    },
+    {
+      "blockType": "sftp",
+      "name": "SFTP"
+    },
+    {
+      "blockType": "sharepoint_v2",
+      "name": "SharePoint"
+    },
+    {
+      "blockType": "shopify",
+      "name": "Shopify"
+    },
+    {
+      "blockType": "similarweb",
+      "name": "Similarweb"
+    },
+    {
+      "blockType": "sixtyfour",
+      "name": "Sixtyfour AI"
+    },
+    {
+      "blockType": "slack",
+      "name": "Slack"
+    },
+    {
+      "blockType": "smtp",
+      "name": "SMTP"
+    },
+    {
+      "blockType": "square",
+      "name": "Square"
+    },
+    {
+      "blockType": "ssh",
+      "name": "SSH"
+    },
+    {
+      "blockType": "stagehand",
+      "name": "Stagehand"
+    },
+    {
+      "blockType": "stripe",
+      "name": "Stripe"
+    },
+    {
+      "blockType": "supabase",
+      "name": "Supabase"
+    },
+    {
+      "blockType": "tailscale",
+      "name": "Tailscale"
+    },
+    {
+      "blockType": "tavily",
+      "name": "Tavily"
+    },
+    {
+      "blockType": "telegram",
+      "name": "Telegram"
+    },
+    {
+      "blockType": "temporal",
+      "name": "Temporal"
+    },
+    {
+      "blockType": "tinybird",
+      "name": "Tinybird"
+    },
+    {
+      "blockType": "trello",
+      "name": "Trello"
+    },
+    {
+      "blockType": "trigger_dev",
+      "name": "Trigger.dev"
+    },
+    {
+      "blockType": "twilio_sms",
+      "name": "Twilio SMS"
+    },
+    {
+      "blockType": "twilio_voice",
+      "name": "Twilio Voice"
+    },
+    {
+      "blockType": "typeform",
+      "name": "Typeform"
+    },
+    {
+      "blockType": "upstash",
+      "name": "Upstash"
+    },
+    {
+      "blockType": "vanta",
+      "name": "Vanta"
+    },
+    {
+      "blockType": "vercel",
+      "name": "Vercel"
+    },
+    {
+      "blockType": "wealthbox",
+      "name": "Wealthbox"
+    },
+    {
+      "blockType": "webflow",
+      "name": "Webflow"
+    },
+    {
+      "blockType": "whatsapp",
+      "name": "WhatsApp"
+    },
+    {
+      "blockType": "wikipedia",
+      "name": "Wikipedia"
+    },
+    {
+      "blockType": "wiza",
+      "name": "Wiza"
+    },
+    {
+      "blockType": "wordpress",
+      "name": "WordPress"
+    },
+    {
+      "blockType": "workday",
+      "name": "Workday"
+    },
+    {
+      "blockType": "x",
+      "name": "X"
+    },
+    {
+      "blockType": "youtube",
+      "name": "YouTube"
+    },
+    {
+      "blockType": "zendesk",
+      "name": "Zendesk"
+    },
+    {
+      "blockType": "zep",
+      "name": "Zep"
+    },
+    {
+      "blockType": "zerobounce",
+      "name": "ZeroBounce"
+    },
+    {
+      "blockType": "zoom",
+      "name": "Zoom"
+    },
+    {
+      "blockType": "zoominfo",
+      "name": "ZoomInfo"
+    }
+  ]
+}

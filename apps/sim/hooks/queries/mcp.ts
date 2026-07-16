@@ -85,11 +85,11 @@ async function fetchMcpServers(workspaceId: string, signal?: AbortSignal): Promi
   }
 }
 
-export function useMcpServers(workspaceId: string) {
+export function useMcpServers(workspaceId: string, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: mcpKeys.serversList(workspaceId),
     queryFn: ({ signal }) => fetchMcpServers(workspaceId, signal),
-    enabled: !!workspaceId,
+    enabled: !!workspaceId && (options?.enabled ?? true),
     retry: false,
     staleTime: 60 * 1000,
     placeholderData: keepPreviousData,
@@ -124,8 +124,9 @@ async function fetchMcpTools(
  * Workspace aggregate derived from N parallel per-server queries via
  * `useQueries`. One slow server cannot block the others.
  */
-export function useMcpToolsQuery(workspaceId: string) {
-  const { data: servers, isLoading: serversLoading } = useMcpServers(workspaceId)
+export function useMcpToolsQuery(workspaceId: string, options?: { enabled?: boolean }) {
+  const enabled = !!workspaceId && (options?.enabled ?? true)
+  const { data: servers, isLoading: serversLoading } = useMcpServers(workspaceId, { enabled })
 
   // Skip disabled rows (would 404 → negative-cache) and rows from a previous
   // workspace (keepPreviousData on useMcpServers).
@@ -145,7 +146,7 @@ export function useMcpToolsQuery(workspaceId: string) {
       queryKey: mcpKeys.serverToolsList(workspaceId, serverId),
       queryFn: ({ signal }: { signal?: AbortSignal }) =>
         fetchMcpTools(workspaceId, false, signal, serverId),
-      enabled: !!workspaceId,
+      enabled,
       retry: false,
       staleTime: 30 * 1000,
       refetchOnWindowFocus: false,

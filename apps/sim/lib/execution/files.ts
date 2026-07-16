@@ -1,6 +1,6 @@
 import { createLogger } from '@sim/logger'
 import { uploadExecutionFile } from '@/lib/uploads/contexts/execution'
-import { TRIGGER_TYPES } from '@/lib/workflows/triggers/triggers'
+import { TRIGGER_TYPES } from '@/lib/workflows/triggers/trigger-types'
 import type { InputFormatField } from '@/lib/workflows/types'
 import type { UserFile } from '@/executor/types'
 import type { SerializedBlock } from '@/serializer/types'

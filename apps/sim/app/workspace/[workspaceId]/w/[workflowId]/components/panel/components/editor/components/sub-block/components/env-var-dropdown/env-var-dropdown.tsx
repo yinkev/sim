@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
 import {
+  Loader,
   Popover,
   PopoverAnchor,
   PopoverContent,
@@ -119,18 +120,33 @@ export const EnvVarDropdown: React.FC<EnvVarDropdownProps> = ({
 }) => {
   const { navigateToSettings } = useSettingsNavigation()
 
-  // React Query hooks for environment variables
-  const { data: personalEnv = {} } = usePersonalEnvironment()
-  const { data: workspaceEnvData } = useWorkspaceEnvironment(workspaceId || '', {
-    select: useCallback(
-      (data: WorkspaceEnvironmentData): WorkspaceEnvironmentData => ({
-        workspace: data.workspace || {},
-        personal: data.personal || {},
-        conflicts: data.conflicts || [],
-      }),
-      []
-    ),
+  const hasWorkspace = Boolean(workspaceId)
+  const selectWorkspaceEnvironment = useCallback(
+    (data: WorkspaceEnvironmentData): WorkspaceEnvironmentData => ({
+      workspace: data.workspace || {},
+      personal: data.personal || {},
+      conflicts: data.conflicts || [],
+    }),
+    []
+  )
+  const {
+    data: workspaceEnvData,
+    isError: workspaceEnvironmentError,
+    isLoading: workspaceEnvironmentLoading,
+  } = useWorkspaceEnvironment(workspaceId || '', {
+    enabled: visible && hasWorkspace,
+    select: selectWorkspaceEnvironment,
   })
+  const workspaceAggregateUnavailable = Boolean(
+    hasWorkspace && !workspaceEnvData && workspaceEnvironmentError
+  )
+  const { data: personalEnv = {}, isLoading: personalEnvironmentLoading } = usePersonalEnvironment({
+    enabled: visible && (!hasWorkspace || workspaceAggregateUnavailable),
+  })
+  const environmentLoading =
+    hasWorkspace && !workspaceAggregateUnavailable
+      ? workspaceEnvironmentLoading
+      : personalEnvironmentLoading
 
   const userEnvVars = Object.keys(personalEnv)
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -305,7 +321,14 @@ export const EnvVarDropdown: React.FC<EnvVarDropdownProps> = ({
         onOpenAutoFocus={(e) => e.preventDefault()}
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
-        {filteredEnvVars.length === 0 ? (
+        {environmentLoading ? (
+          <PopoverScrollArea>
+            <PopoverItem disabled>
+              <Loader className='size-[14px]' animate />
+              <span>Loading secrets...</span>
+            </PopoverItem>
+          </PopoverScrollArea>
+        ) : filteredEnvVars.length === 0 ? (
           <PopoverScrollArea>
             <PopoverItem
               onMouseDown={(e) => {

@@ -86,6 +86,7 @@ import { getProviderFromModel, supportsToolUsageControl } from '@/providers/util
 import type { ActiveSearchTarget } from '@/stores/panel/editor/store'
 import { useSubBlockStore } from '@/stores/workflows/subblock/store'
 import { useWorkflowStore } from '@/stores/workflows/workflow/store'
+import { getClientTool } from '@/tools/client-registry'
 import {
   formatParameterLabel,
   getSubBlocksForToolInput,
@@ -398,7 +399,7 @@ function getOperationOptions(blockType: string): { label: string; id: string }[]
 
   return block.tools.access.map((toolId) => {
     try {
-      const toolParams = getToolParametersConfig(toolId)
+      const toolParams = getToolParametersConfig(toolId, getClientTool(toolId))
       return {
         id: toolId,
         label: toolParams?.toolConfig?.name || toolId,
@@ -776,7 +777,7 @@ export const ToolInput = memo(function ToolInput({
 
       if (isToolAlreadySelected(toolId, toolBlock.type)) return
 
-      const toolParams = getToolParametersConfig(toolId, toolBlock.type)
+      const toolParams = getToolParametersConfig(toolId, getClientTool(toolId), toolBlock.type)
       if (!toolParams) return
 
       const initialParams: Record<string, string> = {}
@@ -975,7 +976,7 @@ export const ToolInput = memo(function ToolInput({
         return
       }
 
-      const toolParams = getToolParametersConfig(newToolId, tool.type)
+      const toolParams = getToolParametersConfig(newToolId, getClientTool(newToolId), tool.type)
 
       if (!toolParams) {
         return
@@ -1653,10 +1654,11 @@ export const ToolInput = memo(function ToolInput({
             !isCustomTool && !isMcpTool
               ? getToolIdForOperation(tool.type, tool.operation) || tool.toolId || ''
               : tool.toolId || ''
+          const currentToolConfig = currentToolId ? getClientTool(currentToolId) : undefined
 
           const toolParams =
             !isCustomTool && !isMcpTool && currentToolId
-              ? getToolParametersConfig(currentToolId, tool.type, {
+              ? getToolParametersConfig(currentToolId, currentToolConfig, tool.type, {
                   operation: tool.operation,
                   ...tool.params,
                 })
@@ -1668,6 +1670,7 @@ export const ToolInput = memo(function ToolInput({
             !isCustomTool && !isMcpTool && currentToolId
               ? getSubBlocksForToolInput(
                   currentToolId,
+                  currentToolConfig,
                   tool.type,
                   {
                     operation: tool.operation,

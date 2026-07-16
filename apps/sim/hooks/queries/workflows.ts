@@ -4,14 +4,7 @@
 
 import { createLogger } from '@sim/logger'
 import { generateId } from '@sim/utils/id'
-import {
-  keepPreviousData,
-  skipToken,
-  useMutation,
-  useQueries,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query'
+import { skipToken, useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { requestJson } from '@/lib/api/client/request'
 import { revertToDeploymentVersionContract } from '@/lib/api/contracts/deployments'
 import {
@@ -32,12 +25,8 @@ import { getFolderMap } from '@/hooks/queries/utils/folder-cache'
 import { invalidateWorkflowLists } from '@/hooks/queries/utils/invalidate-workflow-lists'
 import { getTopInsertionSortOrder } from '@/hooks/queries/utils/top-insertion-sort-order'
 import { getWorkflows } from '@/hooks/queries/utils/workflow-cache'
-import { type WorkflowQueryScope, workflowKeys } from '@/hooks/queries/utils/workflow-keys'
-import {
-  getWorkflowListQueryOptions,
-  mapWorkflow,
-  WORKFLOW_LIST_STALE_TIME,
-} from '@/hooks/queries/utils/workflow-list-query'
+import { workflowKeys } from '@/hooks/queries/utils/workflow-keys'
+import { mapWorkflow } from '@/hooks/queries/utils/workflow-list-query'
 import { useFolderStore } from '@/stores/folders/store'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 import type { WorkflowMetadata } from '@/stores/workflows/registry/types'
@@ -48,6 +37,7 @@ import type { WorkflowState } from '@/stores/workflows/workflow/types'
 const logger = createLogger('WorkflowQueries')
 
 export { type WorkflowQueryScope, workflowKeys } from '@/hooks/queries/utils/workflow-keys'
+export { useWorkflowMap, useWorkflows } from '@/hooks/queries/workflow-list'
 
 async function fetchWorkflowState(
   workflowId: string,
@@ -102,37 +92,6 @@ export function useWorkflowStates(
     map.set(id, (results[i].data as WorkflowState | null | undefined) ?? null)
   })
   return map
-}
-
-export function useWorkflows(workspaceId?: string, options?: { scope?: WorkflowQueryScope }) {
-  const { scope = 'active' } = options || {}
-
-  return useQuery({
-    queryKey: workflowKeys.list(workspaceId, scope),
-    queryFn: workspaceId ? getWorkflowListQueryOptions(workspaceId, scope).queryFn : skipToken,
-    placeholderData: keepPreviousData,
-    staleTime: WORKFLOW_LIST_STALE_TIME,
-  })
-}
-
-const selectWorkflowMap = (data: WorkflowMetadata[]): Record<string, WorkflowMetadata> =>
-  Object.fromEntries(data.map((w) => [w.id, w]))
-
-/**
- * Returns workflows as a `Record<string, WorkflowMetadata>` keyed by ID.
- * Uses the `select` option so the transformation runs inside React Query
- * with structural sharing — components only re-render when the record changes.
- */
-export function useWorkflowMap(workspaceId?: string, options?: { scope?: WorkflowQueryScope }) {
-  const { scope = 'active' } = options || {}
-
-  return useQuery({
-    queryKey: workflowKeys.list(workspaceId, scope),
-    queryFn: workspaceId ? getWorkflowListQueryOptions(workspaceId, scope).queryFn : skipToken,
-    placeholderData: keepPreviousData,
-    staleTime: WORKFLOW_LIST_STALE_TIME,
-    select: selectWorkflowMap,
-  })
 }
 
 interface CreateWorkflowVariables {

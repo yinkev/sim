@@ -12,7 +12,7 @@ import {
   DEFAULT_PERMISSION_GROUP_CONFIG,
   type PermissionGroupConfig,
 } from '@/lib/permission-groups/types'
-import { useUserPermissionConfig } from '@/ee/access-control/hooks/permission-groups'
+import { useUserPermissionConfig } from '@/ee/access-control/hooks/use-user-permission-config'
 
 export interface PermissionConfigResult {
   config: PermissionGroupConfig

@@ -4,14 +4,13 @@ import {
 } from '@/lib/copilot/generated/mothership-stream-v1'
 import type { FilePreviewSession } from '@/lib/copilot/request/session'
 import type { PersistedStreamEventEnvelope } from '@/lib/copilot/request/session/contract'
-import { invalidateResourceQueries } from '@/app/workspace/[workspaceId]/home/components/mothership-view/components/resource-registry'
+import { invalidateResourceQueries } from '@/app/workspace/[workspaceId]/home/components/mothership-view/components/resource-registry/resource-query-invalidation'
 import {
   hasRenderableFilePreviewContent,
   shouldReplaceSession,
 } from '@/app/workspace/[workspaceId]/home/hooks/preview'
 import type { StreamLoopContext } from '@/app/workspace/[workspaceId]/home/hooks/stream/stream-context'
 import type { MothershipResourceType } from '@/app/workspace/[workspaceId]/home/types'
-import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 
 type ResourceEvent = Extract<
   PersistedStreamEventEnvelope,
@@ -125,10 +124,13 @@ export function handleResourceEvent(ctx: StreamLoopContext, parsed: ResourceEven
 
   if (nextResource.type === 'workflow') {
     const wasRegistered = ensureWorkflowInRegistry(nextResource.id, nextResource.title, workspaceId)
-    if (wasAdded && wasRegistered) {
-      useWorkflowRegistry.getState().setActiveWorkflow(nextResource.id)
-    } else {
-      useWorkflowRegistry.getState().loadWorkflowState(nextResource.id)
-    }
+    void import('@/stores/workflows/registry/store').then(({ useWorkflowRegistry }) => {
+      const registry = useWorkflowRegistry.getState()
+      if (wasAdded && wasRegistered) {
+        registry.setActiveWorkflow(nextResource.id)
+      } else {
+        registry.loadWorkflowState(nextResource.id)
+      }
+    })
   }
 }

@@ -1,5 +1,20 @@
 import { env, getEnv } from '../config/env'
 import { isDev, isHosted, isReactGrabEnabled } from '../config/env-flags'
+import {
+  buildCSPString,
+  type CSPDirectives,
+  DEFAULT_OLLAMA_URL,
+  DEFAULT_SOCKET_URL,
+  getHostnameFromUrl,
+  getStaticConnectSrc,
+  getStaticFrameSrc,
+  getStaticScriptSrc,
+  STATIC_IMG_SRC,
+  toWebSocketUrl,
+} from './csp-core'
+
+export type { CSPDirectives } from './csp-core'
+export { buildCSPString } from './csp-core'
 
 /**
  * Content Security Policy (CSP) configuration builder
@@ -9,122 +24,14 @@ import { isDev, isHosted, isReactGrabEnabled } from '../config/env-flags'
  * Keep all URL constants local to this file.
  */
 
-const DEFAULT_SOCKET_URL = 'http://localhost:6887'
-const DEFAULT_OLLAMA_URL = 'http://localhost:11434'
-
-function toWebSocketUrl(httpUrl: string): string {
-  return httpUrl.replace('http://', 'ws://').replace('https://', 'wss://')
-}
-
-function getHostnameFromUrl(url: string | undefined): string[] {
-  if (!url) return []
-  try {
-    return [`https://${new URL(url).hostname}`]
-  } catch {
-    return []
-  }
-}
-
-export interface CSPDirectives {
-  'default-src'?: string[]
-  'script-src'?: string[]
-  'style-src'?: string[]
-  'img-src'?: string[]
-  'media-src'?: string[]
-  'font-src'?: string[]
-  'connect-src'?: string[]
-  'worker-src'?: string[]
-  'frame-src'?: string[]
-  'frame-ancestors'?: string[]
-  'form-action'?: string[]
-  'base-uri'?: string[]
-  'object-src'?: string[]
-}
-
 /**
  * Static CSP sources shared between build-time and runtime.
  * Add new domains here — both paths pick them up automatically.
  */
-const STATIC_SCRIPT_SRC = [
-  "'self'",
-  "'unsafe-inline'",
-  ...(isDev ? ["'unsafe-eval'"] : []),
-  'https://*.google.com',
-  'https://apis.google.com',
-  'https://challenges.cloudflare.com',
-  ...(isReactGrabEnabled ? ['https://unpkg.com'] : []),
-  ...(isHosted
-    ? [
-        'https://www.googletagmanager.com',
-        'https://www.google-analytics.com',
-        'https://analytics.ahrefs.com',
-      ]
-    : []),
-] as const
-
-const STATIC_IMG_SRC = ["'self'", 'data:', 'blob:', 'https:'] as const
-
-const STATIC_CONNECT_SRC = [
-  "'self'",
-  'https://api.browser-use.com',
-  'https://api.elevenlabs.io',
-  'wss://api.elevenlabs.io',
-  'https://api.exa.ai',
-  'https://api.firecrawl.dev',
-  'https://*.googleapis.com',
-  'https://*.amazonaws.com',
-  'https://*.s3.amazonaws.com',
-  'https://*.blob.core.windows.net',
-  'https://*.atlassian.com',
-  'https://*.supabase.co',
-  'https://api.github.com',
-  'https://github.com/*',
-  'https://challenges.cloudflare.com',
-  ...(isReactGrabEnabled ? ['https://www.react-grab.com'] : []),
-  ...(isDev ? ['ws://localhost:4722'] : []),
-  ...(isHosted
-    ? [
-        'https://www.googletagmanager.com',
-        'https://*.google-analytics.com',
-        'https://*.analytics.google.com',
-        'https://analytics.google.com',
-        'https://www.google.com',
-        'https://analytics.ahrefs.com',
-        'https://*.g.doubleclick.net',
-      ]
-    : []),
-] as const
-
-const STATIC_FRAME_SRC = [
-  "'self'",
-  'blob:',
-  'https://challenges.cloudflare.com',
-  'https://drive.google.com',
-  'https://docs.google.com',
-  'https://*.google.com',
-  'https://www.youtube.com',
-  'https://player.vimeo.com',
-  'https://www.dailymotion.com',
-  'https://player.twitch.tv',
-  'https://clips.twitch.tv',
-  'https://streamable.com',
-  'https://fast.wistia.net',
-  'https://www.tiktok.com',
-  'https://w.soundcloud.com',
-  'https://open.spotify.com',
-  'https://embed.music.apple.com',
-  'https://www.loom.com',
-  'https://www.facebook.com',
-  'https://www.instagram.com',
-  'https://platform.twitter.com',
-  'https://rumble.com',
-  'https://play.vidyard.com',
-  'https://iframe.cloudflarestream.com',
-  'https://www.mixcloud.com',
-  'https://tenor.com',
-  'https://giphy.com',
-  ...(isHosted ? ['https://www.googletagmanager.com'] : []),
-] as const
+const sourceFlags = { isDev, isHosted, isReactGrabEnabled }
+const STATIC_SCRIPT_SRC = getStaticScriptSrc(sourceFlags)
+const STATIC_CONNECT_SRC = getStaticConnectSrc(sourceFlags)
+const STATIC_FRAME_SRC = getStaticFrameSrc(sourceFlags)
 
 // Build-time CSP directives (for next.config.ts)
 export const buildTimeCSPDirectives: CSPDirectives = {
@@ -157,21 +64,6 @@ export const buildTimeCSPDirectives: CSPDirectives = {
   'form-action': ["'self'"],
   'base-uri': ["'self'"],
   'object-src': ["'none'"],
-}
-
-/**
- * Build CSP string from directives object
- */
-export function buildCSPString(directives: CSPDirectives): string {
-  return Object.entries(directives)
-    .map(([directive, sources]) => {
-      if (!sources || sources.length === 0) return ''
-      const validSources = sources.filter((source: string) => source && source.trim() !== '')
-      if (validSources.length === 0) return ''
-      return `${directive} ${validSources.join(' ')}`
-    })
-    .filter(Boolean)
-    .join('; ')
 }
 
 /**

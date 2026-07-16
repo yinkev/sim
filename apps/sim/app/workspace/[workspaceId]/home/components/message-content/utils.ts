@@ -20,7 +20,7 @@ import {
   Wrench,
 } from '@/components/emcn'
 import { Calendar, Table as TableIcon } from '@/components/emcn/icons'
-import { AgentIcon, ImageIcon, TTSIcon, VideoIcon } from '@/components/icons'
+import { AgentIcon, ImageIcon, TTSIcon, VideoIcon } from '@/components/icons/chat-icons'
 
 export type IconComponent = ComponentType<SVGProps<SVGSVGElement>>
 

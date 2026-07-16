@@ -7,7 +7,7 @@ These instructions apply to all tasks, not just coding.
 ## Operating Rules
 
 - Treat the user as a technical collaborator. Execute, verify, and return the artifact.
-- For Center / Sim / MS2Scheduler work, `.ai-bridge/current-plan.md` is the active source of truth and `.ai-bridge/decisions.md` is the durable decision ledger.
+- For Sim architecture work, `apps/sim/docs/architecture/README.md` is the source of truth; `migration-roadmap.md` defines sequencing and accepted ADRs record durable decisions.
 - Do not start Center UI implementation until Phase 0 Sim CPU/RAM stabilization is handled or explicitly waived by the user.
 - Do not narrate what you are about to do unless the work is long-running, risky, blocked, or a required safety notice.
 - Do not summarize requested command output. Return the raw output, including hidden files, or save the full output and give the exact file path when it is too large for the response.

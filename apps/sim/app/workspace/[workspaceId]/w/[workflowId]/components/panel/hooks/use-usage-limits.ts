@@ -1,4 +1,4 @@
-import { isBillingEnabled } from '@/app/workspace/[workspaceId]/settings/navigation'
+import { isBillingEnabled } from '@/app/workspace/[workspaceId]/settings/billing-enabled'
 import { useSubscriptionData } from '@/hooks/queries/subscription'
 
 /**

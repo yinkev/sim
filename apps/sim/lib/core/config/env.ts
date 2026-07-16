@@ -3,14 +3,20 @@ import { z } from 'zod'
 
 /**
  * Reads NEXT_PUBLIC_* env vars in both client and server contexts.
- * Client reads `window.__ENV` (populated by `<PublicEnvScript>`); server reads `process.env`.
- * We do not use next-runtime-env's `env()` helper because it calls `unstable_noStore()`,
- * which Next 16.2+ rejects outside a request scope.
+ * Kept local because Next's config transpiler cannot resolve application modules
+ * imported by files that next.config.ts loads directly.
  */
-const getEnv = (variable: string): string | undefined => {
+export const getEnv = (variable: string): string | undefined => {
   if (typeof window === 'undefined') return process.env[variable]
-  return window.__ENV?.[variable] ?? process.env[variable]
+  const runtimeWindow = window as typeof window & {
+    __ENV?: Record<string, string | undefined>
+  }
+  return runtimeWindow.__ENV?.[variable] ?? process.env[variable]
 }
+
+/** Coerces string-backed env flags without treating `"false"` as enabled. */
+export const isTruthy = (value: string | boolean | number | undefined): boolean =>
+  typeof value === 'string' ? value.toLowerCase() === 'true' || value === '1' : Boolean(value)
 
 // biome-ignore format: keep alignment for readability
 export const env = createEnv({
@@ -563,15 +569,9 @@ export const env = createEnv({
   },
 })
 
-// Need this utility because t3-env is returning string for boolean values.
-export const isTruthy = (value: string | boolean | number | undefined) =>
-  typeof value === 'string' ? value.toLowerCase() === 'true' || value === '1' : Boolean(value)
-
 // Utility to check if a value is explicitly false (defaults to false only if explicitly set)
 export const isFalsy = (value: string | boolean | number | undefined) =>
   typeof value === 'string' ? value.toLowerCase() === 'false' || value === '0' : value === false
-
-export { getEnv }
 
 /**
  * Coerce an env-derived value to a finite number ≥ `min`, falling back to the

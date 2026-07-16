@@ -6,7 +6,7 @@ import {
   listSkillsContract,
   type Skill,
   upsertSkillsContract,
-} from '@/lib/api/contracts'
+} from '@/lib/api/contracts/skills'
 
 const logger = createLogger('SkillsQueries')
 
@@ -35,11 +35,11 @@ async function fetchSkills(workspaceId: string, signal?: AbortSignal): Promise<S
 /**
  * Hook to fetch skills for a workspace
  */
-export function useSkills(workspaceId: string) {
+export function useSkills(workspaceId: string, options?: { enabled?: boolean }) {
   return useQuery<SkillDefinition[]>({
     queryKey: skillsKeys.list(workspaceId),
     queryFn: ({ signal }) => fetchSkills(workspaceId, signal),
-    enabled: !!workspaceId,
+    enabled: Boolean(workspaceId) && (options?.enabled ?? true),
     staleTime: 60 * 1000,
     placeholderData: keepPreviousData,
   })

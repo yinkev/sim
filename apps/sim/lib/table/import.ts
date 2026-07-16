@@ -15,6 +15,8 @@ import { type Options as CsvParseOptions, type Parser, parse as parseCsvStream }
 import { getColumnId } from '@/lib/table/column-keys'
 import type { ColumnDefinition, RowData, TableSchema } from '@/lib/table/types'
 
+export { CSV_MAX_FILE_SIZE_BYTES } from '@/lib/table/constants'
+
 /**
  * Single source of truth for the `csv-parse` options used by both the buffered
  * sync parser and the streaming parser. `columns: true` emits each record as an
@@ -57,9 +59,6 @@ export const CSV_SCHEMA_SAMPLE_SIZE = 100
  * check, ownership heartbeat) 5× vs the old 1,000.
  */
 export const CSV_MAX_BATCH_SIZE = 5000
-
-/** Maximum CSV/TSV file size accepted by import routes (25 MB). */
-export const CSV_MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024
 
 /**
  * Error thrown when the user-supplied mapping or CSV does not line up with the

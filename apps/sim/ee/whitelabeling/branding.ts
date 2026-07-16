@@ -1,5 +1,5 @@
 import { type BrandConfig, defaultBrandConfig, type ThemeColors } from '@/lib/branding'
-import { getEnv } from '@/lib/core/config/env'
+import { getEnv } from '@/lib/core/config/public-env'
 
 export type { BrandConfig, ThemeColors }
 

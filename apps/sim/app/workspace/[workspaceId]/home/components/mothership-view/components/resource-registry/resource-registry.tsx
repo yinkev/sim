@@ -1,7 +1,6 @@
 'use client'
 
 import type { ElementType, ReactNode } from 'react'
-import type { QueryClient } from '@tanstack/react-query'
 import {
   Calendar,
   Connections,
@@ -20,16 +19,6 @@ import type {
   MothershipResource,
   MothershipResourceType,
 } from '@/app/workspace/[workspaceId]/home/types'
-import { getBareIconStyle, type StyleableIcon } from '@/blocks/icon-color'
-import { knowledgeKeys } from '@/hooks/queries/kb/knowledge'
-import { logKeys } from '@/hooks/queries/logs'
-import { mothershipChatKeys } from '@/hooks/queries/mothership-chats'
-import { scheduleKeys } from '@/hooks/queries/schedules'
-import { tableKeys } from '@/hooks/queries/tables'
-import { folderKeys } from '@/hooks/queries/utils/folder-keys'
-import { invalidateWorkflowLists } from '@/hooks/queries/utils/invalidate-workflow-lists'
-import { workspaceFileFolderKeys } from '@/hooks/queries/workspace-file-folders'
-import { workspaceFilesKeys } from '@/hooks/queries/workspace-files'
 
 interface DropdownItemRenderProps {
   item: { id: string; name: string; [key: string]: unknown }
@@ -76,20 +65,12 @@ function IconDropdownItem({ item, icon: Icon }: DropdownItemRenderProps & { icon
 }
 
 /**
- * Renders an integration mention candidate using the block's own brand icon at
- * the standard 14px dropdown size. Single-fill icons drawn with
- * `fill='currentColor'` (e.g. HubSpot) are tinted with the block's brand
- * {@link BlockConfig.iconColor}; multi-color brand icons keep their own SVG fills.
+ * Renders integration mention candidates with the lightweight generic icon.
  */
 function IntegrationDropdownItem({ item }: DropdownItemRenderProps) {
-  const Icon = item.iconComponent as StyleableIcon | undefined
-  if (!Icon) return <span className='truncate'>{item.name}</span>
   return (
     <>
-      <Icon
-        className='size-[14px] flex-shrink-0 text-[var(--text-icon)]'
-        style={getBareIconStyle(Icon)}
-      />
+      <Connections className='size-[14px] flex-shrink-0 text-[var(--text-icon)]' />
       <span className='truncate'>{item.name}</span>
     </>
   )
@@ -218,66 +199,4 @@ export const RESOURCE_TYPES = Object.values(RESOURCE_REGISTRY)
 
 export function getResourceConfig(type: MothershipResourceType): ResourceTypeConfig {
   return RESOURCE_REGISTRY[type]
-}
-
-type CacheableResourceType = Exclude<MothershipResourceType, 'generic'>
-
-const RESOURCE_INVALIDATORS: Record<
-  CacheableResourceType,
-  (qc: QueryClient, workspaceId: string, resourceId: string) => void
-> = {
-  table: (qc, _wId, id) => {
-    qc.invalidateQueries({ queryKey: tableKeys.lists() })
-    qc.invalidateQueries({ queryKey: tableKeys.detail(id) })
-  },
-  file: (qc, wId, id) => {
-    qc.invalidateQueries({ queryKey: workspaceFilesKeys.lists() })
-    qc.invalidateQueries({ queryKey: workspaceFilesKeys.contentFile(wId, id) })
-    qc.invalidateQueries({ queryKey: workspaceFilesKeys.storageInfo() })
-  },
-  workflow: (qc, wId) => {
-    void invalidateWorkflowLists(qc, wId)
-  },
-  knowledgebase: (qc, _wId, id) => {
-    qc.invalidateQueries({ queryKey: knowledgeKeys.lists() })
-    qc.invalidateQueries({ queryKey: knowledgeKeys.detail(id) })
-    qc.invalidateQueries({ queryKey: knowledgeKeys.tagDefinitions(id) })
-  },
-  folder: (qc) => {
-    qc.invalidateQueries({ queryKey: folderKeys.lists() })
-  },
-  filefolder: (qc, wId) => {
-    qc.invalidateQueries({ queryKey: workspaceFileFolderKeys.workspaceLists(wId) })
-  },
-  task: (qc, wId) => {
-    qc.invalidateQueries({ queryKey: mothershipChatKeys.list(wId) })
-  },
-  scheduledtask: (qc, wId) => {
-    qc.invalidateQueries({ queryKey: scheduleKeys.list(wId) })
-  },
-  log: (qc, _wId, id) => {
-    qc.invalidateQueries({ queryKey: logKeys.details() })
-    qc.invalidateQueries({ queryKey: logKeys.detail(id) })
-  },
-  /**
-   * Integrations are sourced from the static integration catalog
-   * (`listIntegrations()`), not a server-backed query, so there is nothing to
-   * invalidate when one is added.
-   */
-  integration: () => {},
-}
-
-/**
- * Invalidate list and detail queries for a specific resource.
- * Called when a `resource_added` event arrives so the embedded view refreshes
- * and the add-resource dropdown stays up to date.
- */
-export function invalidateResourceQueries(
-  queryClient: QueryClient,
-  workspaceId: string,
-  resourceType: MothershipResourceType,
-  resourceId: string
-): void {
-  if (resourceType === 'generic') return
-  RESOURCE_INVALIDATORS[resourceType](queryClient, workspaceId, resourceId)
 }

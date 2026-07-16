@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Banner } from '@/components/emcn'
-import { useSession } from '@/lib/auth/auth-client'
+import { useSession } from '@/app/_shell/providers/use-session'
 import { useStopImpersonating } from '@/hooks/queries/admin-users'
 
 function getImpersonationBannerText(userLabel: string, userEmail?: string) {

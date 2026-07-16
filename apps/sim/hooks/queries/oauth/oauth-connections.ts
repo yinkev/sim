@@ -112,10 +112,11 @@ async function fetchOAuthConnections(signal?: AbortSignal): Promise<ServiceInfo[
  * Fetches all OAuth service connections with their status.
  * Returns service definitions merged with connection data.
  */
-export function useOAuthConnections() {
+export function useOAuthConnections(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: oauthConnectionsKeys.connections(),
     queryFn: ({ signal }) => fetchOAuthConnections(signal),
+    enabled: options?.enabled ?? true,
     staleTime: 30 * 1000,
     retry: false,
   })

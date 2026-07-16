@@ -2,7 +2,6 @@ import {
   type InfiniteData,
   keepPreviousData,
   type QueryClient,
-  useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
@@ -17,127 +16,16 @@ import {
   getExecutionSnapshotContract,
   getLogByExecutionIdContract,
   getLogDetailContract,
-  listLogsContract,
   type WorkflowLogDetail,
-  type WorkflowLogSummary,
   type WorkflowStats,
 } from '@/lib/api/contracts/logs'
-import { getEndDateFromTimeRange, getStartDateFromTimeRange } from '@/lib/logs/filters'
-import { parseQuery, queryToApiParams } from '@/lib/logs/query-parser'
-import type { TimeRange } from '@/stores/logs/filters/types'
+import type { LogFilters, LogSortBy, LogSortOrder, LogsPage } from '@/hooks/queries/log-list'
+import { applyFilterParams, logKeys, useLogsList } from '@/hooks/queries/log-list'
 
 export type { DashboardStatsResponse, WorkflowStats }
 
-export type LogSortBy = 'date' | 'duration' | 'cost' | 'status'
-export type LogSortOrder = 'asc' | 'desc'
-
-export const logKeys = {
-  all: ['logs'] as const,
-  lists: () => [...logKeys.all, 'list'] as const,
-  list: (workspaceId: string | undefined, filters: LogFilters) =>
-    [...logKeys.lists(), workspaceId ?? '', filters] as const,
-  details: () => [...logKeys.all, 'detail'] as const,
-  detail: (logId: string | undefined) => [...logKeys.details(), logId ?? ''] as const,
-  byExecutionAll: () => [...logKeys.all, 'byExecution'] as const,
-  byExecution: (workspaceId: string | undefined, executionId: string | undefined) =>
-    [...logKeys.byExecutionAll(), workspaceId ?? '', executionId ?? ''] as const,
-  stats: () => [...logKeys.all, 'stats'] as const,
-  stat: (workspaceId: string | undefined, filters: object) =>
-    [...logKeys.stats(), workspaceId ?? '', filters] as const,
-  executionSnapshots: () => [...logKeys.all, 'executionSnapshot'] as const,
-  executionSnapshot: (executionId: string | undefined) =>
-    [...logKeys.executionSnapshots(), executionId ?? ''] as const,
-}
-
-export interface LogFilters {
-  timeRange: TimeRange
-  startDate?: string
-  endDate?: string
-  level: string
-  workflowIds: string[]
-  folderIds: string[]
-  triggers: string[]
-  searchQuery: string
-  limit: number
-  sortBy: LogSortBy
-  sortOrder: LogSortOrder
-}
-
-function applyFilterParams(
-  params: URLSearchParams,
-  filters: Omit<LogFilters, 'limit' | 'sortBy' | 'sortOrder'>
-): void {
-  if (filters.level !== 'all') {
-    params.set('level', filters.level)
-  }
-
-  if (filters.triggers.length > 0) {
-    params.set('triggers', filters.triggers.join(','))
-  }
-
-  if (filters.workflowIds.length > 0) {
-    params.set('workflowIds', filters.workflowIds.join(','))
-  }
-
-  if (filters.folderIds.length > 0) {
-    params.set('folderIds', filters.folderIds.join(','))
-  }
-
-  const startDate = getStartDateFromTimeRange(filters.timeRange, filters.startDate)
-  if (startDate) {
-    params.set('startDate', startDate.toISOString())
-  }
-
-  const endDate = getEndDateFromTimeRange(filters.timeRange, filters.endDate)
-  if (endDate) {
-    params.set('endDate', endDate.toISOString())
-  }
-
-  if (filters.searchQuery.trim()) {
-    const parsedQuery = parseQuery(filters.searchQuery.trim())
-    const searchParams = queryToApiParams(parsedQuery)
-
-    for (const [key, value] of Object.entries(searchParams)) {
-      params.set(key, value)
-    }
-  }
-}
-
-function buildListQuery(workspaceId: string, filters: LogFilters, cursor: string | null) {
-  const params = new URLSearchParams()
-  applyFilterParams(params, filters)
-
-  return {
-    workspaceId,
-    limit: filters.limit,
-    sortBy: filters.sortBy,
-    sortOrder: filters.sortOrder,
-    ...(cursor ? { cursor } : {}),
-    ...Object.fromEntries(params.entries()),
-  }
-}
-
-interface LogsPage {
-  logs: WorkflowLogSummary[]
-  nextCursor: string | null
-}
-
-async function fetchLogsPage(
-  workspaceId: string,
-  filters: LogFilters,
-  cursor: string | null,
-  signal?: AbortSignal
-): Promise<LogsPage> {
-  const apiData = await requestJson(listLogsContract, {
-    query: buildListQuery(workspaceId, filters, cursor),
-    signal,
-  })
-
-  return {
-    logs: apiData.data,
-    nextCursor: apiData.nextCursor,
-  }
-}
+export { logKeys, useLogsList }
+export type { LogFilters, LogSortBy, LogSortOrder }
 
 export async function fetchLogDetail(
   logId: string,
@@ -150,29 +38,6 @@ export async function fetchLogDetail(
     signal,
   })
   return data
-}
-
-interface UseLogsListOptions {
-  enabled?: boolean
-  refetchInterval?: number | false
-}
-
-export function useLogsList(
-  workspaceId: string | undefined,
-  filters: LogFilters,
-  options?: UseLogsListOptions
-) {
-  return useInfiniteQuery({
-    queryKey: logKeys.list(workspaceId, filters),
-    queryFn: ({ pageParam, signal }) =>
-      fetchLogsPage(workspaceId as string, filters, pageParam, signal),
-    enabled: Boolean(workspaceId) && (options?.enabled ?? true),
-    refetchInterval: options?.refetchInterval ?? false,
-    staleTime: 30 * 1000,
-    placeholderData: keepPreviousData,
-    initialPageParam: null as string | null,
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-  })
 }
 
 interface UseLogDetailOptions {

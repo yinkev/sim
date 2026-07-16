@@ -90,6 +90,7 @@ interface DeployModalProps {
   isLoadingDeployedState: boolean
   deployReadiness: DeployReadiness
   isDeploymentSettling: boolean
+  initialTab?: TabView
 }
 
 interface WorkflowDeploymentInfoUI {
@@ -104,12 +105,6 @@ interface WorkflowDeploymentInfoUI {
 
 type TabView = 'general' | 'api' | 'chat' | 'mcp' | 'a2a'
 
-const DEPLOY_MODAL_TABS = new Set<TabView>(['general', 'api', 'chat', 'mcp', 'a2a'])
-
-function isDeployModalTab(value: unknown): value is TabView {
-  return typeof value === 'string' && DEPLOY_MODAL_TABS.has(value as TabView)
-}
-
 export function DeployModal({
   open,
   onOpenChange,
@@ -120,6 +115,7 @@ export function DeployModal({
   isLoadingDeployedState,
   deployReadiness,
   isDeploymentSettling,
+  initialTab,
 }: DeployModalProps) {
   const queryClient = useQueryClient()
   const params = useParams()
@@ -129,7 +125,7 @@ export function DeployModal({
   const { data: workflowMap = {} } = useWorkflowMap(workspaceId)
   const workflowMetadata = workflowId ? workflowMap[workflowId] : undefined
   const workflowWorkspaceId = workflowMetadata?.workspaceId ?? null
-  const [activeTab, setActiveTab] = useState<TabView>('general')
+  const [activeTab, setActiveTab] = useState<TabView>(initialTab ?? 'general')
   const [chatSubmitting, setChatSubmitting] = useState(false)
   const [deployError, setDeployError] = useState<string | null>(null)
   const [deployWarnings, setDeployWarnings] = useState<string[]>([])
@@ -313,22 +309,6 @@ export function DeployModal({
       }
     }
   }, [open, workflowId])
-
-  useEffect(() => {
-    const handleOpenDeployModal = (event: Event) => {
-      const customEvent = event as CustomEvent<{ tab?: unknown }>
-      onOpenChange(true)
-      if (isDeployModalTab(customEvent.detail?.tab)) {
-        setActiveTab(customEvent.detail.tab)
-      }
-    }
-
-    window.addEventListener('open-deploy-modal', handleOpenDeployModal)
-
-    return () => {
-      window.removeEventListener('open-deploy-modal', handleOpenDeployModal)
-    }
-  }, [onOpenChange])
 
   const onDeploy = async () => {
     if (!workflowId) return

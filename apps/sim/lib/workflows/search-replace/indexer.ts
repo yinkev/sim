@@ -43,6 +43,7 @@ import { getBlock } from '@/blocks/registry'
 import type { SubBlockConfig } from '@/blocks/types'
 import { isReference } from '@/executor/constants'
 import type { SelectorContext } from '@/hooks/selectors/types'
+import { getClientTool } from '@/tools/client-registry'
 import {
   formatParameterLabel,
   getSubBlocksForToolInput,
@@ -732,6 +733,7 @@ function getToolInputParamConfigs({
 
   if (!toolId) return genericFallback()
 
+  const toolConfig = getClientTool(toolId)
   const scopedCanonicalModes = scopeToolCanonicalModes(parentCanonicalModes, tool.type)
   const blockConfig =
     tool.type !== 'custom-tool' && tool.type !== 'mcp'
@@ -741,13 +743,14 @@ function getToolInputParamConfigs({
     tool.type !== 'custom-tool' && tool.type !== 'mcp'
       ? getSubBlocksForToolInput(
           toolId,
+          toolConfig,
           tool.type,
           values,
           scopedCanonicalModes,
           blockConfig?.subBlocks ? { subBlocks: blockConfig.subBlocks } : undefined
         )
       : null
-  const toolParams = getToolParametersConfig(toolId, tool.type, values)
+  const toolParams = getToolParametersConfig(toolId, toolConfig, tool.type, values)
   const displayParams = toolParams?.userInputParameters ?? []
 
   if (!toolParams && !subBlocksResult) return genericFallback()

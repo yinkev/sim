@@ -1,13 +1,13 @@
 'use client'
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { requestJson } from '@/lib/api/client/request'
-import {
-  getOrganizationWhitelabelContract,
-  updateOrganizationWhitelabelContract,
-} from '@/lib/api/contracts/organization'
+import { updateOrganizationWhitelabelContract } from '@/lib/api/contracts/organization'
 import type { OrganizationWhitelabelSettings } from '@/lib/branding/types'
-import { organizationKeys } from '@/hooks/queries/organization'
+import { whitelabelKeys } from '@/ee/whitelabeling/hooks/whitelabel-query'
+import { organizationKeys } from '@/hooks/queries/organization-keys'
+
+export { useWhitelabelSettings, whitelabelKeys } from '@/ee/whitelabeling/hooks/whitelabel-query'
 
 /** PUT payload — string fields accept null to clear a previously-set value. */
 export type WhitelabelSettingsPayload = {
@@ -16,38 +16,6 @@ export type WhitelabelSettingsPayload = {
     | undefined
     ? string | null
     : OrganizationWhitelabelSettings[K]
-}
-
-/**
- * Query key factories for whitelabel-related queries
- */
-export const whitelabelKeys = {
-  all: ['whitelabel'] as const,
-  settingsList: () => [...whitelabelKeys.all, 'settings'] as const,
-  settings: (orgId: string) => [...whitelabelKeys.settingsList(), orgId] as const,
-}
-
-async function fetchWhitelabelSettings(
-  orgId: string,
-  signal?: AbortSignal
-): Promise<OrganizationWhitelabelSettings> {
-  const { data } = await requestJson(getOrganizationWhitelabelContract, {
-    params: { id: orgId },
-    signal,
-  })
-  return data
-}
-
-/**
- * Hook to fetch whitelabel settings for an organization.
- */
-export function useWhitelabelSettings(orgId: string | undefined) {
-  return useQuery({
-    queryKey: whitelabelKeys.settings(orgId ?? ''),
-    queryFn: ({ signal }) => fetchWhitelabelSettings(orgId as string, signal),
-    enabled: Boolean(orgId),
-    staleTime: 60 * 1000,
-  })
 }
 
 interface UpdateWhitelabelVariables {

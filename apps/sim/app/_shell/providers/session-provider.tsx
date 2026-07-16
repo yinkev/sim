@@ -3,11 +3,8 @@
 import type React from 'react'
 import { createContext, useCallback, useEffect, useMemo, useState } from 'react'
 import { createLogger } from '@sim/logger'
-import { useQueryClient } from '@tanstack/react-query'
 import { usePathname } from 'next/navigation'
-import { requestJson } from '@/lib/api/client/request'
-import { listCreatorOrganizationsContract } from '@/lib/api/contracts/organizations'
-import { client } from '@/lib/auth/auth-client'
+import { ANONYMOUS_USER, ANONYMOUS_USER_ID } from '@/lib/auth/constants'
 import { extractSessionDataFromAuthClientResult } from '@/lib/auth/session-response'
 
 export type AppSession = {
@@ -36,9 +33,22 @@ export type SessionHookResult = {
   refetch: () => Promise<void>
 }
 
+const ANONYMOUS_SESSION: AppSession = {
+  user: { ...ANONYMOUS_USER },
+  session: {
+    id: 'anonymous-session',
+    userId: ANONYMOUS_USER_ID,
+  },
+}
+
 export const SessionContext = createContext<SessionHookResult | null>(null)
 
 const logger = createLogger('SessionProvider')
+
+async function getAuthClient() {
+  const { client } = await import('@/lib/auth/auth-client')
+  return client
+}
 
 function isCenterPath(pathname: string | null): boolean {
   if (!pathname) return false
@@ -49,36 +59,63 @@ function isCenterPath(pathname: string | null): boolean {
   )
 }
 
-export function SessionProvider({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
-  const [data, setData] = useState<AppSession>(null)
-  const [isPending, setIsPending] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-  const queryClient = useQueryClient()
+interface SessionProviderProps {
+  authDisabled: boolean
+  children: React.ReactNode
+}
 
-  const loadSession = useCallback(async (bypassCache = false) => {
-    try {
-      setIsPending(true)
-      setError(null)
-      const res = bypassCache
-        ? await client.getSession({ query: { disableCookieCache: true } })
-        : await client.getSession()
-      const session = extractSessionDataFromAuthClientResult(res) as AppSession
-      setData(session)
-      return session
-    } catch (e) {
-      setError(e instanceof Error ? e : new Error('Failed to fetch session'))
-      return null
-    } finally {
-      setIsPending(false)
-    }
-  }, [])
+export function SessionProvider({ authDisabled, children }: SessionProviderProps) {
+  const pathname = usePathname()
+  const useAnonymousSession = authDisabled && !isCenterPath(pathname)
+  const [data, setData] = useState<AppSession>(() =>
+    useAnonymousSession ? ANONYMOUS_SESSION : null
+  )
+  const [isPending, setIsPending] = useState(!useAnonymousSession)
+  const [error, setError] = useState<Error | null>(null)
+
+  const loadSession = useCallback(
+    async (bypassCache = false) => {
+      if (authDisabled) {
+        setData(ANONYMOUS_SESSION)
+        setError(null)
+        setIsPending(false)
+        return ANONYMOUS_SESSION
+      }
+
+      try {
+        setIsPending(true)
+        setError(null)
+        const client = await getAuthClient()
+        const res = bypassCache
+          ? await client.getSession({ query: { disableCookieCache: true } })
+          : await client.getSession()
+        const session = extractSessionDataFromAuthClientResult(res) as AppSession
+        setData(session)
+        return session
+      } catch (e) {
+        setError(e instanceof Error ? e : new Error('Failed to fetch session'))
+        return null
+      } finally {
+        setIsPending(false)
+      }
+    },
+    [authDisabled]
+  )
 
   useEffect(() => {
     let isCancelled = false
 
     if (isCenterPath(pathname)) {
       setData(null)
+      setError(null)
+      setIsPending(false)
+      return () => {
+        isCancelled = true
+      }
+    }
+
+    if (authDisabled) {
+      setData(ANONYMOUS_SESSION)
       setError(null)
       setIsPending(false)
       return () => {
@@ -105,6 +142,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
+      const { getQueryClient } = await import('@/app/_shell/providers/get-query-client')
+      const queryClient = getQueryClient()
       queryClient.invalidateQueries({ queryKey: ['organizations'] })
       queryClient.invalidateQueries({ queryKey: ['subscription'] })
 
@@ -114,6 +153,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
+        const [{ requestJson }, { listCreatorOrganizationsContract }] = await Promise.all([
+          import('@/lib/api/client/request'),
+          import('@/lib/api/contracts/organizations'),
+        ])
         const orgData = await requestJson(listCreatorOrganizationsContract, {}).catch(() => null)
         if (!orgData) return
 
@@ -123,6 +166,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
+        const client = await getAuthClient()
         await client.organization.setActive({ organizationId })
 
         if (!isCancelled) {
@@ -138,7 +182,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     return () => {
       isCancelled = true
     }
-  }, [loadSession, pathname, queryClient])
+  }, [authDisabled, loadSession, pathname])
 
   useEffect(() => {
     if (isPending) return
@@ -172,8 +216,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [data, isPending, pathname])
 
   const refetch = useCallback(async () => {
+    if (authDisabled && isCenterPath(pathname)) return
     await loadSession()
-  }, [loadSession])
+  }, [authDisabled, loadSession, pathname])
 
   const value = useMemo<SessionHookResult>(
     () => ({ data, isPending, error, refetch }),

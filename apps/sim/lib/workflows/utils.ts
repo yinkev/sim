@@ -5,11 +5,12 @@ import { generateId } from '@sim/utils/id'
 import { authorizeWorkflowByWorkspacePermission } from '@sim/workflow-authz'
 import { and, asc, eq, inArray, isNull, max, min, sql } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
-import { getSession } from '@/lib/auth'
+import { getSession } from '@/lib/auth/api-session'
 import { ensureWorkflowAliasBacking } from '@/lib/copilot/vfs/workflow-alias-backing'
 import { materializeInlineExecutionValue } from '@/lib/execution/payloads/inline-materialization.server'
 import type { ExecutionMaterializationContext } from '@/lib/execution/payloads/materialization.server'
 import { buildDefaultWorkflowArtifacts } from '@/lib/workflows/defaults'
+import { getWorkflowById as queryWorkflowById } from '@/lib/workflows/get-workflow-by-id'
 import { saveWorkflowToNormalizedTables } from '@/lib/workflows/persistence/utils'
 import type { ExecutionResult } from '@/executor/types'
 
@@ -18,18 +19,7 @@ const logger = createLogger('WorkflowUtils')
 export type WorkflowScope = 'active' | 'archived' | 'all'
 
 export async function getWorkflowById(id: string, options?: { includeArchived?: boolean }) {
-  const { includeArchived = false } = options ?? {}
-  const rows = await db
-    .select()
-    .from(workflowTable)
-    .where(
-      includeArchived
-        ? eq(workflowTable.id, id)
-        : and(eq(workflowTable.id, id), isNull(workflowTable.archivedAt))
-    )
-    .limit(1)
-
-  return rows[0]
+  return queryWorkflowById(id, options)
 }
 
 export async function listWorkflows(workspaceId: string, options?: { scope?: WorkflowScope }) {

@@ -24,7 +24,9 @@ import { Serializer } from '@/serializer/index'
 import type { SerializedWorkflow } from '@/serializer/types'
 
 vi.mock('@/blocks', () => blocksMock)
-vi.mock('@/tools/utils', () => toolsUtilsMock)
+vi.mock('@/tools/client-summary-registry', () => ({
+  getClientToolSummary: toolsUtilsMock.getTool,
+}))
 
 describe('Serializer', () => {
   describe('serializeWorkflow', () => {

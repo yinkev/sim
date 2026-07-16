@@ -14,7 +14,7 @@ vi.mock('@/lib/copilot/tools/workflow-tools', () => ({
   isWorkflowToolName: vi.fn(() => false),
 }))
 vi.mock(
-  '@/app/workspace/[workspaceId]/home/components/mothership-view/components/resource-registry',
+  '@/app/workspace/[workspaceId]/home/components/mothership-view/components/resource-registry/resource-query-invalidation',
   () => ({ invalidateResourceQueries: vi.fn() })
 )
 

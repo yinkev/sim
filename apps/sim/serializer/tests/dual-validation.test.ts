@@ -37,8 +37,8 @@ function validateRequiredParametersAfterMerge(
   })
 }
 
-vi.mock('@/tools/utils', () => ({
-  getTool: (toolId: string) => {
+vi.mock('@/tools/client-summary-registry', () => ({
+  getClientToolSummary: (toolId: string) => {
     const mockTools: Record<string, any> = {
       jina_read_url: {
         name: 'Jina Reader',
@@ -77,7 +77,6 @@ vi.mock('@/tools/utils', () => ({
     }
     return mockTools[toolId] || null
   },
-  validateRequiredParametersAfterMerge,
 }))
 
 describe('Validation Integration Tests', () => {

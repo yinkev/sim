@@ -11,8 +11,12 @@ import type {
   TableRow,
   TableRowsCursor,
 } from '@/lib/table'
-import { COLUMN_TYPES, NAME_PATTERN, TABLE_LIMITS } from '@/lib/table/constants'
-import { CSV_MAX_FILE_SIZE_BYTES } from '@/lib/table/import'
+import {
+  COLUMN_TYPES,
+  CSV_MAX_FILE_SIZE_BYTES,
+  NAME_PATTERN,
+  TABLE_LIMITS,
+} from '@/lib/table/constants'
 
 export const domainObjectSchema = <T>() => z.custom<T>(isRecordLike)
 

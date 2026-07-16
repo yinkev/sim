@@ -1,13 +1,63 @@
-import { db } from '@sim/db'
-import * as schema from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
 import { generateId } from '@sim/utils/id'
-import { eq } from 'drizzle-orm'
-import { ANONYMOUS_USER, ANONYMOUS_USER_ID } from './constants'
+import postgres from 'postgres'
+import { ANONYMOUS_USER, ANONYMOUS_USER_ID } from '@/lib/auth/constants'
+
+export type { AnonymousSession } from '@/lib/auth/anonymous-session'
+export { createAnonymousSession } from '@/lib/auth/anonymous-session'
 
 const logger = createLogger('AnonymousAuth')
 
 let anonymousUserEnsured = false
+let anonymousUserEnsurePromise: Promise<void> | null = null
+
+async function bootstrapAnonymousUser(): Promise<void> {
+  const connectionString = process.env.DATABASE_URL
+  if (!connectionString) throw new Error('Missing DATABASE_URL environment variable')
+
+  const sql = postgres(connectionString, {
+    prepare: false,
+    max: 1,
+    idle_timeout: 1,
+    connect_timeout: 30,
+    onnotice: () => {},
+  })
+
+  try {
+    await sql.begin(async (transaction) => {
+      const now = new Date()
+      const insertedUsers = await transaction`
+        INSERT INTO "user" (id, name, email, email_verified, image, created_at, updated_at)
+        VALUES (
+          ${ANONYMOUS_USER.id},
+          ${ANONYMOUS_USER.name},
+          ${ANONYMOUS_USER.email},
+          ${ANONYMOUS_USER.emailVerified},
+          ${ANONYMOUS_USER.image},
+          ${now},
+          ${now}
+        )
+        ON CONFLICT DO NOTHING
+        RETURNING id
+      `
+      if (insertedUsers.length > 0) {
+        logger.info('Created anonymous user for DISABLE_AUTH mode')
+      }
+
+      const insertedStats = await transaction`
+        INSERT INTO user_stats (id, user_id, current_usage_limit)
+        VALUES (${generateId()}, ${ANONYMOUS_USER_ID}, ${'10000000000'})
+        ON CONFLICT (user_id) DO NOTHING
+        RETURNING id
+      `
+      if (insertedStats.length > 0) {
+        logger.info('Created anonymous user stats for DISABLE_AUTH mode')
+      }
+    })
+  } finally {
+    await sql.end({ timeout: 5 })
+  }
+}
 
 /**
  * Ensures the anonymous user and their stats record exist in the database.
@@ -15,91 +65,13 @@ let anonymousUserEnsured = false
  */
 export async function ensureAnonymousUserExists(): Promise<void> {
   if (anonymousUserEnsured) return
-
+  anonymousUserEnsurePromise ??= bootstrapAnonymousUser()
   try {
-    const existingUser = await db.query.user.findFirst({
-      where: eq(schema.user.id, ANONYMOUS_USER_ID),
-    })
-
-    if (!existingUser) {
-      const now = new Date()
-      await db.insert(schema.user).values({
-        ...ANONYMOUS_USER,
-        createdAt: now,
-        updatedAt: now,
-      })
-      logger.info('Created anonymous user for DISABLE_AUTH mode')
-    }
-
-    const existingStats = await db.query.userStats.findFirst({
-      where: eq(schema.userStats.userId, ANONYMOUS_USER_ID),
-    })
-
-    if (!existingStats) {
-      await db.insert(schema.userStats).values({
-        id: generateId(),
-        userId: ANONYMOUS_USER_ID,
-        currentUsageLimit: '10000000000',
-      })
-      logger.info('Created anonymous user stats for DISABLE_AUTH mode')
-    }
-
+    await anonymousUserEnsurePromise
     anonymousUserEnsured = true
   } catch (error) {
-    if (
-      error instanceof Error &&
-      (error.message.includes('unique') || error.message.includes('duplicate'))
-    ) {
-      anonymousUserEnsured = true
-      return
-    }
+    anonymousUserEnsurePromise = null
     logger.error('Failed to ensure anonymous user exists', { error })
     throw error
-  }
-}
-
-export interface AnonymousSession {
-  user: {
-    id: string
-    name: string
-    email: string
-    emailVerified: boolean
-    image: null
-    createdAt: Date
-    updatedAt: Date
-  }
-  session: {
-    id: string
-    userId: string
-    expiresAt: Date
-    createdAt: Date
-    updatedAt: Date
-    token: string
-    ipAddress: null
-    userAgent: null
-  }
-}
-
-/**
- * Creates an anonymous session for when auth is disabled.
- */
-export function createAnonymousSession(): AnonymousSession {
-  const now = new Date()
-  return {
-    user: {
-      ...ANONYMOUS_USER,
-      createdAt: now,
-      updatedAt: now,
-    },
-    session: {
-      id: 'anonymous-session',
-      userId: ANONYMOUS_USER_ID,
-      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
-      createdAt: now,
-      updatedAt: now,
-      token: 'anonymous-token',
-      ipAddress: null,
-      userAgent: null,
-    },
   }
 }

@@ -87,7 +87,6 @@ import { validateSignupEmailMx } from '@/lib/messaging/email/validation.server'
 import { scheduleLifecycleEmail } from '@/lib/messaging/lifecycle'
 import { captureServerEvent, getPostHogClient } from '@/lib/posthog/server'
 import { syncAllWebhooksForCredentialSet } from '@/lib/webhooks/utils.server'
-import { disableUserResources } from '@/lib/workflows/lifecycle'
 import { SSO_TRUSTED_PROVIDERS } from '@/ee/sso/constants'
 import { createAnonymousSession, ensureAnonymousUserExists } from './anonymous'
 
@@ -312,6 +311,7 @@ export const auth = betterAuth({
       update: {
         after: async (user) => {
           if (user.banned) {
+            const { disableUserResources } = await import('@/lib/workflows/lifecycle')
             await disableUserResources(user.id)
           }
         },

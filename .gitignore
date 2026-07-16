@@ -62,8 +62,8 @@ next-env.d.ts
 # database instantiation
 **/postgres_data/
 
-# generated local app bundles
-/.ai-bridge/artifacts/center-app/
+# generated local runtime data and app bundles
+/var/
 
 # collector configuration
 collector-config.yaml

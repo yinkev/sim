@@ -16,9 +16,8 @@ import { AuthType, checkHybridAuth, checkSessionOrInternalAuth } from '@/lib/aut
 import { generateRequestId } from '@/lib/core/utils/request'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { captureServerEvent } from '@/lib/posthog/server'
-import { performDeleteWorkflow, performUpdateWorkflow } from '@/lib/workflows/orchestration'
-import { loadWorkflowFromNormalizedTables } from '@/lib/workflows/persistence/utils'
-import { getWorkflowById } from '@/lib/workflows/utils'
+import { getWorkflowById } from '@/lib/workflows/get-workflow-by-id'
+import { loadWorkflowFromNormalizedTables } from '@/lib/workflows/persistence/load'
 
 const logger = createLogger('WorkflowByIdAPI')
 
@@ -207,6 +206,9 @@ export const DELETE = withRouteHandler(
 
       await assertWorkflowMutable(workflowId)
 
+      const { performDeleteWorkflow } = await import(
+        '@/lib/workflows/orchestration/workflow-delete'
+      )
       const result = await performDeleteWorkflow({
         workflowId,
         userId,
@@ -313,6 +315,9 @@ export const PUT = withRouteHandler(
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
       }
 
+      const { performUpdateWorkflow } = await import(
+        '@/lib/workflows/orchestration/workflow-update'
+      )
       const result = await performUpdateWorkflow({
         workflowId,
         userId,

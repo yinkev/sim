@@ -19,7 +19,7 @@ import type { SubBlockConfig } from '@/blocks/types'
 import type { SerializedBlock, SerializedWorkflow } from '@/serializer/types'
 import type { BlockState, Loop, Parallel } from '@/stores/workflows/workflow/types'
 import { generateLoopBlocks, generateParallelBlocks } from '@/stores/workflows/workflow/utils'
-import { getTool } from '@/tools/utils'
+import { getClientToolSummary } from '@/tools/client-summary-registry'
 
 const logger = createLogger('Serializer')
 
@@ -575,7 +575,7 @@ export function collectBlockFieldIssues(
   // Get the tool configuration to check parameter visibility
   const toolAccess = blockConfig.tools?.access
   const currentToolId = toolAccess?.length > 0 ? selectToolId(blockConfig, params) : null
-  const currentTool = currentToolId ? getTool(currentToolId) : null
+  const currentTool = currentToolId ? getClientToolSummary(currentToolId) : null
 
   // Validate tool parameters (for blocks with tools).
   // Lookup contract: a tool param's value lives under its own paramId in `params`.

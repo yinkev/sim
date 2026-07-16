@@ -1,0 +1,15 @@
+export const organizationKeys = {
+  all: ['organizations'] as const,
+  lists: () => [...organizationKeys.all, 'list'] as const,
+  details: () => [...organizationKeys.all, 'detail'] as const,
+  detail: (id: string) => [...organizationKeys.details(), id] as const,
+  subscription: (id: string) => [...organizationKeys.detail(id), 'subscription'] as const,
+  billing: (id: string) => [...organizationKeys.detail(id), 'billing'] as const,
+  members: (id: string) => [...organizationKeys.detail(id), 'members'] as const,
+  memberUsage: (id: string) => [...organizationKeys.detail(id), 'member-usage'] as const,
+  memberUsageLimit: (id: string, userId: string) =>
+    [...organizationKeys.detail(id), 'member-usage-limit', userId] as const,
+  roster: (id: string) => [...organizationKeys.detail(id), 'roster'] as const,
+  myMemberCredits: (workspaceId: string) =>
+    [...organizationKeys.all, 'my-member-credits', workspaceId] as const,
+}

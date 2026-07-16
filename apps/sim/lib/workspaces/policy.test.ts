@@ -46,7 +46,7 @@ vi.mock('@sim/db', () => ({
 
 vi.mock('@sim/db/schema', () => schemaMock)
 
-vi.mock('@/lib/billing/organizations/membership', () => ({
+vi.mock('@/lib/billing/organizations/membership-lookup', () => ({
   getUserOrganization: mockGetUserOrganization,
 }))
 
@@ -65,6 +65,8 @@ vi.mock('@/lib/core/config/env-flags', () => ({
 }))
 
 import {
+  getInvitePlanCategoryForOrganization,
+  getInvitePlanCategoryForUser,
   getWorkspaceCreationPolicy,
   getWorkspaceInvitePolicy,
   WORKSPACE_MODE,
@@ -252,6 +254,16 @@ describe('getWorkspaceInvitePolicy', () => {
     billedAccountUserId: 'owner-1',
     ownerId: 'owner-1',
   } as const
+
+  it('skips paid subscription modules when billing is disabled', async () => {
+    mockFeatureFlags.isBillingEnabled = false
+
+    await expect(getInvitePlanCategoryForOrganization('org-1')).resolves.toBe('free')
+    await expect(getInvitePlanCategoryForUser('user-1')).resolves.toBe('free')
+
+    expect(mockGetOrganizationSubscription).not.toHaveBeenCalled()
+    expect(mockGetHighestPrioritySubscription).not.toHaveBeenCalled()
+  })
 
   it('allows invites unconditionally when billing is disabled', async () => {
     mockFeatureFlags.isBillingEnabled = false

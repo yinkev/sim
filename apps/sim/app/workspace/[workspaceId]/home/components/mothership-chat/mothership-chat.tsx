@@ -3,7 +3,7 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { defaultRangeExtractor, type Range, useVirtualizer } from '@tanstack/react-virtual'
 import { cn } from '@/lib/core/utils/cn'
-import { MessageActions } from '@/app/workspace/[workspaceId]/components'
+import { MessageActions } from '@/app/workspace/[workspaceId]/components/message-actions/message-actions'
 import { ChatMessageAttachments } from '@/app/workspace/[workspaceId]/home/components/chat-message-attachments'
 import { ChatSurfaceProvider } from '@/app/workspace/[workspaceId]/home/components/chat-surface-context'
 import {

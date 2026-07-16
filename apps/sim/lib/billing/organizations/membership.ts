@@ -24,6 +24,7 @@ import { getErrorMessage } from '@sim/utils/errors'
 import { generateId } from '@sim/utils/id'
 import { and, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm'
 import { syncUsageLimitsFromSubscription } from '@/lib/billing/core/usage'
+import { getUserOrganization } from '@/lib/billing/organizations/membership-lookup'
 import { isPaid, sqlIsPro } from '@/lib/billing/plan-helpers'
 import { ENTITLED_SUBSCRIPTION_STATUSES } from '@/lib/billing/subscriptions/utils'
 import { toDecimal, toNumber } from '@/lib/billing/utils/decimal'
@@ -37,6 +38,7 @@ import {
 } from '@/lib/workspaces/utils'
 
 export { WORKSPACE_BILLING_ACCOUNT_REMOVAL_ERROR } from '@/lib/workspaces/utils'
+export { getUserOrganization }
 
 const logger = createLogger('OrganizationMembership')
 
@@ -1696,23 +1698,4 @@ export async function isUserMemberOfOrganization(
   }
 
   return { isMember: false }
-}
-
-/**
- * Get user's current organization membership (if any).
- */
-export async function getUserOrganization(
-  userId: string
-): Promise<{ organizationId: string; role: string; memberId: string } | null> {
-  const [memberRecord] = await db
-    .select({
-      organizationId: member.organizationId,
-      role: member.role,
-      memberId: member.id,
-    })
-    .from(member)
-    .where(eq(member.userId, userId))
-    .limit(1)
-
-  return memberRecord || null
 }

@@ -1,122 +1,34 @@
-import type { QueryClient } from '@tanstack/react-query'
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { requestJson } from '@/lib/api/client/request'
 import type { ContractBodyInput } from '@/lib/api/contracts'
 import {
   createBillingPortalContract,
   getInvoicesContract,
-  getUserBillingContract,
-  getUserUsageLimitContract,
   type InvoicesApiResponse,
   purchaseCreditsContract,
-  type SubscriptionApiResponse,
   updateUsageLimitContract,
 } from '@/lib/api/contracts/subscription'
-import { organizationKeys } from '@/hooks/queries/organization'
-import { workspaceKeys } from '@/hooks/queries/workspace'
+import { organizationKeys } from '@/hooks/queries/organization-keys'
+import {
+  fetchUsageLimitData,
+  type SubscriptionApiResponse,
+} from '@/hooks/queries/subscription-data'
+import { subscriptionKeys } from '@/hooks/queries/subscription-keys'
+import { workspaceKeys } from '@/hooks/queries/workspace-keys'
 
-export type { SubscriptionApiResponse }
-
-/**
- * Query key factories for subscription-related queries
- */
-export const subscriptionKeys = {
-  all: ['subscription'] as const,
-  users: () => [...subscriptionKeys.all, 'user'] as const,
-  user: (includeOrg?: boolean) => [...subscriptionKeys.users(), { includeOrg }] as const,
-  usage: () => [...subscriptionKeys.all, 'usage'] as const,
-  invoicesAll: () => [...subscriptionKeys.all, 'invoices'] as const,
-  invoices: (context: 'user' | 'organization' = 'user', organizationId?: string) =>
-    [...subscriptionKeys.invoicesAll(), context, organizationId ?? ''] as const,
-}
-
-/**
- * Fetch user subscription data
- * @param includeOrg - Whether to include organization role data
- */
-async function fetchSubscriptionData(
-  includeOrg = false,
-  signal?: AbortSignal
-): Promise<SubscriptionApiResponse> {
-  return requestJson(getUserBillingContract, {
-    query: { context: 'user', includeOrg },
-    signal,
-  })
-}
-
-interface UseSubscriptionDataOptions {
-  /** Include organization membership and role data */
-  includeOrg?: boolean
-  /** Whether to enable the query (defaults to true) */
-  enabled?: boolean
-  /** Override default staleTime (defaults to 30s) */
-  staleTime?: number
-}
-
-/**
- * Hook to fetch user subscription data
- * @param options - Optional configuration
- */
-export function useSubscriptionData(options: UseSubscriptionDataOptions = {}) {
-  const { includeOrg = false, enabled = true, staleTime = 5 * 60 * 1000 } = options
-
-  return useQuery({
-    queryKey: subscriptionKeys.user(includeOrg),
-    queryFn: ({ signal }) => fetchSubscriptionData(includeOrg, signal),
-    staleTime,
-    placeholderData: keepPreviousData,
-    enabled,
-  })
-}
-
-/**
- * Prefetch subscription data into a QueryClient cache.
- * Use on hover to warm data before navigation.
- */
-export function prefetchSubscriptionData(queryClient: QueryClient) {
-  queryClient.prefetchQuery({
-    queryKey: subscriptionKeys.user(false),
-    queryFn: ({ signal }) => fetchSubscriptionData(false, signal),
-    staleTime: 5 * 60 * 1000,
-  })
-}
-
-/**
- * Prefetch the billing queries the Upgrade page gates on: the
- * organization-scoped subscription variant (`includeOrg: true`, a different
- * cache key than the credits chip's `false` variant) and the usage-limit
- * metadata. Use on hover to warm both before navigating to `/upgrade`.
- *
- * Org-scoped subscribers additionally gate on the organization-billing query,
- * which is intentionally not prewarmed here: its key depends on the resolved
- * billing organization id, which is only derivable after the subscription and
- * workspace queries land, so it cannot be warmed at hover time.
- */
-export function prefetchUpgradeBillingData(queryClient: QueryClient) {
-  queryClient.prefetchQuery({
-    queryKey: subscriptionKeys.user(true),
-    queryFn: ({ signal }) => fetchSubscriptionData(true, signal),
-    staleTime: 5 * 60 * 1000,
-  })
-  queryClient.prefetchQuery({
-    queryKey: subscriptionKeys.usage(),
-    queryFn: ({ signal }) => fetchUsageLimitData(signal),
-    staleTime: 30 * 1000,
-  })
-}
+export type { SubscriptionApiResponse } from '@/hooks/queries/subscription-data'
+export {
+  prefetchSubscriptionData,
+  prefetchUpgradeBillingData,
+  useSubscriptionData,
+} from '@/hooks/queries/subscription-data'
+export { subscriptionKeys } from '@/hooks/queries/subscription-keys'
 
 /**
  * Fetch user usage limit metadata
  * Note: This endpoint returns limit information (currentLimit, minimumLimit, canEdit, etc.)
  * For actual usage data (current, limit, percentUsed), use useSubscriptionData() instead
  */
-async function fetchUsageLimitData(signal?: AbortSignal) {
-  return requestJson(getUserUsageLimitContract, {
-    query: { context: 'user' },
-    signal,
-  })
-}
-
 interface UseUsageLimitDataOptions {
   /** Whether to enable the query (defaults to true) */
   enabled?: boolean

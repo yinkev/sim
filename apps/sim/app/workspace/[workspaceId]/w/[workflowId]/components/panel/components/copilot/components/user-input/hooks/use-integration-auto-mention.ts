@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { getIntegrationMatcher } from '@/blocks/integration-matcher'
+import { getIntegrationMatcher } from '@/blocks/integration-mention-matcher'
 import type { ChatContext } from '@/stores/panel'
 
 /**

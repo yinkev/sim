@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
-import { getSession } from '@/lib/auth'
-import { Home } from '@/app/workspace/[workspaceId]/home/home'
+import { getServerSession } from '@/lib/auth/server-session'
+import { HomeRuntime } from '@/app/workspace/[workspaceId]/home/home-runtime'
 
 export const metadata: Metadata = {
   title: 'Chat',
@@ -18,10 +18,10 @@ export default async function ChatPage({ params, searchParams }: ChatPageProps) 
   const [{ chatId }, { resource }, session] = await Promise.all([
     params,
     searchParams,
-    getSession(),
+    getServerSession(),
   ])
   return (
-    <Home
+    <HomeRuntime
       key={chatId}
       chatId={chatId}
       userName={session?.user?.name}

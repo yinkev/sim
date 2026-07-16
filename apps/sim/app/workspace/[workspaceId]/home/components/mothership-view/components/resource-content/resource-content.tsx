@@ -44,6 +44,7 @@ import type {
 } from '@/app/workspace/[workspaceId]/home/types'
 import { KnowledgeBase } from '@/app/workspace/[workspaceId]/knowledge/[id]/base'
 import { LogDetailsContent } from '@/app/workspace/[workspaceId]/logs/components'
+import { ProviderModelsLoader } from '@/app/workspace/[workspaceId]/providers/provider-models-loader'
 import {
   useUserPermissionsContext,
   useWorkspacePermissionsContext,
@@ -537,9 +538,12 @@ function EmbeddedWorkflow({ workspaceId, workflowId }: EmbeddedWorkflowProps) {
   }
 
   return (
-    <Suspense fallback={LOADING_SKELETON}>
-      <Workflow workspaceId={workspaceId} workflowId={workflowId} embedded />
-    </Suspense>
+    <>
+      <ProviderModelsLoader />
+      <Suspense fallback={LOADING_SKELETON}>
+        <Workflow workspaceId={workspaceId} workflowId={workflowId} embedded />
+      </Suspense>
+    </>
   )
 }
 

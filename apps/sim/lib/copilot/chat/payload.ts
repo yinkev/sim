@@ -1,5 +1,6 @@
 import { createLogger } from '@sim/logger'
 import { toError } from '@sim/utils/errors'
+import { stripVersionSuffix } from '@sim/utils/string'
 import { LRUCache } from 'lru-cache'
 import { getHighestPrioritySubscription } from '@/lib/billing/core/subscription'
 import { isPaid } from '@/lib/billing/plan-helpers'
@@ -10,7 +11,6 @@ import { encodeVfsSegment } from '@/lib/copilot/vfs/path-utils'
 import { isE2BDocEnabled, isHosted } from '@/lib/core/config/env-flags'
 import { buildUserSkillTool } from '@/lib/mothership/skills'
 import { trackChatUpload } from '@/lib/uploads/contexts/workspace/workspace-file-manager'
-import { stripVersionSuffix } from '@/tools/utils'
 
 const logger = createLogger('CopilotChatPayload')
 const INTEGRATION_TOOL_SCHEMA_CACHE_TTL_MS = 5_000

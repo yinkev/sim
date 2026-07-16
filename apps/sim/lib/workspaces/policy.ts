@@ -2,9 +2,7 @@ import { db } from '@sim/db'
 import { member, type WorkspaceMode, workspace } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
 import { and, count, eq, isNull } from 'drizzle-orm'
-import { getOrganizationSubscription } from '@/lib/billing/core/billing'
-import { getHighestPrioritySubscription } from '@/lib/billing/core/plan'
-import { getUserOrganization } from '@/lib/billing/organizations/membership'
+import { getUserOrganization } from '@/lib/billing/organizations/membership-lookup'
 import type { PlanCategory } from '@/lib/billing/plan-helpers'
 import { getPlanType, isEnterprise, isMax, isPro, isTeam } from '@/lib/billing/plan-helpers'
 import { hasUsableSubscriptionStatus } from '@/lib/billing/subscriptions/utils'
@@ -182,7 +180,10 @@ async function resolveBilledPlanCategory(
 export async function getInvitePlanCategoryForOrganization(
   organizationId: string
 ): Promise<PlanCategory> {
+  if (!isBillingEnabled) return 'free'
+
   try {
+    const { getOrganizationSubscription } = await import('@/lib/billing/core/billing')
     const orgSub = await getOrganizationSubscription(organizationId)
     if (!orgSub || !hasUsableSubscriptionStatus(orgSub.status)) return 'free'
     return getPlanType(orgSub.plan)
@@ -201,7 +202,10 @@ export async function getInvitePlanCategoryForOrganization(
  * `'free'` when there is no usable paid subscription.
  */
 export async function getInvitePlanCategoryForUser(userId: string): Promise<PlanCategory> {
+  if (!isBillingEnabled) return 'free'
+
   try {
+    const { getHighestPrioritySubscription } = await import('@/lib/billing/core/plan')
     const sub = await getHighestPrioritySubscription(userId)
     if (!sub || !hasUsableSubscriptionStatus(sub.status)) return 'free'
     return getPlanType(sub.plan)
@@ -289,6 +293,7 @@ export async function getWorkspaceCreationPolicy({
   }
 
   if (organizationId && orgRole) {
+    const { getOrganizationSubscription } = await import('@/lib/billing/core/billing')
     const organizationSubscription = await getOrganizationSubscription(organizationId)
 
     if (
@@ -324,6 +329,7 @@ export async function getWorkspaceCreationPolicy({
     }
   }
 
+  const { getHighestPrioritySubscription } = await import('@/lib/billing/core/plan')
   const highestPrioritySubscription = await getHighestPrioritySubscription(userId)
   const plan = highestPrioritySubscription?.plan
   const maxWorkspaces = isMax(plan) ? 10 : isPro(plan) ? 3 : 1

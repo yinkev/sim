@@ -263,6 +263,22 @@ function abortWorkflowStreams(workflowId: string): void {
 }
 
 /**
+ * Cancels active execution streams without requiring a React hook instance.
+ * Workspace-level chat loads this module only when a workflow run must stop.
+ */
+export function cancelExecutionStreams(workflowId?: string): void {
+  if (workflowId) {
+    abortWorkflowStreams(workflowId)
+    return
+  }
+
+  for (const [, controller] of sharedAbortControllers) {
+    controller.abort()
+  }
+  sharedAbortControllers.clear()
+}
+
+/**
  * Hook for executing workflows via server-side SSE streaming.
  * Supports concurrent executions via per-workflow AbortController maps.
  */
@@ -475,14 +491,7 @@ export function useExecutionStream() {
   }, [])
 
   const cancel = useCallback((workflowId?: string) => {
-    if (workflowId) {
-      abortWorkflowStreams(workflowId)
-    } else {
-      for (const [, controller] of sharedAbortControllers) {
-        controller.abort()
-      }
-      sharedAbortControllers.clear()
-    }
+    cancelExecutionStreams(workflowId)
   }, [])
 
   const cancelReconnect = useCallback((workflowId: string, executionId: string) => {

@@ -16,6 +16,15 @@ import {
 
 const logger = createLogger('useSpeechToText')
 
+function isBrowserSpeechSupported(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof AudioContext !== 'undefined' &&
+    typeof WebSocket !== 'undefined' &&
+    typeof navigator?.mediaDevices?.getUserMedia === 'function'
+  )
+}
+
 export type PermissionState = 'prompt' | 'granted' | 'denied'
 
 interface UseSpeechToTextProps {
@@ -54,6 +63,7 @@ export function useSpeechToText({
   const workspaceIdRef = useRef(workspaceId)
   const mountedRef = useRef(true)
   const startingRef = useRef(false)
+  const availabilityPromiseRef = useRef<Promise<boolean> | null>(null)
 
   const wsRef = useRef<WebSocket | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -73,24 +83,29 @@ export function useSpeechToText({
   workspaceIdRef.current = workspaceId
 
   useEffect(() => {
-    const browserOk =
-      typeof window !== 'undefined' &&
-      typeof AudioContext !== 'undefined' &&
-      typeof WebSocket !== 'undefined' &&
-      typeof navigator?.mediaDevices?.getUserMedia === 'function'
+    setIsSupported(isBrowserSpeechSupported())
+  }, [])
 
-    if (!browserOk) {
-      setIsSupported(false)
-      return
+  const checkAvailability = useCallback((): Promise<boolean> => {
+    if (!isBrowserSpeechSupported()) {
+      if (mountedRef.current) setIsSupported(false)
+      return Promise.resolve(false)
     }
 
-    requestJson(getVoiceSettingsContract, {})
-      .then((data) => {
-        if (mountedRef.current) setIsSupported(data.sttAvailable === true)
-      })
-      .catch(() => {
-        if (mountedRef.current) setIsSupported(false)
-      })
+    if (!availabilityPromiseRef.current) {
+      availabilityPromiseRef.current = requestJson(getVoiceSettingsContract, {})
+        .then((data) => {
+          const available = data.sttAvailable === true
+          if (mountedRef.current) setIsSupported(available)
+          return available
+        })
+        .catch(() => {
+          if (mountedRef.current) setIsSupported(false)
+          return false
+        })
+    }
+
+    return availabilityPromiseRef.current
   }, [])
 
   const flushAudioBuffer = useCallback(() => {
@@ -381,9 +396,13 @@ export function useSpeechToText({
     if (isListening) {
       stopStreaming()
     } else {
-      startStreaming()
+      void checkAvailability().then((available) => {
+        if (available && mountedRef.current) {
+          void startStreaming()
+        }
+      })
     }
-  }, [isListening, startStreaming, stopStreaming])
+  }, [checkAvailability, isListening, startStreaming, stopStreaming])
 
   useEffect(() => {
     mountedRef.current = true

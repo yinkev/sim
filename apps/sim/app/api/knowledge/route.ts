@@ -6,7 +6,7 @@ import {
   listKnowledgeBasesQuerySchema,
 } from '@/lib/api/contracts/knowledge'
 import { parseRequest } from '@/lib/api/server'
-import { getSession } from '@/lib/auth'
+import { getSession } from '@/lib/auth/api-session'
 import { PlatformEvents } from '@/lib/core/telemetry'
 import { generateRequestId } from '@/lib/core/utils/request'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'

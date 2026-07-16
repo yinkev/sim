@@ -14,12 +14,10 @@ import {
 import type { SkillsMenuHandle } from '@/app/workspace/[workspaceId]/home/components/user-input/components/skills-menu-dropdown/skills-menu-dropdown'
 import { useSkillAutoMention } from '@/app/workspace/[workspaceId]/home/components/user-input/hooks/use-skill-auto-mention'
 import type { MothershipResource } from '@/app/workspace/[workspaceId]/home/types'
-import {
-  useContextManagement,
-  useIntegrationAutoMention,
-  useMentionMenu,
-  useMentionTokens,
-} from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/copilot/components/user-input/hooks'
+import { useContextManagement } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/copilot/components/user-input/hooks/use-context-management'
+import { useIntegrationAutoMention } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/copilot/components/user-input/hooks/use-integration-auto-mention'
+import { useMentionMenu } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/copilot/components/user-input/hooks/use-mention-menu'
+import { useMentionTokens } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/copilot/components/user-input/hooks/use-mention-tokens'
 import {
   restoreSkillTriggerText,
   SKILL_CHIP_TRIGGER,
@@ -76,6 +74,22 @@ function getCaretAnchor(
     left: textareaRect.left + (markerRect.left - mirrorRect.left) - textarea.scrollLeft,
     top: textareaRect.top + (markerRect.top - mirrorRect.top) - textarea.scrollTop,
   }
+}
+
+function hasTokenStartingTrigger(text: string, triggers: readonly string[]): boolean {
+  for (let index = 0; index < text.length; index++) {
+    if (!triggers.includes(text[index])) continue
+    if (index === 0 || /\s/.test(text[index - 1])) return true
+  }
+  return false
+}
+
+function hasResourceMentionIntent(text: string): boolean {
+  return hasTokenStartingTrigger(text, ['@'])
+}
+
+function hasSkillIntent(text: string): boolean {
+  return hasTokenStartingTrigger(text, ['/', SKILL_CHIP_TRIGGER])
 }
 
 /**
@@ -145,7 +159,11 @@ export function usePromptEditor({
   onContextAdd,
   onPasteFiles,
 }: UsePromptEditorProps) {
-  const { data: skills = [] } = useSkills(workspaceId)
+  const [skillsEnabled, setSkillsEnabled] = useState(() => hasSkillIntent(initialValue))
+  const [resourcesEnabled, setResourcesEnabled] = useState(false)
+  const enableSkills = useCallback(() => setSkillsEnabled(true), [])
+  const enableResources = useCallback(() => setResourcesEnabled(true), [])
+  const { data: skills = [] } = useSkills(workspaceId, { enabled: skillsEnabled })
 
   const [value, setValueState] = useState(initialValue)
   const valueRef = useRef(value)
@@ -224,10 +242,10 @@ export function usePromptEditor({
   applyAutoMentionsRef.current = applyAutoMentions
 
   /**
-   * Tracks the seeded `initialValue` through chipify passes. While the text is
-   * still the untouched seed, the canonicalization effect below may re-run; a
-   * user edit (or a programmatic `setValue`) invalidates the seed and ends the
-   * passes, so a re-pass can never rewrite user edits.
+   * Tracks cold skill text through chipify passes. While the text is still the
+   * pending value, the canonicalization effect below may re-run after skills
+   * resolve. Each edit replaces the pending value, so a late result can only
+   * rewrite the editor's current text.
    */
   const seedRef = useRef<string | null>(initialValue || null)
 
@@ -270,18 +288,26 @@ export function usePromptEditor({
     return keys
   }, [contextManagement.selectedContexts])
 
-  const availableResources = useAvailableResources(workspaceId, existingResourceKeys)
+  const availableResources = useAvailableResources(workspaceId, existingResourceKeys, undefined, {
+    enabled: resourcesEnabled,
+  })
 
   /**
    * Programmatically replaces the editor text. Chipifies by default so any
    * seeded prose (template, transcript, queued message) registers its
    * integration / skill chips; pass `{ chipify: false }` for verbatim text.
    */
-  const setValue = useCallback((text: string, options?: { chipify?: boolean }) => {
-    const next = options?.chipify === false ? text : applyAutoMentionsRef.current(text)
-    valueRef.current = next
-    setValueState(next)
-  }, [])
+  const setValue = useCallback(
+    (text: string, options?: { chipify?: boolean }) => {
+      const shouldChipify = options?.chipify !== false
+      if (shouldChipify && hasSkillIntent(text)) enableSkills()
+      const next = shouldChipify ? applyAutoMentionsRef.current(text) : text
+      seedRef.current = shouldChipify && hasSkillIntent(next) ? next : null
+      valueRef.current = next
+      setValueState(next)
+    },
+    [enableSkills]
+  )
 
   /** The user-visible text as of the last edit, fresher than `value` mid-event. */
   const getValue = useCallback(() => valueRef.current, [])
@@ -502,6 +528,7 @@ export function usePromptEditor({
    * starts a token) and opens the skills menu — the toolbar Slash button flow.
    */
   const insertSlashTrigger = useCallback(() => {
+    enableSkills()
     const textarea = textareaRef.current
     if (!textarea) return
     textarea.focus()
@@ -522,20 +549,30 @@ export function usePromptEditor({
     textarea.value = newValue
     textarea.setSelectionRange(newCaret, newCaret)
     syncSlashState(textarea, newValue, newCaret)
-  }, [textareaRef, syncSlashState])
+  }, [textareaRef, syncSlashState, enableSkills])
 
   /**
    * Opens the resource browse menu (non-mention mode) anchored at the given
    * viewport position — the toolbar `+` button flow.
    */
-  const openResourceMenu = useCallback((anchor: { left: number; top: number }) => {
-    plusMenuRef.current?.open(anchor)
-  }, [])
+  const openResourceMenu = useCallback(
+    (anchor: { left: number; top: number }) => {
+      enableResources()
+      plusMenuRef.current?.open(anchor)
+    },
+    [enableResources]
+  )
 
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const previousValue = valueRef.current
       const nextValue = e.target.value
+
+      if (hasResourceMentionIntent(nextValue)) enableResources()
+      if (hasSkillIntent(nextValue)) {
+        enableSkills()
+        if (skills.length === 0) seedRef.current = nextValue
+      }
 
       let finalValue = nextValue
       if (nextValue.length === previousValue.length + 1) {
@@ -573,6 +610,7 @@ export function usePromptEditor({
       }
 
       const caret = e.target.selectionStart ?? finalValue.length
+      if (seedRef.current === nextValue) seedRef.current = finalValue
       valueRef.current = finalValue
       setValueState(finalValue)
       syncMentionState(e.target, finalValue, caret)
@@ -580,7 +618,10 @@ export function usePromptEditor({
     },
     [
       applyAutoMentions,
+      enableResources,
+      enableSkills,
       integrationAutoMention.processChange,
+      skills.length,
       skillAutoMention.processChange,
       syncMentionState,
       syncSlashState,

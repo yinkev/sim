@@ -9,7 +9,6 @@ import { requestJson } from '@/lib/api/client/request'
 import { getUsageLimitsContract } from '@/lib/api/contracts/usage-limits'
 import {
   deleteWorkspaceFileContract,
-  listWorkspaceFilesContract,
   registerWorkspaceFileContract,
   renameWorkspaceFileContract,
   restoreWorkspaceFileContract,
@@ -22,36 +21,12 @@ import {
   type UploadProgressEvent,
 } from '@/lib/uploads/client/direct-upload'
 import type { WorkspaceFileRecord } from '@/lib/uploads/contexts/workspace'
+import { workspaceFilesKeys } from '@/hooks/queries/workspace-file-keys'
 
 const logger = createLogger('WorkspaceFilesQuery')
 
-type WorkspaceFileQueryScope = 'active' | 'archived' | 'all'
-
-/**
- * Query key factories for workspace files
- */
-export const workspaceFilesKeys = {
-  all: ['workspaceFiles'] as const,
-  lists: () => [...workspaceFilesKeys.all, 'list'] as const,
-  workspaceLists: (workspaceId: string) => [...workspaceFilesKeys.lists(), workspaceId] as const,
-  list: (workspaceId: string, scope: WorkspaceFileQueryScope = 'active') =>
-    [...workspaceFilesKeys.workspaceLists(workspaceId), scope] as const,
-  contents: () => [...workspaceFilesKeys.all, 'content'] as const,
-  contentFile: (workspaceId: string, fileId: string) =>
-    [...workspaceFilesKeys.contents(), workspaceId, fileId] as const,
-  content: (
-    workspaceId: string,
-    fileId: string,
-    mode: 'text' | 'raw' | 'binary' = 'text',
-    storageKey?: string
-  ) =>
-    [
-      ...workspaceFilesKeys.contentFile(workspaceId, fileId),
-      mode,
-      ...(storageKey ? [storageKey] : []),
-    ] as const,
-  storageInfo: () => [...workspaceFilesKeys.all, 'storageInfo'] as const,
-}
+export { workspaceFilesKeys } from '@/hooks/queries/workspace-file-keys'
+export { useWorkspaceFileRecord, useWorkspaceFiles } from '@/hooks/queries/workspace-file-list'
 
 /**
  * Storage info type
@@ -61,56 +36,6 @@ interface StorageInfo {
   limitBytes: number
   percentUsed: number
   plan?: string
-}
-
-/**
- * Hook to fetch a single workspace file record by ID.
- * Shares the `list(workspaceId, 'active')` query key with {@link useWorkspaceFiles} so no extra
- * network request is made when the list is already cached (warm path).
- * On a cold path (e.g. direct navigation to a file URL), this fetches the full active file list
- * for the workspace and selects the matching record via `select`.
- */
-export function useWorkspaceFileRecord(workspaceId: string, fileId: string) {
-  return useQuery({
-    queryKey: workspaceFilesKeys.list(workspaceId, 'active'),
-    queryFn: ({ signal }) => fetchWorkspaceFiles(workspaceId, 'active', signal),
-    enabled: !!workspaceId && !!fileId,
-    staleTime: 30 * 1000,
-    select: (files) => files.find((f) => f.id === fileId) ?? null,
-  })
-}
-
-/**
- * Fetch workspace files from API
- */
-async function fetchWorkspaceFiles(
-  workspaceId: string,
-  scope: WorkspaceFileQueryScope = 'active',
-  signal?: AbortSignal
-): Promise<WorkspaceFileRecord[]> {
-  const data = await requestJson(listWorkspaceFilesContract, {
-    params: { id: workspaceId },
-    query: { scope },
-    signal,
-  })
-  return data.success ? data.files : []
-}
-
-/**
- * Hook to fetch workspace files
- */
-export function useWorkspaceFiles(
-  workspaceId: string,
-  scope: WorkspaceFileQueryScope = 'active',
-  options?: { enabled?: boolean }
-) {
-  return useQuery({
-    queryKey: workspaceFilesKeys.list(workspaceId, scope),
-    queryFn: ({ signal }) => fetchWorkspaceFiles(workspaceId, scope, signal),
-    enabled: !!workspaceId && (options?.enabled ?? true),
-    staleTime: 30 * 1000, // 30 seconds - files can change frequently
-    placeholderData: keepPreviousData, // Show cached data immediately
-  })
 }
 
 /**

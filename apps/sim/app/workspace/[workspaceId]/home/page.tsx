@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { getSession } from '@/lib/auth'
+import { getPageSession } from '@/lib/auth/page-session'
 import { Home } from './home'
 
 export const metadata: Metadata = {
@@ -7,16 +7,21 @@ export const metadata: Metadata = {
 }
 
 interface HomePageProps {
+  params: Promise<{ workspaceId: string }>
   searchParams: Promise<{ resource?: string }>
 }
 
-export default async function HomePage({ searchParams }: HomePageProps) {
-  const [session, { resource }] = await Promise.all([getSession(), searchParams])
-  return (
-    <Home
-      userName={session?.user?.name}
-      userId={session?.user?.id}
-      initialResourceId={resource ?? null}
-    />
-  )
+export default async function HomePage({ params, searchParams }: HomePageProps) {
+  const [session, { workspaceId }, { resource }] = await Promise.all([
+    getPageSession(),
+    params,
+    searchParams,
+  ])
+
+  if (resource) {
+    const { redirect } = await import('next/navigation')
+    redirect(`/workspace/${workspaceId}/chat/new?resource=${encodeURIComponent(resource)}`)
+  }
+
+  return <Home userName={session?.user?.name} />
 }

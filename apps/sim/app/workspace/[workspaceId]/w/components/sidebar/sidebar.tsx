@@ -823,9 +823,15 @@ export const Sidebar = memo(function Sidebar() {
     [fetchedChats, workspaceId]
   )
 
-  const { data: fetchedTables = [] } = useTablesList(workspaceId)
-  const { data: fetchedFiles = [] } = useWorkspaceFiles(workspaceId)
-  const { data: fetchedKnowledgeBases = [] } = useKnowledgeBasesQuery(workspaceId)
+  const { data: fetchedTables = [] } = useTablesList(workspaceId, 'active', {
+    enabled: isSearchModalOpen,
+  })
+  const { data: fetchedFiles = [] } = useWorkspaceFiles(workspaceId, 'active', {
+    enabled: isSearchModalOpen,
+  })
+  const { data: fetchedKnowledgeBases = [] } = useKnowledgeBasesQuery(workspaceId, {
+    enabled: isSearchModalOpen,
+  })
 
   const searchModalTables = useMemo(
     () =>

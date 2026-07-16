@@ -11,7 +11,7 @@ import {
   upsertWorkspaceEnvironmentContract,
 } from '@/lib/api/contracts/environment'
 import { parseRequest } from '@/lib/api/server'
-import { getSession } from '@/lib/auth'
+import { getSession } from '@/lib/auth/api-session'
 import { encryptSecret } from '@/lib/core/security/encryption'
 import { generateRequestId } from '@/lib/core/utils/request'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'

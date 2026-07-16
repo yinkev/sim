@@ -6,9 +6,11 @@
  */
 
 export async function register() {
+  if (process.env.NEXT_TELEMETRY_DISABLED === '1') return
+
   // Load Node.js-specific instrumentation
   if (process.env.NEXT_RUNTIME === 'nodejs') {
-    const nodeInstrumentation = await import('./instrumentation-node')
+    const nodeInstrumentation = await import('@/instrumentation-node')
     if (nodeInstrumentation.register) {
       await nodeInstrumentation.register()
     }
@@ -16,7 +18,7 @@ export async function register() {
 
   // Load Edge Runtime-specific instrumentation
   if (process.env.NEXT_RUNTIME === 'edge') {
-    const edgeInstrumentation = await import('./instrumentation-edge')
+    const edgeInstrumentation = await import('@/instrumentation-edge')
     if (edgeInstrumentation.register) {
       await edgeInstrumentation.register()
     }
@@ -24,6 +26,6 @@ export async function register() {
 
   // Load client instrumentation if we're on the client
   if (typeof window !== 'undefined') {
-    await import('./instrumentation-client')
+    await import('@/instrumentation-client')
   }
 }

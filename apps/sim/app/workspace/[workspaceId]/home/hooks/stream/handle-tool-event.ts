@@ -11,7 +11,7 @@ import {
 } from '@/lib/copilot/resources/extraction'
 import { isToolHiddenInUi } from '@/lib/copilot/tools/client/hidden-tools'
 import { isWorkflowToolName } from '@/lib/copilot/tools/workflow-tools'
-import { invalidateResourceQueries } from '@/app/workspace/[workspaceId]/home/components/mothership-view/components/resource-registry'
+import { invalidateResourceQueries } from '@/app/workspace/[workspaceId]/home/components/mothership-view/components/resource-registry/resource-query-invalidation'
 import type {
   StreamEventScope,
   StreamLoopContext,
@@ -33,7 +33,7 @@ import {
 import { ToolCallStatus } from '@/app/workspace/[workspaceId]/home/types'
 import { deploymentKeys } from '@/hooks/queries/deployments'
 import { folderKeys } from '@/hooks/queries/utils/folder-keys'
-import { workflowKeys } from '@/hooks/queries/workflows'
+import { workflowKeys } from '@/hooks/queries/utils/workflow-keys'
 
 type ToolEvent = Extract<PersistedStreamEventEnvelope, { type: 'tool' }>
 
