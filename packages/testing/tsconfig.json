@@ -2,6 +2,7 @@
   "extends": "@sim/tsconfig/library.json",
   "compilerOptions": {
     "baseUrl": ".",
+    "preserveSymlinks": true,
     "paths": {
       "@sim/testing/*": ["./src/*"]
     }

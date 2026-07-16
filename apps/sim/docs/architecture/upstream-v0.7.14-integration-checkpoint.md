@@ -2,11 +2,17 @@
 
 ## Status
 
-Planned on 2026-07-16. Integration has not started.
+Integrated on 2026-07-16 on `codex/upstream-v0.7.14-integration`.
 
 - Phase 1 is complete at commit `734f3b787ad27eae684f8226c16599f21b0416f4`.
 - Phase 2 is pending and was not started.
-- The upstream merge, conflict resolution, postflight, push, and stash changes have not occurred.
+- Exact upstream commit `11168f915b044445d464345b3df7492764c59a07` was merged without rewriting
+  the local history.
+- Conflict resolution and the bounded postflight completed. Studio, warm Main, build, typecheck,
+  boundaries, targeted tests, and the browser journey pass.
+- Main cold compile measured `22313.539 ms` against the accepted `5000 ms` gate. Phase 2 remains blocked
+  pending a fix or an explicit budget waiver; warm Main behavior and runtime budgets pass.
+- No stash was changed and nothing was pushed.
 - This checkpoint is sequencing and execution guidance. It does not change the accepted architecture.
 
 ## Decision
@@ -119,7 +125,7 @@ this layer, while respecting the specification and review boundaries above it.
 
 ### Keep disabled or defer
 
-- Presidio and PII infrastructure.
+- Presidio and PII infrastructure, including any embedded local Python fallback.
 - Data-retention administration.
 - Hosted billing and upgrade flows.
 - Enterprise public-sharing authentication.

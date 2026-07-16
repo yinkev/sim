@@ -436,6 +436,7 @@ export function HomeRuntime({
             isCollapsed={isResourceCollapsed}
             previewSession={previewSession}
             genericResourceData={genericResourceData ?? undefined}
+            isAgentResponding={isSending}
             className={skipResourceTransition ? '!transition-none' : undefined}
           />
         </MothershipResourcesProvider>

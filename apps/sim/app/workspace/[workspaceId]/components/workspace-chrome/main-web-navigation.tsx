@@ -51,11 +51,14 @@ export function shouldUseAppRouter(event: NavigationClickIntent): boolean {
 }
 
 /** Lightweight route navigation for main-web surfaces. */
-export function MainWebNavigation() {
+interface MainWebNavigationProps {
+  isCollapsed: boolean
+}
+
+export function MainWebNavigation({ isCollapsed }: MainWebNavigationProps) {
   const { workspaceId } = useParams<{ workspaceId: string }>()
   const pathname = usePathname()
   const router = useRouter()
-  const isCollapsed = useSidebarStore((state) => state.isCollapsed)
   const toggleCollapsed = useSidebarStore((state) => state.toggleCollapsed)
 
   const navigate = (event: MouseEvent<HTMLAnchorElement>, href: string) => {

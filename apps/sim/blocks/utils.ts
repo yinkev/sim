@@ -13,7 +13,10 @@ import {
   getHostedModels,
   getProviderIcon,
   getProviderModels,
+  orderModelIdsByReleaseDate,
 } from '@/providers/models'
+import { isPiSupportedProvider } from '@/providers/pi-providers'
+import { getProviderFromModel } from '@/providers/utils'
 import { useProvidersStore } from '@/stores/providers/store'
 
 export const VERTEX_MODELS = getProviderModels('vertex')
@@ -48,7 +51,7 @@ export const SERVICE_ACCOUNT_SUBBLOCKS: SubBlockConfig[] = [
  */
 export function getModelOptions() {
   const providersState = useProvidersStore.getState()
-  const baseModels = providersState.providers.base.models
+  const baseModels = orderModelIdsByReleaseDate(providersState.providers.base.models)
   const ollamaModels = providersState.providers.ollama.models
   const ollamaCloudModels = providersState.providers['ollama-cloud'].models
   const vllmModels = providersState.providers.vllm.models
@@ -74,6 +77,23 @@ export function getModelOptions() {
   return allModels.map((model) => {
     const icon = getProviderIcon(model)
     return { label: model, id: model, ...(icon && { icon }) }
+  })
+}
+
+/**
+ * Model options filtered to providers the Pi Coding Agent can run (see
+ * {@link isPiSupportedProvider}), so the Pi block never offers a model that would
+ * error at execution. Uses the same `getProviderFromModel` resolution as the Pi
+ * handler, so the dropdown matches runtime behavior; unresolved/blacklisted
+ * models (which `getProviderFromModel` can throw on) are excluded.
+ */
+export function getPiModelOptions() {
+  return getModelOptions().filter((option) => {
+    try {
+      return isPiSupportedProvider(getProviderFromModel(option.id))
+    } catch {
+      return false
+    }
   })
 }
 

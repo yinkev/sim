@@ -9,7 +9,9 @@ import {
   mothershipChatKeys,
 } from '@/hooks/queries/mothership-chat-keys'
 
-function mapChat(chat: MothershipChat): MothershipChatMetadata {
+export const MOTHERSHIP_CHAT_LIST_STALE_TIME = 60 * 1000
+
+export function mapChat(chat: MothershipChat): MothershipChatMetadata {
   const updatedAt = new Date(chat.updatedAt)
   return {
     id: chat.id,
@@ -44,6 +46,6 @@ export function useMothershipChats(workspaceId?: string, options?: { enabled?: b
     queryFn: workspaceId ? ({ signal }) => fetchMothershipChats(workspaceId, signal) : skipToken,
     enabled: Boolean(workspaceId) && (options?.enabled ?? true),
     placeholderData: keepPreviousData,
-    staleTime: 60 * 1000,
+    staleTime: MOTHERSHIP_CHAT_LIST_STALE_TIME,
   })
 }

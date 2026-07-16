@@ -92,6 +92,16 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
       )
     }
 
+    const { assertFolderMutable } = await import('@sim/platform-authz/workflow')
+    try {
+      await assertFolderMutable(parentId ?? null)
+    } catch (error) {
+      if (error instanceof Error && error.name === 'FolderLockedError') {
+        return NextResponse.json({ error: error.message }, { status: 423 })
+      }
+      throw error
+    }
+
     const { performCreateFolder } = await import('@/lib/workflows/orchestration/folder-create')
     const result = await performCreateFolder({
       id: clientId,

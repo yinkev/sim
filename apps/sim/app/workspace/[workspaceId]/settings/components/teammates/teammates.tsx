@@ -18,7 +18,13 @@ import {
   Search,
   toast,
 } from '@/components/emcn'
+import {
+  RoleLockTooltip,
+  type WorkspaceRoleSource,
+  workspaceRoleLockReason,
+} from '@/components/permissions'
 import type { WorkspacePermission } from '@/lib/api/contracts/workspaces'
+import { buildUpgradeHref } from '@/lib/billing/upgrade-reasons'
 import {
   MemberRow,
   MemberSection,
@@ -57,6 +63,7 @@ interface Teammate {
   userId?: string
   invitationId?: string
   token?: string
+  roleSource?: WorkspaceRoleSource
 }
 
 function formatJoinedDate(iso: string) {
@@ -99,7 +106,7 @@ export function Teammates() {
   const inviteDisabledReason = activeWorkspace?.inviteDisabledReason ?? null
   const isInvitationsDisabled = isInvitationsDisabledByConfig || inviteDisabledReason !== null
 
-  const upgradeHref = `/workspace/${workspaceId}/upgrade`
+  const upgradeHref = buildUpgradeHref(workspaceId, 'seats')
 
   /**
    * Warm the Upgrade route bundle and the queries it gates on, so a gated
@@ -129,6 +136,7 @@ export function Teammates() {
       status: `Joined ${formatJoinedDate(member.joinedAt)}`,
       isPending: false,
       userId: member.userId,
+      roleSource: member.roleSource,
     }))
 
     const pending: Teammate[] = (invitations ?? []).map((invitation) => ({
@@ -215,17 +223,27 @@ export function Teammates() {
                 email={teammate.email}
                 image={teammate.image}
                 status={teammate.status}
-                roleControl={
-                  <ChipDropdown
-                    value={teammate.role}
-                    onChange={(role) => handleRoleChange(teammate, role as WorkspacePermission)}
-                    options={ROLE_OPTIONS}
-                    matchTriggerWidth={false}
-                    disabled={
-                      teammate.isPending || !canManage || teammate.userId === viewer?.userId
-                    }
-                  />
-                }
+                roleControl={(() => {
+                  const lockReason = teammate.isPending
+                    ? null
+                    : workspaceRoleLockReason(teammate.roleSource)
+                  return (
+                    <RoleLockTooltip reason={lockReason}>
+                      <ChipDropdown
+                        value={teammate.role}
+                        onChange={(role) => handleRoleChange(teammate, role as WorkspacePermission)}
+                        options={ROLE_OPTIONS}
+                        matchTriggerWidth={false}
+                        disabled={
+                          teammate.isPending ||
+                          !canManage ||
+                          teammate.userId === viewer?.userId ||
+                          lockReason !== null
+                        }
+                      />
+                    </RoleLockTooltip>
+                  )
+                })()}
                 menu={
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

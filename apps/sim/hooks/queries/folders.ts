@@ -24,7 +24,12 @@ import type { WorkflowFolder } from '@/stores/folders/types'
 
 const logger = createLogger('FolderQueries')
 
-export { useFolderMap, useFolders } from '@/hooks/queries/folder-list'
+export {
+  FOLDER_LIST_STALE_TIME,
+  mapFolder,
+  useFolderMap,
+  useFolders,
+} from '@/hooks/queries/folder-list'
 
 interface CreateFolderVariables {
   workspaceId: string

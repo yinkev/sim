@@ -6,6 +6,8 @@ import type { WorkflowFolder } from '@/stores/folders/types'
 
 export { type FolderQueryScope, folderKeys } from '@/hooks/queries/utils/folder-keys'
 
+export const FOLDER_LIST_STALE_TIME = 60 * 1000
+
 export function mapFolder(folder: FolderApi): WorkflowFolder {
   return {
     id: folder.id,
@@ -45,7 +47,7 @@ export function useFolders(
     queryFn: ({ signal }) => fetchFolders(workspaceId as string, scope, signal),
     enabled: Boolean(workspaceId) && (options?.enabled ?? true),
     placeholderData: keepPreviousData,
-    staleTime: 60 * 1000,
+    staleTime: FOLDER_LIST_STALE_TIME,
   })
 }
 
@@ -58,7 +60,7 @@ export function useFolderMap(workspaceId?: string) {
     queryFn: ({ signal }) => fetchFolders(workspaceId as string, 'active', signal),
     enabled: Boolean(workspaceId),
     placeholderData: keepPreviousData,
-    staleTime: 60 * 1000,
+    staleTime: FOLDER_LIST_STALE_TIME,
     select: selectFolderMap,
   })
 }

@@ -167,7 +167,7 @@ describe('CreditsChip deferred data', () => {
     expect(mocks.usePlanView).toHaveBeenLastCalledWith({ enabled: true })
     expect(mocks.useSubscriptionData).toHaveBeenLastCalledWith({ enabled: true })
     expect(mocks.useMyMemberCredits).toHaveBeenLastCalledWith('workspace-1', { enabled: true })
-    expect(mocks.prefetch).toHaveBeenCalledWith('/workspace/workspace-1/upgrade')
+    expect(mocks.prefetch).toHaveBeenCalledWith('/workspace/workspace-1/upgrade?reason=credits')
     expect(mocks.prefetchUpgradeBillingData).toHaveBeenCalledOnce()
     expect(mocks.prefetchWorkspaceSettings).toHaveBeenCalledWith(
       { id: 'query-client' },
@@ -182,7 +182,7 @@ describe('CreditsChip deferred data', () => {
     await act(async () => {
       container.querySelector('button')?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
-    expect(mocks.push).toHaveBeenCalledWith('/workspace/workspace-1/upgrade')
+    expect(mocks.push).toHaveBeenCalledWith('/workspace/workspace-1/upgrade?reason=credits')
 
     await act(async () => {
       container.querySelector('button')?.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))

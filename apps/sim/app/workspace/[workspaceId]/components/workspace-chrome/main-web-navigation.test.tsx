@@ -53,7 +53,7 @@ describe('MainWebNavigation links', () => {
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
-    await act(async () => root.render(<MainWebNavigation />))
+    await act(async () => root.render(<MainWebNavigation isCollapsed={false} />))
   })
 
   afterEach(async () => {

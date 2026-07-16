@@ -4,27 +4,9 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { requestJson } from '@/lib/api/client/request'
 import { listTablesContract } from '@/lib/api/contracts/tables'
 import type { TableDefinition } from '@/lib/table'
+import { type TableQueryScope, tableKeys } from '@/hooks/queries/utils/table-keys'
 
-type TableQueryScope = 'active' | 'archived' | 'all'
-
-export const tableKeys = {
-  all: ['tables'] as const,
-  lists: () => [...tableKeys.all, 'list'] as const,
-  list: (workspaceId?: string, scope: TableQueryScope = 'active') =>
-    [...tableKeys.lists(), workspaceId ?? '', scope] as const,
-  details: () => [...tableKeys.all, 'detail'] as const,
-  detail: (tableId: string) => [...tableKeys.details(), tableId] as const,
-  exportJobs: (workspaceId?: string) =>
-    [...tableKeys.all, 'export-jobs', workspaceId ?? ''] as const,
-  rowsRoot: (tableId: string) => [...tableKeys.detail(tableId), 'rows'] as const,
-  infiniteRows: (tableId: string, paramsKey: string) =>
-    [...tableKeys.rowsRoot(tableId), 'infinite', paramsKey] as const,
-  rowWrites: (tableId: string) => [...tableKeys.rowsRoot(tableId), 'write'] as const,
-  find: (tableId: string, paramsKey: string) =>
-    [...tableKeys.rowsRoot(tableId), 'find', paramsKey] as const,
-  activeDispatches: (tableId: string) =>
-    [...tableKeys.detail(tableId), 'active-dispatches'] as const,
-}
+export { type TableQueryScope, tableKeys } from '@/hooks/queries/utils/table-keys'
 
 /**
  * Fetch all tables for a workspace.

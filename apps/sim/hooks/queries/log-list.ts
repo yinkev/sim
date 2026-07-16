@@ -27,7 +27,10 @@ export const logKeys = {
   list: (workspaceId: string | undefined, filters: LogFilters) =>
     [...logKeys.lists(), workspaceId ?? '', filters] as const,
   details: () => [...logKeys.all, 'detail'] as const,
-  detail: (logId: string | undefined) => [...logKeys.details(), logId ?? ''] as const,
+  workspaceDetails: (workspaceId?: string) =>
+    [...logKeys.details(), workspaceId ?? ''] as const,
+  detail: (workspaceId: string | undefined, logId: string | undefined) =>
+    [...logKeys.workspaceDetails(workspaceId), logId ?? ''] as const,
   byExecutionAll: () => [...logKeys.all, 'byExecution'] as const,
   byExecution: (workspaceId: string | undefined, executionId: string | undefined) =>
     [...logKeys.byExecutionAll(), workspaceId ?? '', executionId ?? ''] as const,

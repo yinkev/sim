@@ -1,8 +1,8 @@
 import { db } from '@sim/db'
-import { permissions, workflowFolder, workflow as workflowTable } from '@sim/db/schema'
+import { workflowFolder, workflow as workflowTable } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
+import { authorizeWorkflowByWorkspacePermission } from '@sim/platform-authz/workflow'
 import { generateId } from '@sim/utils/id'
-import { authorizeWorkflowByWorkspacePermission } from '@sim/workflow-authz'
 import { and, asc, eq, inArray, isNull, max, min, sql } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/api-session'
@@ -12,6 +12,7 @@ import type { ExecutionMaterializationContext } from '@/lib/execution/payloads/m
 import { buildDefaultWorkflowArtifacts } from '@/lib/workflows/defaults'
 import { getWorkflowById as queryWorkflowById } from '@/lib/workflows/get-workflow-by-id'
 import { saveWorkflowToNormalizedTables } from '@/lib/workflows/persistence/utils'
+import { listAccessibleWorkspaceRowsForUser } from '@/lib/workspaces/utils'
 import type { ExecutionResult } from '@/executor/types'
 
 const logger = createLogger('WorkflowUtils')
@@ -151,12 +152,8 @@ export async function resolveWorkflowIdForUser(
     }
   }
 
-  const workspaceIds = await db
-    .select({ entityId: permissions.entityId })
-    .from(permissions)
-    .where(and(eq(permissions.userId, userId), eq(permissions.entityType, 'workspace')))
-
-  const workspaceIdList = workspaceIds.map((row) => row.entityId)
+  const accessibleRows = await listAccessibleWorkspaceRowsForUser(userId, 'all')
+  const workspaceIdList = accessibleRows.map((row) => row.workspace.id)
   const allowedWorkspaceIds = workspaceId
     ? workspaceIdList.filter((candidateWorkspaceId) => candidateWorkspaceId === workspaceId)
     : workspaceIdList
@@ -598,6 +595,7 @@ export async function listFolders(workspaceId: string) {
       folderName: workflowFolder.name,
       parentId: workflowFolder.parentId,
       sortOrder: workflowFolder.sortOrder,
+      locked: workflowFolder.locked,
     })
     .from(workflowFolder)
     .where(and(eq(workflowFolder.workspaceId, workspaceId), isNull(workflowFolder.archivedAt)))

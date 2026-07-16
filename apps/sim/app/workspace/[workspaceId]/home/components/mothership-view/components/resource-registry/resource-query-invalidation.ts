@@ -2,9 +2,9 @@ import type { QueryClient } from '@tanstack/react-query'
 import type { MothershipResourceType } from '@/app/workspace/[workspaceId]/home/types'
 import { knowledgeKeys } from '@/hooks/queries/kb/knowledge-list'
 import { logKeys } from '@/hooks/queries/log-list'
-import { mothershipChatKeys } from '@/hooks/queries/mothership-chats'
+import { mothershipChatKeys } from '@/hooks/queries/mothership-chat-keys'
 import { scheduleKeys } from '@/hooks/queries/schedule-list'
-import { tableKeys } from '@/hooks/queries/table-list'
+import { tableKeys } from '@/hooks/queries/utils/table-keys'
 import { folderKeys } from '@/hooks/queries/utils/folder-keys'
 import { invalidateWorkflowLists } from '@/hooks/queries/utils/invalidate-workflow-lists'
 import { workspaceFileFolderKeys } from '@/hooks/queries/workspace-file-folders'
@@ -45,9 +45,9 @@ const RESOURCE_INVALIDATORS: Record<
   scheduledtask: (qc, wId) => {
     qc.invalidateQueries({ queryKey: scheduleKeys.list(wId) })
   },
-  log: (qc, _wId, id) => {
+  log: (qc, wId, id) => {
     qc.invalidateQueries({ queryKey: logKeys.details() })
-    qc.invalidateQueries({ queryKey: logKeys.detail(id) })
+    qc.invalidateQueries({ queryKey: logKeys.detail(wId, id) })
   },
   /**
    * Integrations are sourced from the static integration catalog

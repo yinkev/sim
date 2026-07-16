@@ -1681,6 +1681,83 @@
       "when": 1782021797358,
       "tag": "0240_new_slyde",
       "breakpoints": true
+    },
+    {
+      "idx": 241,
+      "version": "7",
+      "when": 1782021797359,
+      "tag": "0241_wel_logs_desc_index_and_redundant_drops",
+      "breakpoints": true
+    },
+    {
+      "idx": 242,
+      "version": "7",
+      "when": 1782032587959,
+      "tag": "0242_table_rows_version",
+      "breakpoints": true
+    },
+    {
+      "idx": 243,
+      "version": "7",
+      "when": 1782062035979,
+      "tag": "0243_drop_table_row_cap_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 244,
+      "version": "7",
+      "when": 1782180808429,
+      "tag": "0244_public_share",
+      "breakpoints": true
+    },
+    {
+      "idx": 245,
+      "version": "7",
+      "when": 1782257375491,
+      "tag": "0245_kb_workspace_cascade",
+      "breakpoints": true
+    },
+    {
+      "idx": 246,
+      "version": "7",
+      "when": 1782261946960,
+      "tag": "0246_table_row_executions_enrichment_details",
+      "breakpoints": true
+    },
+    {
+      "idx": 247,
+      "version": "7",
+      "when": 1782266895451,
+      "tag": "0247_public_share_auth",
+      "breakpoints": true
+    },
+    {
+      "idx": 248,
+      "version": "7",
+      "when": 1782347514333,
+      "tag": "0248_convert_grandfathered_all_ws_permission_groups",
+      "breakpoints": true
+    },
+    {
+      "idx": 249,
+      "version": "7",
+      "when": 1782454205867,
+      "tag": "0249_workflow_mcp_tool_param_desc_overrides",
+      "breakpoints": true
+    },
+    {
+      "idx": 250,
+      "version": "7",
+      "when": 1782520757992,
+      "tag": "0250_limit_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 251,
+      "version": "7",
+      "when": 1782622230903,
+      "tag": "0251_drop_permission_group_applies_to_all_workspaces",
+      "breakpoints": true
     }
   ]
 }

@@ -28,7 +28,12 @@ export {
 } from '@/hooks/queries/mothership-chat-history'
 export type { MothershipChatMetadata } from '@/hooks/queries/mothership-chat-keys'
 export { mothershipChatKeys } from '@/hooks/queries/mothership-chat-keys'
-export { fetchMothershipChats, useMothershipChats } from '@/hooks/queries/mothership-chat-list'
+export {
+  fetchMothershipChats,
+  mapChat,
+  MOTHERSHIP_CHAT_LIST_STALE_TIME,
+  useMothershipChats,
+} from '@/hooks/queries/mothership-chat-list'
 export { useMarkMothershipChatRead } from '@/hooks/queries/mothership-chat-read'
 
 async function deleteChat(chatId: string): Promise<void> {

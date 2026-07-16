@@ -1,5 +1,7 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { getServerSession } from '@/lib/auth/server-session'
+import { HomeFallback } from '@/app/workspace/[workspaceId]/home/home-fallback'
 import { HomeRuntime } from '@/app/workspace/[workspaceId]/home/home-runtime'
 
 export const metadata: Metadata = {
@@ -21,12 +23,14 @@ export default async function ChatPage({ params, searchParams }: ChatPageProps) 
     getServerSession(),
   ])
   return (
-    <HomeRuntime
-      key={chatId}
-      chatId={chatId}
-      userName={session?.user?.name}
-      userId={session?.user?.id}
-      initialResourceId={resource ?? null}
-    />
+    <Suspense fallback={<HomeFallback />}>
+      <HomeRuntime
+        key={chatId}
+        chatId={chatId}
+        userName={session?.user?.name}
+        userId={session?.user?.id}
+        initialResourceId={resource ?? null}
+      />
+    </Suspense>
   )
 }

@@ -5,26 +5,12 @@ import { createContext, useCallback, useEffect, useMemo, useState } from 'react'
 import { createLogger } from '@sim/logger'
 import { usePathname } from 'next/navigation'
 import { ANONYMOUS_USER, ANONYMOUS_USER_ID } from '@/lib/auth/constants'
-import { extractSessionDataFromAuthClientResult } from '@/lib/auth/session-response'
+import {
+  type AppSession,
+  extractSessionDataFromAuthClientResult,
+} from '@/lib/auth/session-response'
 
-export type AppSession = {
-  user: {
-    id: string
-    email: string
-    emailVerified?: boolean
-    name?: string | null
-    image?: string | null
-    role?: string
-    createdAt?: Date
-    updatedAt?: Date
-  } | null
-  session?: {
-    id?: string
-    userId?: string
-    activeOrganizationId?: string
-    impersonatedBy?: string | null
-  }
-} | null
+export type { AppSession } from '@/lib/auth/session-response'
 
 export type SessionHookResult = {
   data: AppSession
@@ -123,7 +109,6 @@ export function SessionProvider({ authDisabled, children }: SessionProviderProps
       }
     }
 
-    // Check if user was redirected after plan upgrade
     const params = new URLSearchParams(window.location.search)
     const wasUpgraded = params.get('upgraded') === 'true'
 
@@ -136,21 +121,25 @@ export function SessionProvider({ authDisabled, children }: SessionProviderProps
     }
 
     const initializeSession = async () => {
-      const session = await loadSession(wasUpgraded)
+      let session = await loadSession(wasUpgraded)
 
-      if (!wasUpgraded || isCancelled) {
-        return
+      if (!wasUpgraded || isCancelled) return
+
+      if (!session) {
+        session = await loadSession()
       }
+
+      if (isCancelled) return
 
       const { getQueryClient } = await import('@/app/_shell/providers/get-query-client')
       const queryClient = getQueryClient()
       queryClient.invalidateQueries({ queryKey: ['organizations'] })
       queryClient.invalidateQueries({ queryKey: ['subscription'] })
 
-      const activeOrganizationId = session?.session?.activeOrganizationId ?? null
-      if (activeOrganizationId) {
-        return
-      }
+      if (!session) return
+
+      const activeOrganizationId = session.session?.activeOrganizationId ?? null
+      if (activeOrganizationId) return
 
       try {
         const [{ requestJson }, { listCreatorOrganizationsContract }] = await Promise.all([
@@ -162,9 +151,7 @@ export function SessionProvider({ authDisabled, children }: SessionProviderProps
 
         const organizationId = orgData.organizations?.[0]?.id
 
-        if (!organizationId || isCancelled) {
-          return
-        }
+        if (!organizationId || isCancelled) return
 
         const client = await getAuthClient()
         await client.organization.setActive({ organizationId })

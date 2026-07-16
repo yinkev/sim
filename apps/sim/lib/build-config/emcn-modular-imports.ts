@@ -145,6 +145,8 @@ export const EMCN_MODULAR_IMPORTS: Record<string, string> = {
   buttonVariants: '@/components/emcn/components/button/button',
   calculateGutterWidth: '@/components/emcn/components/code/code',
   Calendar: '@/components/emcn/icons/calendar',
+  CalendarDayCell: '@/components/emcn/components/calendar/calendar-day-cell',
+  CalendarDayCellProps: '@/components/emcn/components/calendar/calendar-day-cell',
   Card: '@/components/emcn/icons/card',
   cellIconNodeClass: '@/components/emcn/components/chip/chip-chrome',
   Check: '@/components/emcn/icons/check',

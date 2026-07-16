@@ -50,13 +50,13 @@ export function createMockResponse(config: MockFetchResponse = {}): Response {
     body: config.body ?? null,
     bodyUsed: false,
     arrayBuffer: vi.fn(async () => new ArrayBuffer(0)),
-    blob: vi.fn(async () => new Blob()),
-    formData: vi.fn(async () => new FormData()),
+    blob: vi.fn(() => new Response().blob()),
+    formData: vi.fn(() => new Response().formData()),
     clone: vi.fn(function (this: Response) {
       return createMockResponse(config)
     }),
     redirected: false,
-    type: 'basic' as ResponseType,
+    type: 'basic' as Response['type'],
     url: '',
     bytes: vi.fn(async () => new Uint8Array()),
   } as Response

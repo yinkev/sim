@@ -152,6 +152,7 @@ const createNextConfig = (phase: string): NextConfig => ({
     'isolated-vm',
     '@e2b/code-interpreter',
     'e2b',
+    '@earendil-works/pi-coding-agent',
   ],
   outputFileTracingIncludes: {
     '/api/tools/stagehand/*': ['./node_modules/ws/**/*'],
@@ -207,7 +208,7 @@ const createNextConfig = (phase: string): NextConfig => ({
       'localhost:3001',
     ],
   }),
-  transpilePackages: ['@t3-oss/env-nextjs', '@t3-oss/env-core', '@sim/db', 'better-auth-harmony'],
+  transpilePackages: ['@t3-oss/env-nextjs', '@t3-oss/env-core', '@sim/db'],
   async headers() {
     return [
       {

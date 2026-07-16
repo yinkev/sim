@@ -53,6 +53,9 @@
   },
   "devDependencies": {
     "@sim/tsconfig": "workspace:*",
+    "@vitest/spy": "4.1.10",
+    "next": "16.2.6",
+    "stripe": "18.5.0",
     "typescript": "^5.7.3",
     "vitest": "^4.1.0"
   },

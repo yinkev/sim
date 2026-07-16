@@ -92,7 +92,6 @@ export interface CreatePermissionGroupData {
   description?: string
   config?: Partial<PermissionGroupConfig>
   isDefault?: boolean
-  appliesToAllWorkspaces?: boolean
   workspaceIds?: string[]
 }
 
@@ -121,7 +120,6 @@ export interface UpdatePermissionGroupData {
   description?: string | null
   config?: Partial<PermissionGroupConfig>
   isDefault?: boolean
-  appliesToAllWorkspaces?: boolean
   workspaceIds?: string[]
 }
 

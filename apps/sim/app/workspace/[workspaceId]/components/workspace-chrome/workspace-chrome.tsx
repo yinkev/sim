@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useLayoutEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { MainWebNavigation } from '@/app/workspace/[workspaceId]/components/workspace-chrome/main-web-navigation'
 import { useFullscreenOriginStore } from '@/stores/fullscreen-origin'
@@ -14,6 +14,8 @@ const SLIDE_TRANSITION =
 
 interface WorkspaceChromeProps {
   children: React.ReactNode
+  /** Cookie-derived collapse state used until the sidebar store hydrates. */
+  initialSidebarCollapsed?: boolean
 }
 
 function isFullscreenPath(pathname: string | null): boolean {
@@ -41,15 +43,24 @@ function isWorkflowPath(pathname: string | null): boolean {
  * On a direct load of a fullscreen route the wrapper mounts already collapsed,
  * so no slide plays (CSS transitions don't run on mount).
  */
-export function WorkspaceChrome({ children }: WorkspaceChromeProps) {
+export function WorkspaceChrome({
+  children,
+  initialSidebarCollapsed = false,
+}: WorkspaceChromeProps) {
   const pathname = usePathname()
   const isFullscreen = isFullscreenPath(pathname)
   const workflowPath = isWorkflowPath(pathname)
 
   const setOrigin = useFullscreenOriginStore((s) => s.setOrigin)
 
+  const storeIsCollapsed = useSidebarStore((s) => s.isCollapsed)
   const hasHydrated = useSidebarStore((s) => s._hasHydrated)
   const syncSidebarWidth = useSidebarStore((s) => s.syncWidth)
+  const isCollapsed = hasHydrated ? storeIsCollapsed : initialSidebarCollapsed
+
+  useLayoutEffect(() => {
+    void useSidebarStore.persist.rehydrate()
+  }, [])
 
   // Remember the last non-fullscreen page so a fullscreen route's Back control
   // can return there, deterministically and for any trigger.
@@ -90,6 +101,7 @@ export function WorkspaceChrome({ children }: WorkspaceChromeProps) {
     <div className='flex min-h-0 flex-1'>
       <div
         className={`sidebar-shell-outer shrink-0 overflow-hidden transition-[width] ${SLIDE_TRANSITION} ${isFullscreen ? 'w-0' : 'w-[var(--sidebar-width)]'}`}
+        data-collapsed={isCollapsed || undefined}
         aria-hidden={isFullscreen || undefined}
         suppressHydrationWarning
       >
@@ -97,7 +109,7 @@ export function WorkspaceChrome({ children }: WorkspaceChromeProps) {
           id='workspace-navigation-root'
           className={`sidebar-shell-inner h-full w-[var(--sidebar-width)] shrink-0 transition-transform ${SLIDE_TRANSITION}${isFullscreen ? ' -translate-x-full' : ''}`}
         >
-          {!workflowPath && <MainWebNavigation />}
+          {!workflowPath && <MainWebNavigation isCollapsed={isCollapsed} />}
         </div>
       </div>
       <div

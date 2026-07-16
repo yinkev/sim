@@ -45,7 +45,7 @@ export const COMMON_SUPPRESS_PATTERNS = [
  */
 export function setupNodeEnvironment(): void {
   // Mock window if not present
-  if (typeof window === 'undefined') {
+  if (!('window' in globalThis)) {
     vi.stubGlobal('window', {
       location: { href: 'http://localhost:3000' },
       addEventListener: vi.fn(),
@@ -54,7 +54,7 @@ export function setupNodeEnvironment(): void {
   }
 
   // Mock document if not present
-  if (typeof document === 'undefined') {
+  if (!('document' in globalThis)) {
     vi.stubGlobal('document', {
       createElement: vi.fn(() => ({
         style: {},

@@ -8,25 +8,32 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   authDisabled: false,
+  getQueryClient: vi.fn(),
   getSession: vi.fn(),
   pathname: '/workspace/workspace-1/home',
   posthogIdentify: vi.fn(),
   posthogReset: vi.fn(),
+  requestJson: vi.fn(),
+  setActive: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({
   usePathname: () => mocks.pathname,
 }))
 
+vi.mock('@/app/_shell/providers/get-query-client', () => ({
+  getQueryClient: mocks.getQueryClient,
+}))
+
 vi.mock('@/lib/auth/auth-client', () => ({
   client: {
     getSession: mocks.getSession,
-    organization: { setActive: vi.fn() },
+    organization: { setActive: mocks.setActive },
   },
 }))
 
 vi.mock('@/lib/api/client/request', () => ({
-  requestJson: vi.fn(),
+  requestJson: mocks.requestJson,
 }))
 
 vi.mock('posthog-js', () => ({
@@ -52,6 +59,16 @@ function SessionProbe() {
   return null
 }
 
+async function flushUntil(predicate: () => boolean, attempts = 20) {
+  for (let index = 0; index < attempts; index += 1) {
+    if (predicate()) return
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+  }
+}
+
 describe('SessionProvider auth mode', () => {
   let container: HTMLDivElement
   let queryClient: QueryClient
@@ -59,13 +76,20 @@ describe('SessionProvider auth mode', () => {
 
   beforeEach(() => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
-    mocks.authDisabled = false
-    mocks.pathname = '/workspace/workspace-1/home'
+    vi.clearAllMocks()
+    mocks.getQueryClient.mockReset()
     mocks.getSession.mockReset()
     mocks.posthogIdentify.mockReset()
     mocks.posthogReset.mockReset()
+    mocks.requestJson.mockReset()
+    mocks.setActive.mockReset()
+    mocks.authDisabled = false
+    mocks.pathname = '/workspace/workspace-1/home'
+    mocks.requestJson.mockResolvedValue(null)
     observedSession = null
-    queryClient = new QueryClient()
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    mocks.getQueryClient.mockReturnValue(queryClient)
+    window.history.replaceState({}, '', '/workspace/workspace-1/home')
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
@@ -88,6 +112,7 @@ describe('SessionProvider auth mode', () => {
         </QueryClientProvider>
       )
     })
+    await flushUntil(() => observedSession?.isPending === false)
   }
 
   it('uses anonymous context without session requests when auth is disabled', async () => {
@@ -168,5 +193,45 @@ describe('SessionProvider auth mode', () => {
     await act(async () => observedSession?.refetch())
 
     expect(mocks.getSession).toHaveBeenCalledTimes(1)
+  })
+
+  it('falls back to the cached session when the upgrade refresh fails', async () => {
+    const session = {
+      user: { id: 'user-1', email: 'user@example.com' },
+      session: { id: 'session-1', userId: 'user-1', activeOrganizationId: 'org-1' },
+    }
+    mocks.getSession.mockRejectedValueOnce(new Error('refresh failed'))
+    mocks.getSession.mockResolvedValueOnce({ data: session })
+    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
+    window.history.replaceState({}, '', '/workspace/workspace-1/home?upgraded=true&keep=1')
+
+    await renderProvider()
+
+    expect(mocks.getSession).toHaveBeenNthCalledWith(1, {
+      query: { disableCookieCache: true },
+    })
+    expect(mocks.getSession).toHaveBeenNthCalledWith(2)
+    expect(observedSession).toMatchObject({ data: session, isPending: false, error: null })
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['organizations'] })
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['subscription'] })
+    expect(window.location.search).toBe('?keep=1')
+  })
+
+  it('uses the fresh upgrade session without starting a stale session request', async () => {
+    const session = {
+      user: { id: 'user-1', email: 'user@example.com' },
+      session: { id: 'session-1', userId: 'user-1', activeOrganizationId: 'org-1' },
+    }
+    mocks.getSession.mockResolvedValue({ data: session })
+    window.history.replaceState({}, '', '/workspace/workspace-1/home?upgraded=true')
+
+    await renderProvider()
+
+    expect(mocks.getSession).toHaveBeenCalledTimes(1)
+    expect(mocks.getSession).toHaveBeenCalledWith({
+      query: { disableCookieCache: true },
+    })
+    expect(observedSession).toMatchObject({ data: session, isPending: false, error: null })
+    expect(window.location.search).toBe('')
   })
 })

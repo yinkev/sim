@@ -9,9 +9,12 @@ import {
   WorkspacePermissionsOverrideProvider,
 } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
 import { useSocket } from '@/app/workspace/providers/socket-provider'
+import { useStableFlag } from '@/hooks/use-stable-flag'
 import { useOperationQueueStore } from '@/stores/operation-queue/store'
 
 const logger = createLogger('WorkflowPermissionsProvider')
+const RECONNECTING_TOAST_DELAY_MS = 2000
+const RECONNECTING_TOAST_MIN_VISIBLE_MS = 1500
 
 interface PersistentToastOptions {
   description?: string
@@ -75,9 +78,13 @@ export function WorkflowPermissionsProvider({ children }: WorkflowPermissionsPro
 
   const isJoinBlocked =
     Boolean(blockedJoinWorkflowId) && blockedJoinWorkflowId === params?.workflowId
+  const showReconnecting = useStableFlag(isReconnecting, {
+    delayMs: RECONNECTING_TOAST_DELAY_MS,
+    minVisibleMs: RECONNECTING_TOAST_MIN_VISIBLE_MS,
+  })
   const realtimeStatusMessage = hasOperationError
     ? null
-    : isReconnecting
+    : showReconnecting
       ? 'Reconnecting...'
       : isRetryingWorkflowJoin
         ? 'Joining workflow...'

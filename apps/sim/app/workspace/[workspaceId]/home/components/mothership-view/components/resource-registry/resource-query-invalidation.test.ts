@@ -35,7 +35,7 @@ const EXPECTED_QUERY_KEYS: Record<MothershipResourceType, readonly (readonly unk
   scheduledtask: [['schedules', 'list', WORKSPACE_ID]],
   log: [
     ['logs', 'detail'],
-    ['logs', 'detail', RESOURCE_ID],
+    ['logs', 'detail', WORKSPACE_ID, RESOURCE_ID],
   ],
   integration: [],
 }

@@ -22,11 +22,11 @@ describe('list query seams', () => {
     )
     expect(folderList).toContain('enabled: Boolean(workspaceId)')
     expect(folderList).toContain('placeholderData: keepPreviousData')
-    expect(folderList).toContain('staleTime: 60 * 1000')
+    expect(folderList).toContain('export const FOLDER_LIST_STALE_TIME = 60 * 1000')
+    expect(folderList).toContain('staleTime: FOLDER_LIST_STALE_TIME')
     expect(folderList).not.toMatch(/useMutation|createFolderContract|deleteFolderContract/)
-    expect(folders).toContain(
-      "export { useFolderMap, useFolders } from '@/hooks/queries/folder-list'"
-    )
+    expect(folders).toContain("} from '@/hooks/queries/folder-list'")
+    expect(folders).toMatch(/\buseFolderMap,\s+useFolders,/)
     expect(folders).not.toMatch(/export function useFolders|export function useFolderMap/)
   })
 

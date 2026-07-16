@@ -7,6 +7,7 @@ import { Chip } from '@/components/emcn'
 import { Credit } from '@/components/emcn/icons'
 import { ON_DEMAND_UNLIMITED } from '@/lib/billing/constants'
 import { formatCredits } from '@/lib/billing/credits/conversion'
+import { buildUpgradeHref } from '@/lib/billing/upgrade-reasons'
 import { isBillingEnabled } from '@/app/workspace/[workspaceId]/settings/billing-enabled'
 import { useMyMemberCredits } from '@/hooks/queries/organization-member-credits'
 import { usePlanView } from '@/hooks/queries/plan-view'
@@ -41,7 +42,7 @@ function CreditsChipInner({ deferData }: Required<CreditsChipProps>) {
     enabled: dataEnabled,
   })
 
-  const upgradeHref = `/workspace/${workspaceId}/upgrade`
+  const upgradeHref = buildUpgradeHref(workspaceId, 'credits')
 
   /**
    * Warm the route bundle and the exact queries the Upgrade page gates on, so
