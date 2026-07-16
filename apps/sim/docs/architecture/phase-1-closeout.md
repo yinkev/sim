@@ -177,6 +177,11 @@ The final Phase 1 verification set is intentionally bounded:
 
 Every command above exited successfully on the Phase 1 checkpoint.
 
+The clean-worktree replay first passed `22` of `25` focused test files and exposed three stale
+Mothership contract assertions: two expected the retired `x-api-key` header and one revalidated a child
+payload against the parent chat schema. Restoring those test-only alignments produced `3` passing files
+and `17` passing tests; no production code changed.
+
 The authoritative probes were not rerun after documentation and guard-only edits because no relevant
 production entry or runtime graph changed. Final boundary checks confirm the measured entry closures
 remain intact.
