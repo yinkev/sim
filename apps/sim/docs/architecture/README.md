@@ -50,6 +50,7 @@ evidence live in the applicable slice specification. Conversation history is nev
 12. [Pre-Phase 2 upstream v0.7.14 integration checkpoint](upstream-v0.7.14-integration-checkpoint.md)
 13. [Upstream v0.7.14 Home cold-compile investigation](upstream-v0.7.14-home-cold-compile-investigation.md)
 14. [Phase 2 Task compatibility spine](slices/phase-2-task-compatibility-spine.md)
+15. [Pre-Phase 3 upstream v0.7.37 curated intake plan](upstream-v0.7.37-curated-intake-plan.md)
 
 ## Slice Specification Contract
 

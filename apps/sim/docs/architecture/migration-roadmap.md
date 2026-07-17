@@ -4,7 +4,8 @@
 
 Repository path: `apps/sim/docs/architecture/migration-roadmap.md`
 Owner: Sim maintainers
-Current status: Phase 2 Task compatibility spine complete; Phase 3 pending
+Current status: Phase 2 Task compatibility spine complete; upstream v0.7.37 curated-intake planning
+authorized; integration not started; Phase 3 pending
 Last verified: 2026-07-16
 
 This roadmap sequences migration from the current Sim implementation to the approved architecture.
@@ -18,12 +19,18 @@ No implementation slice is active. The
 identity-only Task mapping, mixed-version trigger, bounded backfill, auth-first repair, compatibility
 proof, and rollback contract are recorded there. Phase 3 has not started.
 
-On 2026-07-16, local `main` was verified at the approved `37f360c7c` baseline and fast-forwarded to the
-completed Phase 2 and navigation-performance tip `30be1c68c`. The Phase 1 checkpoint, Phase 2 branch,
-worktrees, and all stashes remain preserved; nothing was pushed and the personal database was not
-migrated. [ADR 0004](adr/0004-control-surfaces-project-canonical-domain-state.md) now reconciles Center,
-Mothership runtime state, and FeatureCase evidence with canonical Task, Artifact, and Execution
-ownership. This governance decision did not start Phase 3.
+The [upstream v0.7.37 curated intake plan](upstream-v0.7.37-curated-intake-plan.md) authorizes technical
+classification and preparation only; it is not an active architecture implementation slice. It does
+not authorize integration, migration rewrite or application, personal database mutation, stash
+mutation, push, or Phase 3 work. Separate execution approval remains required.
+
+On 2026-07-16, local `main` was verified at `5efa6969a`, containing the completed Phase 2 and
+navigation-performance tip `30be1c68c` plus [ADR 0004](adr/0004-control-surfaces-project-canonical-domain-state.md).
+The Phase 1 checkpoint, Phase 2 branch, worktrees, and all stashes remain preserved; nothing was pushed.
+The personal `simstudio` database has its existing `240` migrations through applied local `0239` and
+`0240`, but it did not receive Phase 2 migration `0252`; Phase 2 migration proof used only a disposable
+clone. ADR 0004 reconciles Center, Mothership runtime state, and FeatureCase evidence with canonical
+Task, Artifact, and Execution ownership. This governance decision did not start Phase 3.
 
 [Phase 1A: Main-Web Shell Diet](slices/phase-1-main-web-shell-diet.md) is complete. Its implementation
 history, accepted evidence, rejected alternatives, preserved behavior, and remaining limitations are
