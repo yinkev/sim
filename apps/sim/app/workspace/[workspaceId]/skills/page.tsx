@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
-import { IntegrationTabsHeader } from '@/app/workspace/[workspaceId]/integrations/components/integration-tabs-header'
+import SkillsLoading from '@/app/workspace/[workspaceId]/skills/loading'
 import { Skills } from '@/app/workspace/[workspaceId]/skills/skills'
 
 export const metadata: Metadata = {
@@ -13,17 +13,9 @@ export const metadata: Metadata = {
  * fallback renders the real page chrome (background + tab header) so a suspend
  * never shows a blank frame.
  */
-export default async function SkillsPage({ params }: { params: Promise<{ workspaceId: string }> }) {
-  const { workspaceId } = await params
-
+export default function SkillsPage() {
   return (
-    <Suspense
-      fallback={
-        <div className='flex h-full flex-col bg-[var(--bg)]'>
-          <IntegrationTabsHeader active='skills' workspaceId={workspaceId} />
-        </div>
-      }
-    >
+    <Suspense fallback={<SkillsLoading />}>
       <Skills />
     </Suspense>
   )

@@ -3,39 +3,11 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import '@/components/emcn/components/code/code.css'
 import { CSV_PREVIEW_MAX_ROWS } from '@/lib/api/contracts/workspace-file-table'
-import { getFileExtension } from '@/lib/uploads/utils/file-utils'
 import { type CsvImportFileDescriptor, useCsvTruncationImport } from './csv-import'
 import { DataTable } from './data-table'
+import { resolvePreviewType } from './file-capabilities'
 import { MermaidDiagram } from './mermaid-diagram'
 import { ZoomablePreview } from './zoomable-preview'
-
-type PreviewType = 'markdown' | 'html' | 'csv' | 'svg' | 'mermaid' | null
-
-const PREVIEWABLE_MIME_TYPES: Record<string, PreviewType> = {
-  'text/markdown': 'markdown',
-  'text/html': 'html',
-  'text/csv': 'csv',
-  'image/svg+xml': 'svg',
-  'text/x-mermaid': 'mermaid',
-}
-
-const PREVIEWABLE_EXTENSIONS: Record<string, PreviewType> = {
-  md: 'markdown',
-  html: 'html',
-  htm: 'html',
-  csv: 'csv',
-  svg: 'svg',
-  mmd: 'mermaid',
-}
-
-/** All extensions that have a rich preview renderer. */
-export const RICH_PREVIEWABLE_EXTENSIONS = new Set(Object.keys(PREVIEWABLE_EXTENSIONS))
-
-export function resolvePreviewType(mimeType: string | null, filename: string): PreviewType {
-  if (mimeType && PREVIEWABLE_MIME_TYPES[mimeType]) return PREVIEWABLE_MIME_TYPES[mimeType]
-  const ext = getFileExtension(filename)
-  return PREVIEWABLE_EXTENSIONS[ext] ?? null
-}
 
 interface PreviewPanelProps {
   content: string

@@ -10,15 +10,19 @@ import { ChipCombobox, ChipConfirmModal, Plus, toast, Upload } from '@/component
 import { Columns3, Rows3, Table as TableIcon } from '@/components/emcn/icons'
 import type { TableDefinition } from '@/lib/table'
 import { CSV_ASYNC_IMPORT_THRESHOLD_BYTES, generateUniqueTableName } from '@/lib/table/constants'
+import { ownerCell } from '@/app/workspace/[workspaceId]/components/resource/components/owner-cell'
+import type { ResourceAction } from '@/app/workspace/[workspaceId]/components/resource/components/resource-header'
 import type {
   FilterTag,
-  ResourceAction,
-  ResourceColumn,
-  ResourceRow,
   SearchConfig,
   SortConfig,
-} from '@/app/workspace/[workspaceId]/components'
-import { ownerCell, Resource, timeCell } from '@/app/workspace/[workspaceId]/components'
+} from '@/app/workspace/[workspaceId]/components/resource/components/resource-options'
+import { timeCell } from '@/app/workspace/[workspaceId]/components/resource/components/time-cell'
+import {
+  Resource,
+  type ResourceColumn,
+  type ResourceRow,
+} from '@/app/workspace/[workspaceId]/components/resource/resource'
 import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
 import {
   ImportCsvDialog,
@@ -26,6 +30,7 @@ import {
   TablesListContextMenu,
 } from '@/app/workspace/[workspaceId]/tables/components'
 import { TableContextMenu } from '@/app/workspace/[workspaceId]/tables/components/table-context-menu'
+import TablesLoading from '@/app/workspace/[workspaceId]/tables/loading'
 import {
   DEFAULT_TABLE_SORT_COLUMN,
   DEFAULT_TABLE_SORT_DIRECTION,
@@ -34,7 +39,7 @@ import {
   tablesParsers,
   tablesUrlKeys,
 } from '@/app/workspace/[workspaceId]/tables/search-params'
-import { useContextMenu } from '@/app/workspace/[workspaceId]/w/components/sidebar/hooks'
+import { useContextMenu } from '@/app/workspace/[workspaceId]/w/components/sidebar/hooks/use-context-menu'
 import {
   cancelTableJob,
   downloadTableExport,
@@ -48,7 +53,7 @@ import {
 import { useWorkspaceMembersQuery } from '@/hooks/queries/workspace'
 import { useDebounce } from '@/hooks/use-debounce'
 import { useInlineRename } from '@/hooks/use-inline-rename'
-import { usePermissionConfig } from '@/hooks/use-permission-config'
+import { usePermissionGroupConfig } from '@/hooks/use-permission-group-config'
 import { useImportTrayStore } from '@/stores/table/import-tray/store'
 
 const logger = createLogger('Tables')
@@ -70,7 +75,7 @@ export function Tables() {
   const router = useRouter()
   const workspaceId = params.workspaceId as string
 
-  const { config: permissionConfig } = usePermissionConfig()
+  const { config: permissionConfig } = usePermissionGroupConfig()
   useEffect(() => {
     if (permissionConfig.hideTablesTab) {
       router.replace(`/workspace/${workspaceId}`)
@@ -79,7 +84,7 @@ export function Tables() {
 
   const userPermissions = useUserPermissionsContext()
 
-  const { data: tables = [], error } = useTablesList(workspaceId)
+  const { data: tables = [], isLoading, error } = useTablesList(workspaceId)
   const { data: members } = useWorkspaceMembersQuery(workspaceId)
 
   if (error) {
@@ -626,6 +631,8 @@ export function Tables() {
   // actually bail — inline object/element props would defeat their memo.
   const headerAside = useMemo(() => <ImportProgressMenu workspaceId={workspaceId} />, [workspaceId])
   const filterConfig = useMemo(() => ({ content: filterContent }), [filterContent])
+
+  if (isLoading) return <TablesLoading />
 
   return (
     <>

@@ -1,5 +1,9 @@
 # Dev compile performance
 
+This document preserves dated measurement snapshots. The June 18 residual-cost
+claims are historical; the July 16-17 navigation-lag work below is the current
+follow-up.
+
 Measured 2026-06-18 on `feat/demo-workspace-local-dev`. Symptom: first page load took
 >60s. Root cause: Turbopack cold-compile of the workspace route graph, compounded by
 OTel boot tax and unoptimized barrel imports.
@@ -107,7 +111,86 @@ store-level decoupling:
    — break the `triggers ↔ blocks` cycle at its source.
 
 Either is a deliberate refactor with its own design + test coverage, not a perf
-quick-win. The 24s `/home` cold compile remains as documented residual cost.
+quick-win. At this June 18 snapshot, the 24s `/home` cold compile remained as the
+documented residual cost.
+
+## Navigation-lag follow-up (2026-07-16 through 2026-07-17)
+
+This investigation measured cold navigation into individual workspace screens,
+then cut each target route's compile graph. These numbers are separate from the
+June 18 entry-route measurements above.
+
+### Before
+
+| Screen | Observed cold navigation |
+| --- | ---: |
+| Knowledge | 13.0s |
+| Integrations | 2.4s |
+| Integration detail | 17.3s |
+| Files | 5.1s before the API reached a DB-schema-related HTTP 500 |
+| Tables | 30.3s |
+| Studio | 19.5s |
+
+A later true-cold Files diagnostic, with the relevant caches empty, took 53s.
+The 5.1s and 53s observations are both retained because they measured different
+cache states; neither should be presented as a universal first-load time.
+
+### Root causes
+
+1. Main workspace links were raw anchors with normal clicks intercepted for
+   App Router `push`, but they had no intent prefetch. A user click still paid
+   the full route discovery and cold compile cost.
+2. Files, Knowledge, and Tables pages awaited server-side loopback prefetches,
+   blocking page delivery while their own API routes compiled and ran.
+3. Broad executable registries and barrels pulled block, tool, permission, and
+   integration implementation graphs into read-only navigation targets.
+4. Files list and detail shared the full `FileViewer` graph, so list navigation
+   compiled detail-only preview and editor capabilities.
+5. `GET /api/table` and table creation cohabited one route module. Turbopack
+   eagerly compiled POST-side dynamic imports while serving GET, producing
+   333 MiB and 824 server chunk/source-map files that included blocks and tools.
+
+### Fixes
+
+1. Main workspace navigation now uses App Router `push` plus hover/focus intent
+   prefetch, while preserving normal modified-click anchor behavior.
+2. Blocking SSR loopback prefetches were removed from the affected page routes;
+   client queries load behind route-level skeletons instead.
+3. Integration list/detail metadata now comes from pure generated catalogs, and
+   permission-group-only consumers use a thin config hook rather than executable
+   integration filtering.
+4. Broad barrels were replaced with leaf imports on the measured paths. Files
+   list and detail are split, and `FileViewer` loads only capabilities required
+   by the selected file.
+5. Table reads use read-only leaf modules. Creation moved to
+   `POST /api/table/create`; legacy `POST /api/table` redirects there without
+   importing creation dependencies into the GET graph.
+
+### After
+
+Earlier post-cut page-route observations:
+
+| Screen | Observed cold navigation |
+| --- | ---: |
+| Files | 9.05s in one run; 15.45s with all relevant caches empty |
+| Knowledge | 1.95s |
+| Tables | 1.44s |
+| Integrations | 2.27s |
+| Skills | 1.23s |
+| Integration detail | 1.41s |
+
+The latest isolated empty-cache `GET /api/table` comparison improved from 23.3s
+to 1.72s after the read/create route split. This API-route diagnostic is not the
+same measurement as the Tables page row above.
+
+First-ever cold-cache compile time still varies with which shared graphs were
+primed. Report cold measurements with their cache conditions. After intent
+prefetch has compiled a target, warm workspace navigation is expected to be
+subsecond.
+
+DB verification used the disposable `simstudio_phase2_task_preview` clone after
+migrating it for this branch. The source `simstudio` DB was not migrated or
+modified.
 
 ## Reproducing the measurement
 

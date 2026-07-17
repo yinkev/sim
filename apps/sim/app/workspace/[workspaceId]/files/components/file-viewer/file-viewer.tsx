@@ -13,11 +13,17 @@ import {
 } from '@/hooks/use-file-content-source'
 import { CsvTablePreview } from './csv-table-preview'
 import { DocxPreview } from './docx-preview'
+import {
+  isCsvStreamOnly,
+  isMarkdownFile,
+  type PreviewMode,
+  resolvePreviewType,
+} from './file-capabilities'
 import { resolveFileCategory } from './file-category'
 import { ImagePreview } from './image-preview'
 import type { PdfDocumentSource } from './pdf-viewer'
 import { PptxPreview } from './pptx-preview'
-import { PreviewPanel, resolvePreviewType } from './preview-panel'
+import { PreviewPanel } from './preview-panel'
 import {
   PREVIEW_LOADING_OVERLAY,
   PreviewError,
@@ -37,48 +43,6 @@ const RichMarkdownEditor = dynamic(
   () => import('./rich-markdown-editor/rich-markdown-editor').then((m) => m.RichMarkdownEditor),
   { ssr: false, loading: () => <PreviewLoadingFrame className='flex flex-1 flex-col' /> }
 )
-
-/**
- * CSVs at or below this size load fully into the editor (editable, with an inline preview).
- * Larger CSVs would OOM the browser on `response.text()`, so they render a read-only,
- * server-streamed preview of the first rows instead (see {@link CsvTablePreview}).
- */
-const CSV_INLINE_EDIT_MAX_BYTES = 5 * 1024 * 1024
-
-export function isTextEditable(file: { type: string; name: string }): boolean {
-  return resolveFileCategory(file.type, file.name) === 'text-editable'
-}
-
-export function isPreviewable(file: { type: string; name: string }): boolean {
-  return resolvePreviewType(file.type, file.name) !== null
-}
-
-/**
- * Markdown files render in the inline rich editor ({@link RichMarkdownEditor}) rather than
- * the raw Monaco editor. Toolbars use this to hide the raw/split/preview mode controls,
- * which don't apply to the single-surface editor.
- */
-export function isMarkdownFile(file: { type: string; name: string }): boolean {
-  return resolvePreviewType(file.type, file.name) === 'markdown'
-}
-
-/**
- * A CSV larger than {@link CSV_INLINE_EDIT_MAX_BYTES} is shown as a streamed, read-only preview —
- * the editor would OOM loading the whole file. The viewer renders {@link CsvTablePreview} for it,
- * and toolbars use this to hide the edit/split/save controls (there is no editor to switch to).
- */
-export function isCsvStreamOnly(file: {
-  type: string | null
-  name: string
-  size?: number | null
-}): boolean {
-  return (
-    resolvePreviewType(file.type, file.name) === 'csv' &&
-    (file.size ?? 0) > CSV_INLINE_EDIT_MAX_BYTES
-  )
-}
-
-export type PreviewMode = 'editor' | 'split' | 'preview'
 
 interface FileViewerProps {
   file: WorkspaceFileRecord

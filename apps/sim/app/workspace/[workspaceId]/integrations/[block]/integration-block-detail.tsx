@@ -7,11 +7,13 @@ import { useRouter } from 'next/navigation'
 import { useQueryState } from 'nuqs'
 import { Chip, ChipDropdown, ChipLink } from '@/components/emcn'
 import { cn } from '@/lib/core/utils/cn'
-import {
-  blockTypeToIconMap,
-  type Integration,
-  resolveOAuthServiceForIntegration,
-} from '@/lib/integrations'
+import { blockTypeToIconMap } from '@/lib/integrations/icon-mapping'
+import type {
+  IntegrationDetailSkill,
+  IntegrationDetailTemplate,
+} from '@/lib/integrations/integration-details'
+import { resolveOAuthServiceForIntegration } from '@/lib/integrations/oauth-service'
+import type { Integration } from '@/lib/integrations/types'
 import { getServiceConfigByProviderId } from '@/lib/oauth'
 import { ConnectOAuthModal } from '@/app/workspace/[workspaceId]/components/connect-oauth-modal'
 import { IntegrationSkillsSection } from '@/app/workspace/[workspaceId]/integrations/[block]/integration-skills-section'
@@ -21,11 +23,6 @@ import { IntegrationSection } from '@/app/workspace/[workspaceId]/integrations/c
 import { IntegrationTile } from '@/app/workspace/[workspaceId]/integrations/components/integrations-showcase'
 import { CONNECT_MODE } from '@/app/workspace/[workspaceId]/integrations/connect-route'
 import { storeCuratedPrompt } from '@/blocks/integration-matcher'
-import {
-  getSuggestedSkillsForBlock,
-  getTemplatesForBlock,
-  type ScopedBlockTemplate,
-} from '@/blocks/registry'
 import { useWorkspaceCredentials } from '@/hooks/queries/credentials'
 import { useOAuthReturnRouter } from '@/hooks/use-oauth-return'
 
@@ -41,15 +38,20 @@ const TEMPLATE_TILE_Z = ['z-30', 'z-20', 'z-10'] as const
 interface IntegrationBlockDetailProps {
   integration: Integration
   workspaceId: string
+  templates: readonly IntegrationDetailTemplate[]
+  suggestedSkills: readonly IntegrationDetailSkill[]
 }
 
-export function IntegrationBlockDetail({ integration, workspaceId }: IntegrationBlockDetailProps) {
+export function IntegrationBlockDetail({
+  integration,
+  workspaceId,
+  templates,
+  suggestedSkills,
+}: IntegrationBlockDetailProps) {
   useOAuthReturnRouter()
   const router = useRouter()
   const [connectMode, setConnectMode] = useQueryState(connectParam.key, connectParam.parser)
   const Icon = blockTypeToIconMap[integration.type]
-  const matchingTemplates = getTemplatesForBlock(integration.type)
-  const suggestedSkills = getSuggestedSkillsForBlock(integration.type)
   const oauthService = resolveOAuthServiceForIntegration(integration)
   const [oauthOpen, setOAuthOpen] = useState(false)
 
@@ -220,10 +222,10 @@ export function IntegrationBlockDetail({ integration, workspaceId }: Integration
             />
           )}
 
-          {matchingTemplates.length > 0 && (
+          {templates.length > 0 && (
             <TemplatesSection
               integration={integration}
-              templates={matchingTemplates}
+              templates={templates}
               workspaceId={workspaceId}
             />
           )}
@@ -235,7 +237,7 @@ export function IntegrationBlockDetail({ integration, workspaceId }: Integration
 
 interface TemplatesSectionProps {
   integration: Integration
-  templates: readonly ScopedBlockTemplate[]
+  templates: readonly IntegrationDetailTemplate[]
   workspaceId: string
 }
 

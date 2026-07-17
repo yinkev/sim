@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
-import { IntegrationTabsHeader } from '@/app/workspace/[workspaceId]/integrations/components/integration-tabs-header'
 import { Integrations } from '@/app/workspace/[workspaceId]/integrations/integrations'
+import IntegrationsLoading from '@/app/workspace/[workspaceId]/integrations/loading'
 
 export const metadata: Metadata = {
   title: 'Integrations',
@@ -13,21 +13,9 @@ export const metadata: Metadata = {
  * The fallback renders the real page chrome (background + tab header) so a
  * suspend never shows a blank frame.
  */
-export default async function IntegrationsPage({
-  params,
-}: {
-  params: Promise<{ workspaceId: string }>
-}) {
-  const { workspaceId } = await params
-
+export default function IntegrationsPage() {
   return (
-    <Suspense
-      fallback={
-        <div className='flex h-full flex-col bg-[var(--bg)]'>
-          <IntegrationTabsHeader active='integrations' workspaceId={workspaceId} />
-        </div>
-      }
-    >
+    <Suspense fallback={<IntegrationsLoading />}>
       <Integrations />
     </Suspense>
   )

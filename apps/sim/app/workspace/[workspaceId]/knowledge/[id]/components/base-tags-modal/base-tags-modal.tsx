@@ -18,7 +18,7 @@ import {
 import type { TagUsageData } from '@/lib/api/contracts/knowledge'
 import { handleKeyboardActivation } from '@/lib/core/utils/keyboard'
 import { SUPPORTED_FIELD_TYPES, TAG_SLOT_CONFIG } from '@/lib/knowledge/constants'
-import { getDocumentIcon } from '@/app/workspace/[workspaceId]/knowledge/components'
+import { getDocumentIcon } from '@/app/workspace/[workspaceId]/knowledge/components/icons'
 import {
   type TagDefinition,
   useKnowledgeBaseTagDefinitions,

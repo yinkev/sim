@@ -1,6 +1,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { getAllBlockMeta, getAllBlocks } from '../apps/sim/blocks/registry'
+import {
+  getAllBlockMeta,
+  getAllBlocks,
+  getSuggestedSkillsForBlock,
+  getTemplatesForBlock,
+} from '../apps/sim/blocks/registry'
 import integrationsJson from '../apps/sim/lib/integrations/integrations.json'
 import { getServiceConfigByServiceId } from '../apps/sim/lib/oauth/utils'
 
@@ -35,8 +40,22 @@ interface GeneratedOAuthService {
   templateCount: number
 }
 
+interface GeneratedIntegrationDetails {
+  templates: Array<{
+    title: string
+    prompt: string
+    otherBlockTypes: readonly string[]
+  }>
+  skills: Array<{
+    name: string
+    description: string
+    content: string
+  }>
+}
+
 const VERSION_SUFFIX = /_v\d+(?:_\d+)*$/
 const stripVersionSuffix = (value: string) => value.replace(VERSION_SUFFIX, '')
+const checkOnly = process.argv.includes('--check')
 
 const ALLOWED_STANDALONE_ICON_NAMES = new Set([
   'BookOpen',
@@ -59,8 +78,15 @@ const ALLOWED_STANDALONE_ICON_NAMES = new Set([
 ])
 
 function writeJson(outputPath: string, value: unknown): void {
+  const content = `${JSON.stringify(value, null, 2)}\n`
+  if (checkOnly) {
+    if (!fs.existsSync(outputPath) || fs.readFileSync(outputPath, 'utf8') !== content) {
+      throw new Error(`Generated integration catalog is stale: ${outputPath}`)
+    }
+    return
+  }
   fs.mkdirSync(path.dirname(outputPath), { recursive: true })
-  fs.writeFileSync(outputPath, `${JSON.stringify(value, null, 2)}\n`)
+  fs.writeFileSync(outputPath, content)
 }
 
 function getCanonicalProviderId(
@@ -139,6 +165,23 @@ export function writeHomeSuggestionsCatalog(): void {
     })),
   })
 
+  const integrationDetailsPath = path.join(
+    import.meta.dir,
+    '../apps/sim/lib/integrations/integration-details.json'
+  )
+  const details: Record<string, GeneratedIntegrationDetails> = {}
+  for (const integration of integrations) {
+    details[integration.type] = {
+      templates: getTemplatesForBlock(integration.type).map(
+        ({ title, prompt, otherBlockTypes }) => ({ title, prompt, otherBlockTypes })
+      ),
+      skills: getSuggestedSkillsForBlock(integration.type).map(
+        ({ name, description, content }) => ({ name, description, content })
+      ),
+    }
+  }
+  writeJson(integrationDetailsPath, { details })
+
   const publicCandidates: GeneratedPublicHomeSuggestion[] = suggestions.map((suggestion) => ({
     id: suggestion.id,
     blockType: suggestion.blockType,
@@ -182,6 +225,7 @@ export function writeHomeSuggestionsCatalog(): void {
     `✓ Home suggestion catalog written: ${suggestions.length} suggestions → ${outputPath}`
   )
   console.log(`✓ Integration mention catalog written → ${mentionCatalogPath}`)
+  console.log(`✓ Integration detail catalog written → ${integrationDetailsPath}`)
   console.log(`✓ Public home suggestion catalog written → ${publicCatalogPath}`)
 }
 

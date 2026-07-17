@@ -13,20 +13,8 @@
  */
 
 import { stripVersionSuffix } from '@sim/utils/string'
-import integrationsJson from '@/lib/integrations/integrations.json'
-import type { Integration } from '@/lib/integrations/types'
+import { INTEGRATIONS } from '@/lib/integrations/catalog'
 import { getAllBlockMeta } from '@/blocks/registry'
-
-/** All integrations surfaced in the catalog, ordered by `scripts/generate-docs.ts`. */
-export const INTEGRATIONS: readonly Integration[] =
-  integrationsJson.integrations as readonly Integration[]
-
-/**
- * ISO date of the last real catalog change, stamped by `scripts/generate-docs.ts`.
- * Drives sitemap `lastModified`, JSON-LD `dateModified`, and the visible
- * last-updated line on integration pages.
- */
-export const INTEGRATIONS_UPDATED_AT: string = integrationsJson.updatedAt
 
 /** A curated `from → to` block-pair workflow surfaced on the landing page. */
 export interface PopularWorkflow {
@@ -67,6 +55,7 @@ export const POPULAR_WORKFLOWS: readonly PopularWorkflow[] = (() => {
   return pairs
 })()
 
+export { INTEGRATIONS, INTEGRATIONS_UPDATED_AT } from '@/lib/integrations/catalog'
 export { blockTypeToIconMap } from '@/lib/integrations/icon-mapping'
 export {
   type OAuthServiceMatch,

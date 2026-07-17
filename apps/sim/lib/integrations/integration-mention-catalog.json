@@ -201,6 +201,10 @@
       "name": "Datadog"
     },
     {
+      "blockType": "datagma",
+      "name": "Datagma"
+    },
+    {
       "blockType": "daytona",
       "name": "Daytona"
     },
@@ -219,6 +223,10 @@
     {
       "blockType": "dropbox",
       "name": "Dropbox"
+    },
+    {
+      "blockType": "dropcontact",
+      "name": "Dropcontact"
     },
     {
       "blockType": "dspy",
@@ -251,6 +259,10 @@
     {
       "blockType": "enrich",
       "name": "Enrich"
+    },
+    {
+      "blockType": "enrow",
+      "name": "Enrow"
     },
     {
       "blockType": "evernote",
@@ -409,6 +421,10 @@
       "name": "Hunter.io"
     },
     {
+      "blockType": "icypeas",
+      "name": "Icypeas"
+    },
+    {
       "blockType": "incidentio",
       "name": "incident.io"
     },
@@ -455,6 +471,10 @@
     {
       "blockType": "launchdarkly",
       "name": "LaunchDarkly"
+    },
+    {
+      "blockType": "leadmagic",
+      "name": "LeadMagic"
     },
     {
       "blockType": "lemlist",
@@ -727,6 +747,10 @@
     {
       "blockType": "smtp",
       "name": "SMTP"
+    },
+    {
+      "blockType": "sportmonks",
+      "name": "Sportmonks"
     },
     {
       "blockType": "square",

@@ -13,6 +13,8 @@ import { buildFilterClause, getTableById, TableQueryValidationError } from '@/li
 import { USER_TABLE_ROWS_SQL_NAME } from '@/lib/table/constants'
 import { getUserEntityPermissions } from '@/lib/workspaces/permissions/utils'
 
+export { normalizeColumn } from '@/app/api/table/normalize-column'
+
 /**
  * Validates a `filter` against the table's column schema, returning a 400 response on a bad field
  * (or `null` when the filter is valid or absent). Shared by the routes that accept a filter
@@ -268,16 +270,3 @@ export function serverErrorResponse(message = 'Internal server error') {
 export const CreateColumnSchema = createTableColumnBodySchema
 export const UpdateColumnSchema = updateTableColumnBodySchema
 export const DeleteColumnSchema = deleteTableColumnBodySchema
-
-export function normalizeColumn(col: ColumnDefinition): ColumnDefinition {
-  return {
-    // Preserve the stable column id — it's the row-data storage key, so dropping
-    // it makes clients fall back to `name` and miss id-keyed cell values.
-    ...(col.id ? { id: col.id } : {}),
-    name: col.name,
-    type: col.type,
-    required: col.required ?? false,
-    unique: col.unique ?? false,
-    ...(col.workflowGroupId ? { workflowGroupId: col.workflowGroupId } : {}),
-  }
-}

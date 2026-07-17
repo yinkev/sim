@@ -16,11 +16,10 @@ import {
   Search,
 } from '@/components/emcn'
 import {
-  blockTypeToIconMap,
-  formatIntegrationType,
-  INTEGRATIONS,
-  type Integration,
-} from '@/lib/integrations'
+  getIntegrationIcon,
+  CLIENT_INTEGRATIONS as INTEGRATIONS,
+} from '@/lib/integrations/client-catalog'
+import type { Integration } from '@/lib/integrations/types'
 import { getServiceConfigByProviderId } from '@/lib/oauth'
 import { IntegrationSection } from '@/app/workspace/[workspaceId]/integrations/components/integration-section'
 import { IntegrationTabsHeader } from '@/app/workspace/[workspaceId]/integrations/components/integration-tabs-header'
@@ -33,6 +32,7 @@ import {
   integrationsParsers,
   integrationsUrlKeys,
 } from '@/app/workspace/[workspaceId]/integrations/search-params'
+import { formatIntegrationType } from '@/blocks/types'
 import { useWorkspaceCredentials, type WorkspaceCredential } from '@/hooks/queries/credentials'
 
 /** Debounce window for `search` URL writes; the input itself stays instant. */
@@ -341,7 +341,7 @@ export function Integrations() {
             {filteredCategorySections.map((section) => (
               <IntegrationSection key={section.label} label={formatIntegrationType(section.label)}>
                 {section.integrations.map((integration) => {
-                  const Icon = blockTypeToIconMap[integration.type]
+                  const Icon = getIntegrationIcon(integration.type)
                   if (!Icon) return null
                   return (
                     <IntegrationItem

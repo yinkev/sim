@@ -7,6 +7,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
+  prefetch: vi.fn(),
   push: vi.fn(),
   toggleCollapsed: vi.fn(),
 }))
@@ -14,7 +15,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('next/navigation', () => ({
   useParams: () => ({ workspaceId: 'workspace-1' }),
   usePathname: () => '/workspace/workspace-1/home',
-  useRouter: () => ({ push: mocks.push }),
+  useRouter: () => ({ prefetch: mocks.prefetch, push: mocks.push }),
 }))
 
 vi.mock('@/components/emcn/icons', () => {
@@ -73,6 +74,37 @@ describe('MainWebNavigation links', () => {
 
     expect(click.defaultPrevented).toBe(true)
     expect(mocks.push).toHaveBeenCalledWith('/workspace/workspace-1/settings')
+  })
+
+  it('prefetches a route once when the user shows intent', () => {
+    const link = container.querySelector<HTMLAnchorElement>(
+      'a[href="/workspace/workspace-1/tables"]'
+    )
+
+    expect(link).not.toBeNull()
+    link!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
+    link!.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+    link!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
+
+    expect(mocks.prefetch).toHaveBeenCalledTimes(1)
+    expect(mocks.prefetch).toHaveBeenCalledWith('/workspace/workspace-1/tables')
+  })
+
+  it('does not prefetch routes on mount', () => {
+    expect(mocks.prefetch).not.toHaveBeenCalled()
+  })
+
+  it('does not compile Workflow Studio on incidental hover', () => {
+    const link = container.querySelector<HTMLAnchorElement>(
+      'a[href="/workspace/workspace-1/w"][aria-label="Workflow Studio"]'
+    )
+
+    expect(link).not.toBeNull()
+    link!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
+    expect(mocks.prefetch).not.toHaveBeenCalled()
+
+    link!.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+    expect(mocks.prefetch).toHaveBeenCalledWith('/workspace/workspace-1/w')
   })
 
   it.each([

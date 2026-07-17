@@ -280,6 +280,127 @@ describe('workspace route dependency boundaries', () => {
     expect(workspaceChrome).not.toContain('@/lib/core/utils/cn')
   })
 
+  it('prefetches main-web routes only after user intent', () => {
+    const mainWebNavigation = readRouteSource('components/workspace-chrome/main-web-navigation.tsx')
+
+    expect(mainWebNavigation).toContain('router.prefetch(href)')
+    expect(mainWebNavigation).not.toMatch(/navigationItems\.(?:forEach|map)\([^)]*router\.prefetch/)
+    expect(mainWebNavigation).not.toMatch(/useQueryClient|prefetchQuery|@tanstack/)
+  })
+
+  it('keeps integration catalog routes off the executable block registry', () => {
+    const sources = [
+      readRouteSource('integrations/integrations.tsx'),
+      readRouteSource('integrations/components/integrations-showcase/integrations-showcase.tsx'),
+      readRouteSource('integrations/[block]/page.tsx'),
+      readRouteSource('integrations/[block]/integration-block-detail.tsx'),
+      readRouteSource('integrations/connected/[credentialId]/connected-credential-detail.tsx'),
+      readRouteSource('skills/skills.tsx'),
+    ]
+
+    for (const source of sources) {
+      expect(source).not.toMatch(/from ['"]@\/lib\/integrations['"]/)
+      expect(source).not.toMatch(/from ['"]@\/blocks(?:\/registry)?['"]/)
+    }
+    expect(sources[0]).toContain('@/lib/integrations/client-catalog')
+    expect(sources[1]).toContain('@/lib/integrations/client-catalog')
+    expect(sources[2]).toContain('@/lib/integrations/catalog')
+    expect(sources[2]).toContain('@/lib/integrations/integration-details')
+  })
+
+  it('renders resource chrome before client list APIs resolve', () => {
+    const routes = [
+      { name: 'knowledge', title: 'Knowledge Base' },
+      { name: 'files', title: 'Files' },
+      { name: 'tables', title: 'Tables' },
+    ] as const
+
+    for (const { name, title } of routes) {
+      const page = readRouteSource(`${name}/page.tsx`)
+      const loading = readRouteSource(`${name}/loading.tsx`)
+
+      expect(page).not.toMatch(/HydrationBoundary|dehydrate|getQueryClient|prefetch[A-Z]/)
+      expect(loading).toContain('ResourceChromeFallback')
+      expect(loading).toContain(`title='${title}'`)
+    }
+  })
+
+  it('keeps resource list routes off executable block permission metadata', () => {
+    const routeSources = [
+      readRouteSource('knowledge/knowledge.tsx'),
+      readRouteSource('files/files.tsx'),
+      readRouteSource('tables/tables.tsx'),
+    ]
+    const permissionConfig = readRouteSource('../../../hooks/use-permission-group-config.ts')
+
+    for (const source of routeSources) {
+      expect(source).toContain('@/hooks/use-permission-group-config')
+      expect(source).not.toContain('@/hooks/use-permission-config')
+    }
+    expect(permissionConfig).not.toMatch(/block-access|@\/blocks/)
+  })
+
+  it('keeps resource routes on leaf UI and interaction imports', () => {
+    const routeNames = ['knowledge', 'files', 'tables'] as const
+
+    for (const name of routeNames) {
+      const source = readRouteSource(`${name}/${name}.tsx`)
+      const loading = readRouteSource(`${name}/loading.tsx`)
+      const error = readRouteSource(`${name}/error.tsx`)
+
+      expect(source).not.toContain("from '@/app/workspace/[workspaceId]/components'")
+      expect(source).not.toContain(
+        "from '@/app/workspace/[workspaceId]/w/components/sidebar/hooks'"
+      )
+      expect(loading).not.toContain("from '@/app/workspace/[workspaceId]/components'")
+      expect(error).not.toContain("from '@/app/workspace/[workspaceId]/components'")
+    }
+  })
+
+  it('defers the Files detail viewer and sharing UI from the list route', () => {
+    const files = readRouteSource('files/files.tsx')
+    const detail = readRouteSource('files/[fileId]/file-detail.tsx')
+    const capabilities = readRouteSource('files/components/file-viewer/file-capabilities.ts')
+    const viewer = readRouteSource('files/components/file-viewer/file-viewer.tsx')
+
+    expect(files).toContain("import dynamic from 'next/dynamic'")
+    expect(files).not.toContain('file-viewer/file-viewer')
+    expect(detail).toContain(
+      "from '@/app/workspace/[workspaceId]/files/components/file-viewer/file-viewer'"
+    )
+    expect(detail).toContain('FileViewerComponent={FileViewer}')
+    expect(files).toContain(
+      "import('@/app/workspace/[workspaceId]/files/components/share-modal/share-modal')"
+    )
+    expect(files).not.toMatch(
+      /from ['"]@\/app\/workspace\/\[workspaceId\]\/files\/components\/file-viewer['"]/
+    )
+    expect(files).not.toMatch(
+      /from ['"]@\/app\/workspace\/\[workspaceId\]\/files\/components\/file-viewer\/file-viewer['"]/
+    )
+    expect(files).not.toMatch(
+      /from ['"]@\/app\/workspace\/\[workspaceId\]\/files\/components\/share-modal['"]/
+    )
+    expect(files).toContain(
+      "from '@/app/workspace/[workspaceId]/files/components/file-viewer/file-capabilities'"
+    )
+    expect(viewer).toContain("from './file-capabilities'")
+    expect(capabilities).not.toMatch(/from ['"](?:react|next\/|@\/hooks)/)
+    expect(capabilities).not.toMatch(
+      /file-viewer['"]|preview-panel|(?:csv|docx|image|pptx|xlsx)-preview|text-editor/
+    )
+  })
+
+  it('provides route loading chrome for integration lists and details', () => {
+    const integrationsLoading = readRouteSource('integrations/loading.tsx')
+    const skillsLoading = readRouteSource('skills/loading.tsx')
+    const detailLoading = readRouteSource('integrations/[block]/loading.tsx')
+
+    expect(integrationsLoading).toContain('IntegrationTabsHeader')
+    expect(skillsLoading).toContain('IntegrationTabsHeader')
+    expect(detailLoading).toContain('IntegrationDetailLoading')
+  })
+
   it('keeps shared error boundaries off the workspace component barrel', () => {
     const errorBoundary = readRouteSource('error.tsx')
     const sharedError = readRouteSource('components/error/error.tsx')

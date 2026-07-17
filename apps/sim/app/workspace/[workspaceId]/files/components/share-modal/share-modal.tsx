@@ -19,7 +19,7 @@ import type { ShareAuthType, ShareRecord } from '@/lib/api/contracts/public-shar
 import { getBaseUrl } from '@/lib/core/utils/urls'
 import { quickValidateEmail } from '@/lib/messaging/email/validation'
 import { useFileShare, useUpsertFileShare } from '@/hooks/queries/public-shares'
-import { usePermissionConfig } from '@/hooks/use-permission-config'
+import { usePermissionGroupConfig } from '@/hooks/use-permission-group-config'
 
 interface ShareModalProps {
   open: boolean
@@ -61,7 +61,7 @@ export function ShareModal({
   initialShare,
 }: ShareModalProps) {
   const { data: share, isFetched } = useFileShare(workspaceId, fileId, { enabled: open })
-  const { config: permissionConfig } = usePermissionConfig()
+  const { config: permissionConfig } = usePermissionGroupConfig()
   const upsertShare = useUpsertFileShare()
 
   const saved = share ?? initialShare ?? null

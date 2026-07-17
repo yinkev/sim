@@ -1,6 +1,6 @@
 'use client'
 
-import type { ComponentType, MouseEvent, SVGProps } from 'react'
+import { type ComponentType, type MouseEvent, type SVGProps, useRef } from 'react'
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import {
   CircleInfo,
@@ -60,11 +60,23 @@ export function MainWebNavigation({ isCollapsed }: MainWebNavigationProps) {
   const pathname = usePathname()
   const router = useRouter()
   const toggleCollapsed = useSidebarStore((state) => state.toggleCollapsed)
+  const prefetchedHrefsRef = useRef<Set<string>>(new Set())
 
   const navigate = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
     if (!shouldUseAppRouter(event)) return
     event.preventDefault()
     router.push(href)
+  }
+
+  const prefetchRoute = (href: string) => {
+    if (isActivePath(pathname, href) || prefetchedHrefsRef.current.has(href)) return
+    prefetchedHrefsRef.current.add(href)
+    router.prefetch(href)
+  }
+
+  const prefetchOnHover = (href: string) => {
+    if (href.endsWith('/w')) return
+    prefetchRoute(href)
   }
 
   const basePath = `/workspace/${workspaceId}`
@@ -109,6 +121,8 @@ export function MainWebNavigation({ isCollapsed }: MainWebNavigationProps) {
           <a
             key={href}
             href={href}
+            onMouseEnter={() => prefetchOnHover(href)}
+            onFocus={() => prefetchRoute(href)}
             onClick={(event) => navigate(event, href)}
             aria-label={label}
             aria-current={isActivePath(pathname, href) ? 'page' : undefined}
@@ -123,6 +137,8 @@ export function MainWebNavigation({ isCollapsed }: MainWebNavigationProps) {
       <div className='flex flex-col gap-1 border-[var(--border)] border-t pt-2'>
         <a
           href={`${basePath}/w`}
+          onMouseEnter={() => prefetchOnHover(`${basePath}/w`)}
+          onFocus={() => prefetchRoute(`${basePath}/w`)}
           onClick={(event) => navigate(event, `${basePath}/w`)}
           className={getNavigationLinkClass(isCollapsed)}
           aria-label='Open full workspace navigation'
@@ -132,6 +148,8 @@ export function MainWebNavigation({ isCollapsed }: MainWebNavigationProps) {
         </a>
         <a
           href={`${basePath}/settings`}
+          onMouseEnter={() => prefetchRoute(`${basePath}/settings`)}
+          onFocus={() => prefetchRoute(`${basePath}/settings`)}
           onClick={(event) => navigate(event, `${basePath}/settings`)}
           aria-label='Settings'
           className={getNavigationLinkClass(

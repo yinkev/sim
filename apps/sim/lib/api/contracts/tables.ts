@@ -380,7 +380,7 @@ export type ListTablesResponse = ContractJsonResponse<typeof listTablesContract>
 
 export const createTableContract = defineRouteContract({
   method: 'POST',
-  path: '/api/table',
+  path: '/api/table/create',
   body: createTableBodySchema,
   response: {
     mode: 'json',

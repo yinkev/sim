@@ -2,17 +2,13 @@
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useParams } from 'next/navigation'
 import { ApiClientError } from '@/lib/api/client/errors'
 import { requestJson } from '@/lib/api/client/request'
 import { getAllowedIntegrationsContract } from '@/lib/api/contracts/common'
 import { getEnv, isTruthy } from '@/lib/core/config/env'
 import { isBlockTypeAccessControlExempt } from '@/lib/permission-groups/block-access'
-import {
-  DEFAULT_PERMISSION_GROUP_CONFIG,
-  type PermissionGroupConfig,
-} from '@/lib/permission-groups/types'
-import { useUserPermissionConfig } from '@/ee/access-control/hooks/use-user-permission-config'
+import type { PermissionGroupConfig } from '@/lib/permission-groups/types'
+import { usePermissionGroupConfig } from '@/hooks/use-permission-group-config'
 
 export interface PermissionConfigResult {
   config: PermissionGroupConfig
@@ -66,24 +62,11 @@ function intersectAllowlists(a: string[] | null, b: string[] | null): string[] |
 }
 
 export function usePermissionConfig(): PermissionConfigResult {
-  const params = useParams()
-  const workspaceId = typeof params?.workspaceId === 'string' ? params.workspaceId : undefined
-
-  const { data: permissionData, isLoading: isPermissionLoading } =
-    useUserPermissionConfig(workspaceId)
+  const { config, isLoading: isPermissionLoading, isInPermissionGroup } = usePermissionGroupConfig()
   const { data: envAllowlistData, isLoading: isEnvAllowlistLoading } =
     useAllowedIntegrationsFromEnv()
 
   const isLoading = isPermissionLoading || isEnvAllowlistLoading
-
-  const config = useMemo(() => {
-    if (!permissionData?.config) {
-      return DEFAULT_PERMISSION_GROUP_CONFIG
-    }
-    return permissionData.config
-  }, [permissionData])
-
-  const isInPermissionGroup = !!permissionData?.permissionGroupId
 
   const mergedAllowedIntegrations = useMemo(() => {
     const envAllowlist = envAllowlistData?.allowedIntegrations ?? null

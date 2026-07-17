@@ -1,8 +1,5 @@
 import { Suspense } from 'react'
-import { dehydrate, HydrationBoundary } from '@tanstack/react-query'
 import type { Metadata } from 'next'
-import { getQueryClient } from '@/app/_shell/providers/get-query-client'
-import { prefetchFilesBrowser } from '@/app/workspace/[workspaceId]/files/prefetch'
 import { Files } from './files'
 import FilesLoading from './loading'
 
@@ -18,17 +15,10 @@ export const metadata: Metadata = {
  * table headers) so a suspend never shows a blank frame; the route-level
  * `loading.tsx` covers the navigation/chunk-load transition the same way.
  */
-export default async function FilesPage({ params }: { params: Promise<{ workspaceId: string }> }) {
-  const { workspaceId } = await params
-
-  const queryClient = getQueryClient()
-  await prefetchFilesBrowser(queryClient, workspaceId)
-
+export default function FilesPage() {
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <Suspense fallback={<FilesLoading />}>
-        <Files />
-      </Suspense>
-    </HydrationBoundary>
+    <Suspense fallback={<FilesLoading />}>
+      <Files />
+    </Suspense>
   )
 }

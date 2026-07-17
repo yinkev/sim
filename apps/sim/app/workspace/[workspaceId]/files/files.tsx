@@ -1,8 +1,17 @@
 'use client'
 
-import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  type ComponentType,
+  type DragEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage, toError } from '@sim/utils/errors'
+import dynamic from 'next/dynamic'
 import { useParams, useRouter } from 'next/navigation'
 import { useQueryStates } from 'nuqs'
 import { usePostHog } from 'posthog-js/react'
@@ -25,7 +34,7 @@ import {
 } from '@/components/emcn'
 import { Download, Send } from '@/components/emcn/icons'
 import { getDocumentIcon } from '@/components/icons/document-icons'
-import { useLimitUpgradeToast } from '@/lib/billing/client'
+import { useLimitUpgradeToast } from '@/lib/billing/client/use-limit-upgrade-toast'
 import { captureEvent } from '@/lib/posthog/client'
 import { triggerFileDownload } from '@/lib/uploads/client/download'
 import type { WorkspaceFileRecord } from '@/lib/uploads/contexts/workspace'
@@ -45,39 +54,40 @@ import {
   SUPPORTED_IMAGE_EXTENSIONS,
   SUPPORTED_VIDEO_EXTENSIONS,
 } from '@/lib/uploads/utils/validation'
+import { ownerCell } from '@/app/workspace/[workspaceId]/components/resource/components/owner-cell'
 import type {
   BreadcrumbItem,
-  FilterTag,
   ResourceAction,
-  ResourceColumn,
-  ResourceRow,
-  RowDragDropConfig,
+} from '@/app/workspace/[workspaceId]/components/resource/components/resource-header'
+import type {
+  FilterTag,
   SearchConfig,
   SortConfig,
-} from '@/app/workspace/[workspaceId]/components'
+} from '@/app/workspace/[workspaceId]/components/resource/components/resource-options'
+import { timeCell } from '@/app/workspace/[workspaceId]/components/resource/components/time-cell'
 import {
   EMPTY_CELL_PLACEHOLDER,
-  ownerCell,
   Resource,
-  timeCell,
-} from '@/app/workspace/[workspaceId]/components'
+  type ResourceColumn,
+  type ResourceRow,
+  type RowDragDropConfig,
+} from '@/app/workspace/[workspaceId]/components/resource/resource'
 import { FilesActionBar } from '@/app/workspace/[workspaceId]/files/components/action-bar'
 import { DeleteConfirmModal } from '@/app/workspace/[workspaceId]/files/components/delete-confirm-modal'
 import { FileRowContextMenu } from '@/app/workspace/[workspaceId]/files/components/file-row-context-menu'
-import type { PreviewMode } from '@/app/workspace/[workspaceId]/files/components/file-viewer'
 import {
-  FileViewer,
   isCsvStreamOnly,
   isMarkdownFile,
   isPreviewable,
   isTextEditable,
-} from '@/app/workspace/[workspaceId]/files/components/file-viewer'
+  type PreviewMode,
+} from '@/app/workspace/[workspaceId]/files/components/file-viewer/file-capabilities'
 import { FilesListContextMenu } from '@/app/workspace/[workspaceId]/files/components/files-list-context-menu'
-import { ShareModal } from '@/app/workspace/[workspaceId]/files/components/share-modal'
+import FilesLoading from '@/app/workspace/[workspaceId]/files/loading'
 import type { MoveOptionNode } from '@/app/workspace/[workspaceId]/files/move-options'
 import { filesParsers, filesUrlKeys } from '@/app/workspace/[workspaceId]/files/search-params'
 import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
-import { useContextMenu } from '@/app/workspace/[workspaceId]/w/components/sidebar/hooks'
+import { useContextMenu } from '@/app/workspace/[workspaceId]/w/components/sidebar/hooks/use-context-menu'
 import { useWorkspaceMembersQuery } from '@/hooks/queries/workspace'
 import {
   useBulkArchiveWorkspaceFileItems,
@@ -95,9 +105,32 @@ import {
 } from '@/hooks/queries/workspace-files'
 import { useDebounce } from '@/hooks/use-debounce'
 import { useInlineRename } from '@/hooks/use-inline-rename'
-import { usePermissionConfig } from '@/hooks/use-permission-config'
+import { usePermissionGroupConfig } from '@/hooks/use-permission-group-config'
+
+const ShareModal = dynamic(
+  () =>
+    import('@/app/workspace/[workspaceId]/files/components/share-modal/share-modal').then(
+      (module) => module.ShareModal
+    ),
+  { ssr: false }
+)
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
+interface FileViewerComponentProps {
+  file: WorkspaceFileRecord
+  workspaceId: string
+  canEdit: boolean
+  previewMode?: PreviewMode
+  autoFocus?: boolean
+  onDirtyChange?: (isDirty: boolean) => void
+  onSaveStatusChange?: (status: SaveStatus) => void
+  saveRef?: React.MutableRefObject<(() => Promise<void>) | null>
+}
+
+interface FilesProps {
+  FileViewerComponent?: ComponentType<FileViewerComponentProps>
+}
+
 type FileResourceItem =
   | { kind: 'file'; id: string; file: WorkspaceFileRecord }
   | { kind: 'folder'; id: string; folder: WorkspaceFileFolderApi }
@@ -168,7 +201,7 @@ function formatFileType(mimeType: string | null, filename: string): string {
   return mimeType ?? 'File'
 }
 
-export function Files() {
+export function Files({ FileViewerComponent }: FilesProps = {}) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const saveRef = useRef<(() => Promise<void>) | null>(null)
 
@@ -186,7 +219,7 @@ export function Files() {
     typeof params?.fileId === 'string' && params.fileId.length > 0 ? params.fileId : null
   const userPermissions = useUserPermissionsContext()
   const canEdit = userPermissions.canEdit === true
-  const { config: permissionConfig } = usePermissionConfig()
+  const { config: permissionConfig } = usePermissionGroupConfig()
 
   useEffect(() => {
     if (permissionConfig.hideFilesTab) {
@@ -195,7 +228,8 @@ export function Files() {
   }, [permissionConfig.hideFilesTab, router, workspaceId])
 
   const { data: files = EMPTY_WORKSPACE_FILES, isLoading, error } = useWorkspaceFiles(workspaceId)
-  const { data: folders = EMPTY_WORKSPACE_FILE_FOLDERS } = useWorkspaceFileFolders(workspaceId)
+  const { data: folders = EMPTY_WORKSPACE_FILE_FOLDERS, isLoading: isFoldersLoading } =
+    useWorkspaceFileFolders(workspaceId)
   const { data: members } = useWorkspaceMembersQuery(workspaceId)
   const uploadFile = useUploadWorkspaceFile()
   const notifyLimit = useLimitUpgradeToast()
@@ -1870,6 +1904,8 @@ export function Files() {
     return tags
   }, [typeFilter, sizeFilter, uploadedByFilter, members])
 
+  if (!fileIdFromRoute && (isLoading || isFoldersLoading)) return <FilesLoading />
+
   if (fileIdFromRoute && !selectedFile && isLoading) {
     return (
       <Resource>
@@ -1890,17 +1926,23 @@ export function Files() {
             breadcrumbs={fileDetailBreadcrumbs}
             actions={fileActions}
           />
-          <FileViewer
-            key={selectedFile.id}
-            file={selectedFile}
-            workspaceId={workspaceId}
-            canEdit={canEdit}
-            previewMode={previewMode}
-            autoFocus={isNewFile || justCreatedFileIdRef.current === selectedFile.id}
-            onDirtyChange={setIsDirty}
-            onSaveStatusChange={setSaveStatus}
-            saveRef={saveRef}
-          />
+          {FileViewerComponent ? (
+            <FileViewerComponent
+              key={selectedFile.id}
+              file={selectedFile}
+              workspaceId={workspaceId}
+              canEdit={canEdit}
+              previewMode={previewMode}
+              autoFocus={isNewFile || justCreatedFileIdRef.current === selectedFile.id}
+              onDirtyChange={setIsDirty}
+              onSaveStatusChange={setSaveStatus}
+              saveRef={saveRef}
+            />
+          ) : (
+            <div className='flex flex-1 items-center justify-center bg-[var(--bg)]'>
+              <Loader className='size-[20px] text-[var(--text-secondary)]' animate />
+            </div>
+          )}
 
           <ChipConfirmModal
             open={showUnsavedChangesAlert}

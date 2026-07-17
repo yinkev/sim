@@ -29,7 +29,7 @@ export const tableCreateTool: ToolConfig<TableCreateParams, TableCreateResponse>
   },
 
   request: {
-    url: '/api/table',
+    url: '/api/table/create',
     method: 'POST',
     headers: () => ({
       'Content-Type': 'application/json',

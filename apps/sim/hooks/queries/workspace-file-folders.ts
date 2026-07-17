@@ -11,7 +11,7 @@ import {
   updateWorkspaceFileFolderContract,
   type WorkspaceFileFolderApi,
 } from '@/lib/api/contracts/workspace-file-folders'
-import { workspaceFilesKeys } from '@/hooks/queries/workspace-files'
+import { workspaceFilesKeys } from '@/hooks/queries/workspace-file-keys'
 
 type WorkspaceFileFolderScope = 'active' | 'archived' | 'all'
 export type { WorkspaceFileFolderApi }

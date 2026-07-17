@@ -1,8 +1,8 @@
 import type { Logger } from '@sim/logger'
+import { isValidUuid } from '@sim/utils/id'
 import { omit } from '@sim/utils/object'
 import type { StorageContext } from '@/lib/uploads'
 import { ACCEPTED_FILE_TYPES, SUPPORTED_DOCUMENT_EXTENSIONS } from '@/lib/uploads/utils/validation'
-import { isUuid } from '@/executor/constants'
 import type { UserFile } from '@/executor/types'
 
 interface FileAttachment {
@@ -906,7 +906,7 @@ export function extractWorkspaceIdFromExecutionKey(key: string): string | null {
 
   if (segments[0] === 'execution' && segments.length >= 5) {
     const workspaceId = segments[1]
-    if (workspaceId && isUuid(workspaceId)) {
+    if (workspaceId && isValidUuid(workspaceId)) {
       return workspaceId
     }
   }

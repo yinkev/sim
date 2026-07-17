@@ -7512,6 +7512,19 @@
       "providerId": null
     },
     {
+      "id": "google_pagespeed-6",
+      "blockType": "google_pagespeed",
+      "label": "PageSpeed competitor benchmark",
+      "prompt": "Build a workflow that runs Google PageSpeed Insights against my homepage and a list of competitor URLs on mobile, compares the performance scores and Core Web Vitals side by side, and writes the ranked benchmark to a sheet.",
+      "modules": [
+        "agent",
+        "workflows"
+      ],
+      "featured": false,
+      "popular": false,
+      "providerId": null
+    },
+    {
       "id": "google_search-0",
       "blockType": "google_search",
       "label": "Daily news digest",
@@ -17041,6 +17054,120 @@
       "featured": true,
       "popular": false,
       "providerId": "slack"
+    },
+    {
+      "id": "sportmonks-0",
+      "blockType": "sportmonks",
+      "label": "Daily football fixtures digest",
+      "prompt": "Build a scheduled daily workflow that fetches today's football fixtures from Sportmonks for the leagues I follow, summarizes the key matchups and kickoff times, and posts the digest to Slack.",
+      "modules": [
+        "scheduled",
+        "agent",
+        "workflows"
+      ],
+      "featured": false,
+      "popular": false,
+      "providerId": null
+    },
+    {
+      "id": "sportmonks-1",
+      "blockType": "sportmonks",
+      "label": "Live football score alerter",
+      "prompt": "Create a scheduled workflow that polls Sportmonks inplay football scores, detects goals and status changes since the last run, and pings Slack with the updated scoreline for tracked matches.",
+      "modules": [
+        "scheduled",
+        "tables",
+        "agent",
+        "workflows"
+      ],
+      "featured": false,
+      "popular": false,
+      "providerId": null
+    },
+    {
+      "id": "sportmonks-2",
+      "blockType": "sportmonks",
+      "label": "Weekly league standings report",
+      "prompt": "Build a scheduled weekly workflow that pulls the Sportmonks football standings and topscorers for a season, formats a league table with recent form, and emails the report to the group.",
+      "modules": [
+        "scheduled",
+        "agent",
+        "workflows"
+      ],
+      "featured": false,
+      "popular": false,
+      "providerId": null
+    },
+    {
+      "id": "sportmonks-3",
+      "blockType": "sportmonks",
+      "label": "Race weekend schedule digest",
+      "prompt": "Build a scheduled workflow that fetches this weekend's motorsport sessions from Sportmonks, summarizes the practice, qualifying, and race times, and posts the schedule to Slack.",
+      "modules": [
+        "scheduled",
+        "agent",
+        "workflows"
+      ],
+      "featured": false,
+      "popular": false,
+      "providerId": null
+    },
+    {
+      "id": "sportmonks-4",
+      "blockType": "sportmonks",
+      "label": "Motorsport championship tracker",
+      "prompt": "Create a scheduled weekly workflow that pulls the Sportmonks motorsport driver and constructor standings for the current season, formats the championship tables, and emails them to the group.",
+      "modules": [
+        "scheduled",
+        "agent",
+        "workflows"
+      ],
+      "featured": false,
+      "popular": false,
+      "providerId": null
+    },
+    {
+      "id": "sportmonks-5",
+      "blockType": "sportmonks",
+      "label": "Pre-match odds snapshot",
+      "prompt": "Build a workflow that pulls Sportmonks pre-match odds for a fixture across selected bookmakers, computes the implied probability for each outcome, and writes the snapshot to a table.",
+      "modules": [
+        "tables",
+        "agent",
+        "workflows"
+      ],
+      "featured": false,
+      "popular": false,
+      "providerId": null
+    },
+    {
+      "id": "sportmonks-6",
+      "blockType": "sportmonks",
+      "label": "Live odds movement alerter",
+      "prompt": "Create a scheduled workflow that polls Sportmonks in-play odds for a fixture, detects sharp price moves since the last run, and pings Slack with the updated lines.",
+      "modules": [
+        "scheduled",
+        "tables",
+        "agent",
+        "workflows"
+      ],
+      "featured": false,
+      "popular": false,
+      "providerId": null
+    },
+    {
+      "id": "sportmonks-7",
+      "blockType": "sportmonks",
+      "label": "Head-to-head match preview",
+      "prompt": "Create a workflow that takes two team names, resolves them to IDs via Sportmonks football team search, pulls their head-to-head history and current standings, and writes a match preview file.",
+      "modules": [
+        "agent",
+        "files",
+        "workflows"
+      ],
+      "featured": false,
+      "popular": false,
+      "providerId": null
     },
     {
       "id": "sqs-0",

@@ -1,7 +1,7 @@
 import type { ComponentType, SVGProps } from 'react'
 import { stripVersionSuffix } from '@sim/utils/string'
+import { INTEGRATIONS } from '@/lib/integrations/catalog'
 import { blockTypeToIconMap } from '@/lib/integrations/icon-mapping'
-import integrationsJson from '@/lib/integrations/integrations.json'
 import type { Integration } from '@/lib/integrations/types'
 
 export type IntegrationIcon = ComponentType<SVGProps<SVGSVGElement>>
@@ -15,8 +15,7 @@ export interface IntegrationDescriptor {
 }
 
 /** All integrations surfaced in the catalog, ordered by scripts/generate-docs.ts. */
-export const CLIENT_INTEGRATIONS: readonly Integration[] =
-  integrationsJson.integrations as readonly Integration[]
+export const CLIENT_INTEGRATIONS: readonly Integration[] = INTEGRATIONS
 
 const integrationByType = new Map<string, Integration>()
 const descriptorByType = new Map<string, IntegrationDescriptor>()

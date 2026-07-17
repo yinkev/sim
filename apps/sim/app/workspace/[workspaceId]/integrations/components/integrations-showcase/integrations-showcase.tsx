@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { getBlock } from '@/blocks'
+import { getIntegrationDescriptor } from '@/lib/integrations/client-catalog'
 
 /**
  * URL-encoded SVG used as a mask to carve the bottom-right notch out of the
@@ -44,11 +44,11 @@ const SHOWCASE_TILES = [
 ] as const
 
 /**
- * Resolves the brand background color for a block type from the block registry.
+ * Resolves the brand background color for a block type from the client catalog.
  * Returns `null` when the block is unknown or has no brand color configured.
  */
 function resolveBrandTileBg(blockType: string): string | null {
-  return getBlock(blockType)?.bgColor || null
+  return getIntegrationDescriptor(blockType)?.bgColor ?? null
 }
 
 interface IntegrationTileProps {
@@ -119,15 +119,15 @@ export function IntegrationsShowcase() {
       >
         <div className='absolute inset-0 grid translate-x-[0.5px] translate-y-[0.5px] grid-cols-[repeat(auto-fill,48px)] grid-rows-[repeat(auto-fill,48px)]'>
           {SHOWCASE_TILES.map((tile) => {
-            const block = getBlock(tile.id)
-            if (!block) return null
+            const descriptor = getIntegrationDescriptor(tile.id)
+            if (!descriptor) return null
             return (
               <div
                 key={tile.id}
                 style={{ gridColumnStart: tile.col, gridRowStart: tile.row }}
                 className='m-0.5'
               >
-                <IntegrationTile blockType={tile.id} icon={block.icon} framed />
+                <IntegrationTile blockType={tile.id} icon={descriptor.icon} framed />
               </div>
             )
           })}

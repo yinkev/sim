@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
-import { Files } from '../files'
+import { FileDetail } from '@/app/workspace/[workspaceId]/files/[fileId]/file-detail'
 
 export const metadata: Metadata = {
   title: 'Files',
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function FilesFilePage() {
   return (
     <Suspense fallback={null}>
-      <Files />
+      <FileDetail />
     </Suspense>
   )
 }

@@ -18,9 +18,10 @@ import type { DbOrTx } from '@/lib/db/types'
 import { assertRowCapacity, notifyTableRowUsage } from '@/lib/table/billing'
 import { generateColumnId, getColumnId, withGeneratedColumnIds } from '@/lib/table/column-keys'
 import { COLUMN_TYPES, NAME_PATTERN, TABLE_LIMITS } from '@/lib/table/constants'
-import { EMPTY_JOB_FIELDS, latestJobForTable, latestJobsForTables } from '@/lib/table/jobs/service'
+import { latestJobForTable } from '@/lib/table/jobs/read'
 import { nKeysBetween } from '@/lib/table/order-key'
 import type { DbTransaction } from '@/lib/table/planner'
+import { applyColumnOrderToSchema } from '@/lib/table/read'
 import { setTableTxTimeouts } from '@/lib/table/tx'
 import type {
   CreateTableData,
@@ -40,7 +41,7 @@ export class TableConflictError extends Error {
   }
 }
 
-export type TableScope = 'active' | 'archived' | 'all'
+export { listTables, type TableScope } from '@/lib/table/read'
 
 /**
  * Serializes schema/metadata read-modify-writes for a single table so
@@ -73,37 +74,6 @@ export async function withLockedTable<T>(
     }
     return mutate(table, trx)
   })
-}
-
-/**
- * Returns `schema` with `columns` sorted by `metadata.columnOrder` (the user-
- * editable visible order). Columns missing from `columnOrder` are appended at
- * the end in their original (schema-creation) order — covers tables created
- * before `columnOrder` existed and any drift from out-of-band column adds.
- *
- * This makes `schema.columns` the single source of truth for column order on
- * the wire. The client doesn't have to join the two arrays itself — every
- * consumer (grid, sidebar, copilot, mothership) gets the same ordered list.
- */
-function applyColumnOrderToSchema(
-  schema: TableSchema,
-  metadata: TableMetadata | null
-): TableSchema {
-  const order = metadata?.columnOrder
-  if (!order || order.length === 0) return schema
-  // `columnOrder` holds stable column ids (legacy entries equal the name == id).
-  const byId = new Map<string, TableSchema['columns'][number]>()
-  for (const c of schema.columns) byId.set(getColumnId(c), c)
-  const ordered: TableSchema['columns'] = []
-  for (const id of order) {
-    const c = byId.get(id)
-    if (c) {
-      ordered.push(c)
-      byId.delete(id)
-    }
-  }
-  for (const c of byId.values()) ordered.push(c)
-  return { ...schema, columns: ordered }
 }
 
 /**
@@ -161,71 +131,6 @@ export async function getTableById(
     updatedAt: table.updatedAt,
     ...jobFields,
   }
-}
-
-/**
- * Lists all tables in a workspace.
- *
- * @param workspaceId - Workspace ID to list tables for
- * @returns Array of table definitions
- */
-export async function listTables(
-  workspaceId: string,
-  options?: { scope?: TableScope }
-): Promise<TableDefinition[]> {
-  const { scope = 'active' } = options ?? {}
-  const tables = await db
-    .select({
-      id: userTableDefinitions.id,
-      name: userTableDefinitions.name,
-      description: userTableDefinitions.description,
-      schema: userTableDefinitions.schema,
-      metadata: userTableDefinitions.metadata,
-      maxRows: userTableDefinitions.maxRows,
-      workspaceId: userTableDefinitions.workspaceId,
-      createdBy: userTableDefinitions.createdBy,
-      archivedAt: userTableDefinitions.archivedAt,
-      createdAt: userTableDefinitions.createdAt,
-      updatedAt: userTableDefinitions.updatedAt,
-      rowCount: userTableDefinitions.rowCount,
-    })
-    .from(userTableDefinitions)
-    .where(
-      scope === 'all'
-        ? eq(userTableDefinitions.workspaceId, workspaceId)
-        : scope === 'archived'
-          ? and(
-              eq(userTableDefinitions.workspaceId, workspaceId),
-              sql`${userTableDefinitions.archivedAt} IS NOT NULL`
-            )
-          : and(
-              eq(userTableDefinitions.workspaceId, workspaceId),
-              isNull(userTableDefinitions.archivedAt)
-            )
-    )
-    .orderBy(userTableDefinitions.createdAt)
-
-  const jobsByTable = await latestJobsForTables(tables.map((t) => t.id))
-
-  return tables.map((t) => {
-    const metadata = (t.metadata as TableMetadata) ?? null
-    const { pendingDeleteRemaining, ...jobFields } = jobsByTable.get(t.id) ?? EMPTY_JOB_FIELDS
-    return {
-      id: t.id,
-      name: t.name,
-      description: t.description,
-      schema: applyColumnOrderToSchema(t.schema as TableSchema, metadata),
-      metadata,
-      rowCount: Math.max(0, t.rowCount - pendingDeleteRemaining),
-      maxRows: t.maxRows,
-      workspaceId: t.workspaceId,
-      createdBy: t.createdBy,
-      archivedAt: t.archivedAt,
-      createdAt: t.createdAt,
-      updatedAt: t.updatedAt,
-      ...jobFields,
-    }
-  })
 }
 
 /**

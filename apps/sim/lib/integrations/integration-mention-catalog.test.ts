@@ -45,6 +45,7 @@ interface PublicHomeSuggestions {
 
 const integrationsPath = new URL('./integrations.json', import.meta.url)
 const mentionCatalogPath = new URL('./integration-mention-catalog.json', import.meta.url)
+const integrationDetailsPath = new URL('./integration-details.json', import.meta.url)
 const homeSuggestionsPath = new URL('./home-suggestions.json', import.meta.url)
 const publicHomeSuggestionsPath = new URL(
   '../../public/generated/home-suggestions.json',
@@ -69,6 +70,36 @@ describe('generated lightweight integration catalogs', () => {
     expect(catalog.integrations).toEqual(
       source.integrations.map(({ type, name }) => ({ blockType: type, name }))
     )
+  })
+
+  it('keeps integration detail presentation data complete and free of executable metadata', () => {
+    expect(existsSync(integrationDetailsPath)).toBe(true)
+    if (!existsSync(integrationDetailsPath)) return
+
+    const integrations = readJson<IntegrationCatalogSource>(integrationsPath).integrations
+    const catalog = readJson<{
+      details: Record<
+        string,
+        {
+          templates: Array<{ title: string; prompt: string; otherBlockTypes: readonly string[] }>
+          skills: Array<{ name: string; description: string; content: string }>
+        }
+      >
+    }>(integrationDetailsPath)
+
+    expect(Object.keys(catalog.details)).toEqual(integrations.map(({ type }) => type))
+    for (const details of Object.values(catalog.details)) {
+      for (const template of details.templates) {
+        expect(Object.keys(template).sort()).toEqual(['otherBlockTypes', 'prompt', 'title'])
+        expect(template.title).not.toBe('')
+        expect(template.prompt).not.toBe('')
+      }
+      for (const skill of details.skills) {
+        expect(Object.keys(skill).sort()).toEqual(['content', 'description', 'name'])
+        expect(skill.name).not.toBe('')
+        expect(skill.content).not.toBe('')
+      }
+    }
   })
 
   it('keeps the public suggestion catalog deterministic and free of icon data', () => {

@@ -1,10 +1,10 @@
 import { Suspense } from 'react'
-import { ArrowLeft } from 'lucide-react'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { ChipLink } from '@/components/emcn'
-import { INTEGRATIONS } from '@/lib/integrations'
+import { INTEGRATIONS } from '@/lib/integrations/catalog'
+import { getIntegrationDetails } from '@/lib/integrations/integration-details'
 import { IntegrationBlockDetail } from '@/app/workspace/[workspaceId]/integrations/[block]/integration-block-detail'
+import { IntegrationDetailLoading } from '@/app/workspace/[workspaceId]/integrations/[block]/integration-detail-loading'
 
 export async function generateMetadata({
   params,
@@ -26,20 +26,16 @@ export default async function IntegrationBlockPage({
   const { workspaceId, block } = await params
   const integration = INTEGRATIONS.find((i) => i.slug === block)
   if (!integration) notFound()
+  const details = getIntegrationDetails(integration.type)
 
   return (
-    <Suspense
-      fallback={
-        <div className='flex h-full flex-col bg-[var(--bg)]'>
-          <div className='flex flex-shrink-0 items-center bg-[var(--bg)] px-[16px] pt-[8.5px] pb-[8.5px]'>
-            <ChipLink href={`/workspace/${workspaceId}/integrations`} leftIcon={ArrowLeft}>
-              Integrations
-            </ChipLink>
-          </div>
-        </div>
-      }
-    >
-      <IntegrationBlockDetail integration={integration} workspaceId={workspaceId} />
+    <Suspense fallback={<IntegrationDetailLoading workspaceId={workspaceId} />}>
+      <IntegrationBlockDetail
+        integration={integration}
+        workspaceId={workspaceId}
+        templates={details.templates}
+        suggestedSkills={details.skills}
+      />
     </Suspense>
   )
 }

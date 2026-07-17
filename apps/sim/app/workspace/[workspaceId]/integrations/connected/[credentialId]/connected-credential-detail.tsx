@@ -16,7 +16,8 @@ import {
 } from '@/components/emcn'
 import { ArrowLeft } from '@/components/emcn/icons'
 import { writeOAuthReturnContext } from '@/lib/credentials/client-state'
-import { INTEGRATIONS, resolveOAuthServiceForIntegration } from '@/lib/integrations'
+import { INTEGRATIONS } from '@/lib/integrations/catalog'
+import { resolveOAuthServiceForIntegration } from '@/lib/integrations/oauth-service'
 import { getServiceConfigByProviderId } from '@/lib/oauth'
 import {
   AddPeopleModal,

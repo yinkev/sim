@@ -13,111 +13,16 @@
 
 import { db } from '@sim/db'
 import { tableJobs, userTableDefinitions, userTableRows } from '@sim/db/schema'
-import { and, asc, desc, eq, gt, inArray, ne, or, sql } from 'drizzle-orm'
-import type { DbOrTx } from '@/lib/db/types'
+import { and, asc, desc, eq, gt, or, sql } from 'drizzle-orm'
 import { pendingDeleteMask } from '@/lib/table/rows/service'
 import type {
   RowData,
   TableDefinition,
-  TableDeleteJobPayload,
   TableExportJobPayload,
   TableJobType,
 } from '@/lib/table/types'
 
-/** Job fields projected onto a {@link TableDefinition}, derived from its latest `table_jobs` row. */
-interface DerivedJobFields {
-  jobStatus: TableDefinition['jobStatus']
-  jobId: string | null
-  jobType: TableDefinition['jobType']
-  jobError: string | null
-  jobRowsProcessed: number
-  /**
-   * Rows a running delete job still has to remove (its doomed estimate minus
-   * deletions so far). Internal to count adjustment — callers subtract it from
-   * the raw `row_count` so list/detail counts match the read path's delete
-   * mask (a mid-delete refresh must not resurrect the count). Not on the wire.
-   */
-  pendingDeleteRemaining: number
-}
-
-export const EMPTY_JOB_FIELDS: DerivedJobFields = {
-  jobStatus: null,
-  jobId: null,
-  jobType: null,
-  jobError: null,
-  jobRowsProcessed: 0,
-  pendingDeleteRemaining: 0,
-}
-
-function mapJobRow(
-  row:
-    | {
-        id: string
-        type: string
-        status: string
-        rowsProcessed: number
-        error: string | null
-        payload: unknown
-      }
-    | undefined
-): DerivedJobFields {
-  if (!row) return EMPTY_JOB_FIELDS
-  const doomedCount =
-    row.type === 'delete' && row.status === 'running'
-      ? ((row.payload as TableDeleteJobPayload | null)?.doomedCount ?? 0)
-      : 0
-  return {
-    jobStatus: row.status as TableDefinition['jobStatus'],
-    jobId: row.id,
-    jobType: row.type as TableDefinition['jobType'],
-    jobError: row.error,
-    jobRowsProcessed: row.rowsProcessed,
-    pendingDeleteRemaining: Math.max(0, doomedCount - row.rowsProcessed),
-  }
-}
-
-const JOB_PROJECTION = {
-  id: tableJobs.id,
-  type: tableJobs.type,
-  status: tableJobs.status,
-  rowsProcessed: tableJobs.rowsProcessed,
-  error: tableJobs.error,
-  payload: tableJobs.payload,
-} as const
-
-/**
- * The latest job for one table (the running one if present, else the most recent terminal).
- * Exports are excluded: they're read-only, run concurrently with other jobs, and have their own
- * client surface — surfacing one here would clobber the import/delete/backfill status the tray
- * and SSE consumer derive from these fields.
- */
-export async function latestJobForTable(
-  tableId: string,
-  executor: DbOrTx = db
-): Promise<DerivedJobFields> {
-  const [row] = await executor
-    .select(JOB_PROJECTION)
-    .from(tableJobs)
-    .where(and(eq(tableJobs.tableId, tableId), ne(tableJobs.type, 'export')))
-    .orderBy(desc(tableJobs.startedAt))
-    .limit(1)
-  return mapJobRow(row)
-}
-
-/** Latest non-export job per table for a batch of ids, via `DISTINCT ON (table_id)`. */
-export async function latestJobsForTables(
-  tableIds: string[]
-): Promise<Map<string, DerivedJobFields>> {
-  const map = new Map<string, DerivedJobFields>()
-  if (tableIds.length === 0) return map
-  const rows = await db
-    .selectDistinctOn([tableJobs.tableId], { tableId: tableJobs.tableId, ...JOB_PROJECTION })
-    .from(tableJobs)
-    .where(and(inArray(tableJobs.tableId, tableIds), ne(tableJobs.type, 'export')))
-    .orderBy(tableJobs.tableId, desc(tableJobs.startedAt))
-  for (const row of rows) map.set(row.tableId, mapJobRow(row))
-  return map
-}
+export { EMPTY_JOB_FIELDS, latestJobForTable, latestJobsForTables } from '@/lib/table/jobs/read'
 
 /**
  * Atomically claims a table's single background-job slot by inserting a `running` row into

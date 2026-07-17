@@ -7,38 +7,37 @@ import type { ChipDropdownOption } from '@/components/emcn'
 import { Button, ChipDropdown, Plus, Tooltip } from '@/components/emcn'
 import { Database } from '@/components/emcn/icons'
 import type { KnowledgeBaseData } from '@/lib/knowledge/types'
+import { ownerCell } from '@/app/workspace/[workspaceId]/components/resource/components/owner-cell'
+import type { ResourceAction } from '@/app/workspace/[workspaceId]/components/resource/components/resource-header'
 import type {
   FilterTag,
-  ResourceAction,
-  ResourceCell,
-  ResourceColumn,
-  ResourceRow,
   SearchConfig,
   SortConfig,
-} from '@/app/workspace/[workspaceId]/components'
+} from '@/app/workspace/[workspaceId]/components/resource/components/resource-options'
+import { timeCell } from '@/app/workspace/[workspaceId]/components/resource/components/time-cell'
 import {
   EMPTY_CELL_PLACEHOLDER,
-  ownerCell,
   Resource,
-  timeCell,
-} from '@/app/workspace/[workspaceId]/components'
-import { BaseTagsModal } from '@/app/workspace/[workspaceId]/knowledge/[id]/components'
-import {
-  CreateBaseModal,
-  DeleteKnowledgeBaseModal,
-  EditKnowledgeBaseModal,
-  KnowledgeBaseContextMenu,
-  KnowledgeListContextMenu,
-} from '@/app/workspace/[workspaceId]/knowledge/components'
+  type ResourceCell,
+  type ResourceColumn,
+  type ResourceRow,
+} from '@/app/workspace/[workspaceId]/components/resource/resource'
+import { BaseTagsModal } from '@/app/workspace/[workspaceId]/knowledge/[id]/components/base-tags-modal'
+import { CreateBaseModal } from '@/app/workspace/[workspaceId]/knowledge/components/create-base-modal'
+import { DeleteKnowledgeBaseModal } from '@/app/workspace/[workspaceId]/knowledge/components/delete-knowledge-base-modal'
+import { EditKnowledgeBaseModal } from '@/app/workspace/[workspaceId]/knowledge/components/edit-knowledge-base-modal'
+import { KnowledgeBaseContextMenu } from '@/app/workspace/[workspaceId]/knowledge/components/knowledge-base-context-menu'
+import { KnowledgeListContextMenu } from '@/app/workspace/[workspaceId]/knowledge/components/knowledge-list-context-menu'
+import KnowledgeLoading from '@/app/workspace/[workspaceId]/knowledge/loading'
 import { filterKnowledgeBases } from '@/app/workspace/[workspaceId]/knowledge/utils/sort'
 import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
-import { useContextMenu } from '@/app/workspace/[workspaceId]/w/components/sidebar/hooks'
+import { useContextMenu } from '@/app/workspace/[workspaceId]/w/components/sidebar/hooks/use-context-menu'
 import { CONNECTOR_META_REGISTRY } from '@/connectors/registry'
 import { useKnowledgeBasesList } from '@/hooks/kb/use-knowledge'
 import { useDeleteKnowledgeBase, useUpdateKnowledgeBase } from '@/hooks/queries/kb/knowledge'
 import { useWorkspaceMembersQuery } from '@/hooks/queries/workspace'
 import { useDebounce } from '@/hooks/use-debounce'
-import { usePermissionConfig } from '@/hooks/use-permission-config'
+import { usePermissionGroupConfig } from '@/hooks/use-permission-group-config'
 
 const logger = createLogger('Knowledge')
 
@@ -125,14 +124,14 @@ export function Knowledge() {
   const router = useRouter()
   const workspaceId = params.workspaceId as string
 
-  const { config: permissionConfig } = usePermissionConfig()
+  const { config: permissionConfig } = usePermissionGroupConfig()
   useEffect(() => {
     if (permissionConfig.hideKnowledgeBaseTab) {
       router.replace(`/workspace/${workspaceId}`)
     }
   }, [permissionConfig.hideKnowledgeBaseTab, router, workspaceId])
 
-  const { knowledgeBases, error } = useKnowledgeBasesList(workspaceId)
+  const { knowledgeBases, isLoading, error } = useKnowledgeBasesList(workspaceId)
   const { data: members } = useWorkspaceMembersQuery(workspaceId)
 
   if (error) {
@@ -554,6 +553,8 @@ export function Knowledge() {
     }
     return tags
   }, [connectorFilter, contentFilter, ownerFilter, members])
+
+  if (isLoading) return <KnowledgeLoading />
 
   return (
     <>

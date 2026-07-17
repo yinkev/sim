@@ -24,13 +24,14 @@ apps/sim/docs/center/operations-and-dogfood.md
 
 ## Existing performance evidence
 
-`apps/sim/docs/DEV_COMPILE_PERF.md` records the measured problem:
+`apps/sim/docs/DEV_COMPILE_PERF.md` records dated measurement snapshots:
 
-- `/workspace` cold compile improved from 85s to 15s after dev OTel/package-import/transpile changes.
-- `/workspace/[workspaceId]/home` still has a 24s cold compile.
-- Remaining hot path pulls the workflow/block registry through workspace route state.
+- The June 18 snapshot improved `/workspace` cold compile from 85s to 15s after dev OTel/package-import/transpile changes; it recorded a then-current 24s `/workspace/[workspaceId]/home` residual.
+- The July 16-17 follow-up addressed page-specific navigation lag with intent prefetch, removal of blocking SSR loopback prefetch, and narrower route import graphs.
+- Latest isolated empty-cache `GET /api/table` improved from 23.3s to 1.72s after table read/create route separation.
+- First-ever cold-cache compile still varies with which shared graphs were primed. Warm navigation is expected to be subsecond after intent prefetch compiles the target.
 
-Current documented chain:
+Historical June hot path:
 
 ```text
 workspace shell/layout
@@ -119,15 +120,17 @@ Allowed Center defaults:
 - lazy imports behind explicit user action
 - local-development producer import routes that remain contract-bound and do not execute discovered producer code
 
-## Phase 0 decision
+## Phase 0 decision and current guidance
 
 Script/doc changes are safe now because they do not change product behavior.
 
-Do not attempt the registry decoupling as a quick fix. `DEV_COMPILE_PERF.md` documents that the previous dependency-injection attempt exposed a latent blocks/triggers circular dependency and had to be reverted.
+Do not attempt the registry decoupling as a quick fix. `DEV_COMPILE_PERF.md` documents that the June dependency-injection attempt exposed a latent blocks/triggers circular dependency and had to be reverted. The July navigation work avoided that cycle by removing executable registries from read-only route graphs instead of changing registry initialization order.
 
-Next code-level fix should be a deliberate import-boundary refactor:
+Preserve these import boundaries:
 
 1. Keep workflow editor route imports under `/workspace/[workspaceId]/w/**`.
 2. Make Center route use Center-owned providers instead of workspace-global workflow providers.
-3. Break blocks/triggers module-eval cycle before changing `getBlock` access in stores.
-4. Add a Center import-boundary check when the Center route exists.
+3. Keep navigation-target metadata in pure catalogs; do not reintroduce block/tool registry barrels.
+4. Keep Files list and detail graphs separate, with detail capabilities loaded only when needed.
+5. Keep `GET /api/table` on read-only leaf modules and creation under `POST /api/table/create`.
+6. Break the blocks/triggers module-eval cycle before changing `getBlock` initialization order in stores.
