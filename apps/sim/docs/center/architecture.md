@@ -22,6 +22,18 @@ Center is not:
 - MS2Scheduler.
 - A telemetry surface.
 
+## Canonical Ownership Boundary
+
+Center is the current local-first proving ground and a future projection/control surface over the
+canonical domains. Its local workspace dataset may import facts, derive recommendations, display
+evidence, and submit proposals or commands. It does not replace canonical Task, Artifact, Execution,
+Identity/Policy, Decision, or Activity Event persistence.
+
+A Center record changes canonical state only through an accepted domain contract. In particular, a local
+Action Proposal status of `executed` is not proof of a durable Execution without a linked canonical
+Execution record. The mapping and migration boundary is accepted in
+[ADR 0004](../architecture/adr/0004-control-surfaces-project-canonical-domain-state.md).
+
 ## Runtime Shape
 
 Public route:
@@ -182,7 +194,11 @@ CENTER_WORKSPACE_STORAGE_DIR=/path/to/storage
 
 If the local route is unavailable, `createWorkspaceCenterStorage()` falls back to `createBrowserCenterStorage()` with a workspace-scoped browser key.
 
-The current local implementation does not send profile data to telemetry. `CenterSurface` displays `telemetry off`, profile records have `telemetry: 'off'`, the Center client instrumentation disables telemetry on `/center/*`, and `center:readiness` reports `telemetry-privacy=ready` only when `NEXT_TELEMETRY_DISABLED=1` is proven from shell or local app env and PostHog is not explicitly enabled.
+The current local implementation does not send profile data to telemetry. `CenterSurface` displays
+`telemetry off`, profile records have `telemetry: 'off'`, and the Center client instrumentation disables
+telemetry on `/center/*`. Machine-level privacy claims must be verified from the current environment and
+instrumentation configuration; the current package manifest has no consolidated `center:readiness`
+command.
 
 ## API Boundary
 
@@ -213,10 +229,13 @@ Do not extend Center by importing producer private state into the route.
 
 ## Limitations
 
-- Browser-local storage is the only user-facing storage adapter today.
-- Profile export/delete exists in `CenterLocalSpine` but is not exposed in the current UI.
-- GitHub, Plane, Learn/Understand, and Worker imports read local sample/event files, not live external services.
-- Capability metadata is documented and stored but not yet enforced during import.
+- Workspace-scoped local-server JSON is the primary user-facing adapter, with browser-local fallback; it
+  is not canonical production domain storage.
+- Profile export and delete are exposed in the current UI but remain local-profile operations.
+- GitHub and Plane have optional read-only live import paths; Learn/Understand and Worker imports remain
+  local file or fixture based.
+- Import routes reject unknown declared capability ids, but Center's A0-A4 authority and T0-T4
+  truth-impact vocabulary is not yet mapped to canonical Autonomy Policy.
 - Prediction is a baseline heuristic, not a calibrated probability model.
 
 ## Related Documents

@@ -12,6 +12,12 @@ Do not rebuild Mothership as hidden logic inside `apps/sim`. The service boundar
 
 Recommended first owned implementation language: TypeScript on Bun. The original hosted backend appears to be a separate Go service from source comments, trace names, and route naming, but the private backend source is not present in this repo. Rebuilding in TypeScript keeps the owned service aligned with existing contracts, generated tool catalog, package boundaries, Bun workspace tooling, and test infrastructure. The service must still be a real process boundary.
 
+The process boundary does not create competing product-domain ownership. Per
+[ADR 0004](../../../apps/sim/docs/architecture/adr/0004-control-surfaces-project-canonical-domain-state.md),
+Task owns outcome and coordination, Artifact owns versioned work, and Execution owns the durable
+user-visible attempt. Mothership owns the private runtime mechanics that implement and resume an
+Execution.
+
 ## Non-Negotiables
 
 1. No normal runtime dependency on `copilot.sim.ai` or `www.copilot.sim.ai`.
@@ -166,14 +172,31 @@ Do not fake unsupported tools as success. Unsupported tools must fail with typed
 
 | State | Owner | Notes |
 | --- | --- | --- |
+| Canonical Task, Artifact, and Execution state | Owning Sim domain context | Mothership uses explicit contracts and correlation ids; process ownership does not create a second product system of record. |
 | Workspace database, workflows, tables, files, knowledge bases, credentials | Sim | Mothership reads through payload, callbacks, or explicit Sim-side tools. |
 | Chat rows and visible messages | Sim | Backend can keep orchestration state, but Sim owns user-visible chat persistence. |
-| Stream run state | Mothership | Includes stream id, seq, terminal state, retry state, provider response ids, and abort state. |
-| Checkpoints | Mothership | Must be durable and idempotent. |
+| Stream run state | Mothership runtime | Includes stream id, seq, terminal state, provider response ids, and abort state; it is correlated to the canonical Execution. |
+| Checkpoints | Mothership runtime | Durable, idempotent continuation state within one canonical Execution. |
 | Tool calls and pending results | Both | Mothership orchestrates; Sim persists visible blocks and executes Sim/client tools. |
 | Billing usage ledger | Sim authoritative | Mothership reports cumulative usage through callback. |
 | BYOK entitlement | Sim authoritative | Mothership asks Sim before using workspace BYOK. |
 | Admin/BYOK config | Mothership service plus Sim admin proxy | Admin auth is separate from runtime auth. |
+
+## Canonical Execution Correlation
+
+The owned runtime must retain both canonical and runtime identities:
+
+1. `executionId` identifies the durable product attempt and is distinct from Mothership run, stream,
+   checkpoint, provider-response, and tool-call ids.
+2. One Execution may include multiple checkpoint and resume stream legs.
+3. An explicit retry creates a new Execution linked to the prior Execution; reconnect or resume does not.
+4. Workflow execution resolves an exact Artifact Version or explicitly authorized Draft before the
+   attempt becomes canonical.
+5. Durable run events and checkpoints are authoritative for replay. Redis and browser state are delivery
+   caches or projections, not the only execution record.
+
+Phase 4 of the Sim architecture roadmap owns the compatibility slice that adapts current run persistence
+to this model. This architecture document does not claim that the correlation is already complete.
 
 ## Auth Boundary
 

@@ -9,7 +9,7 @@ Owning project: Center
 Owner: Sim maintainers  
 Current status: Runtime data model and local spine are implemented in `apps/sim/lib/center/`.
 
-## Canonical Implementation
+## Current Local Field Definitions
 
 Runtime type definitions:
 
@@ -35,7 +35,10 @@ Governance freeze record:
 apps/sim/docs/architecture/domain-model.md
 ```
 
-The implementation files are canonical for exact field names. The governance file records the approved primitive split and freeze rule.
+The implementation files define exact fields for the current local Center runtime. They do not make
+Center arrays canonical Task, Artifact, Execution, Identity/Policy, Decision, or Activity Event systems
+of record. Product ownership and future migration are governed by
+[ADR 0004](../architecture/adr/0004-control-surfaces-project-canonical-domain-state.md).
 
 ## Runtime Dataset
 
@@ -56,6 +59,24 @@ The implementation files are canonical for exact field names. The governance fil
 - `reviewPackets`
 
 The local spine treats profile isolation as a hard invariant. Every profile-scoped write validates the profile exists. Cross-record references are checked against the same profile where the runtime currently supports that reference.
+
+## Target Mapping
+
+| Center primitive | Target treatment |
+| --- | --- |
+| Profile | Local projection scope; canonical identity and policy remain in Identity/Policy. |
+| Actor | Actor identity or provenance reference. |
+| Loop | Task when it represents one outcome; otherwise a grouping or projection over Tasks. |
+| Decision | Canonical Decision when promoted through an accepted domain contract. |
+| Action Proposal | Proposed command or checkpoint; `executed` requires a linked actual Execution. |
+| Evidence | Provenance or Resource Reference; durable payloads become Artifacts or Execution outputs. |
+| Raw Event and Observation | Source material or projection feeding Activity Events. |
+| Outcome | Execution result or Activity Event projection. |
+| Review Packet | Governance Artifact or evidence linked to Task, Execution, and Decision. |
+| Recommendation, Prediction, Feature Projection | Rebuildable derived projections, never authoritative state. |
+
+This table establishes ownership, not a data migration. The local dataset remains intact until an
+explicit Phase 5 slice defines promotion, retention, retirement, and rollback per record cohort.
 
 ## Primitives
 
@@ -274,6 +295,7 @@ When adding fields:
 
 ## Related Documents
 
+- `apps/sim/docs/architecture/adr/0004-control-surfaces-project-canonical-domain-state.md`
 - `apps/sim/docs/center/architecture.md`
 - `apps/sim/docs/center/producer-model.md`
 - `apps/sim/docs/center/capability-system.md`

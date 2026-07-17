@@ -8,11 +8,18 @@ Status: Active operating contract for carrying the owned Mothership replacement 
 
 Use the Adjudicated Evidence OS.
 
-Every feature is a controlled case. A main agent owns the case, scoped workers produce evidence, reviewers attack the diff, a grader applies hard pass/fail criteria, failed grades trigger iteration, and the coverage audit plus timestamped handoff become the court of record.
+Every feature is a controlled case. A main agent owns the case, scoped workers produce evidence,
+reviewers attack the diff, a grader applies hard pass/fail criteria, failed grades trigger iteration, and
+the coverage audit plus timestamped handoff become the court of record for Mothership engineering claims.
+They are not the product system of record.
 
 No orchestration, no review, no grade, no evidence ledger, no completion claim.
 
-The final vision is an owned, auditable, restart-safe workspace command plane for Sim. Chat is one operator UI. `apps/mothership` is the execution kernel. The control panel is the operational command surface over typed contracts, durable stream events, strict capability secrets, explicit checkpoints, provider/tool/subagent loops, callbacks, deployment proof, and explicit non-claims.
+The final vision is an owned, auditable, restart-safe execution runtime for Sim. Chat is one operator UI.
+`apps/mothership` is the runtime execution kernel. Its control panel is the engineering/runtime operator
+cockpit over typed contracts, durable stream events, strict capability secrets, explicit checkpoints,
+provider/tool/subagent loops, callbacks, deployment proof, and explicit non-claims. The user-facing
+Command Center and Operations Center remain canonical Sim product surfaces.
 
 ## Long-Term Self-Governing Goal
 
@@ -30,6 +37,19 @@ Autonomy is allowed only inside the case system:
 6. Current repo state, command output, runtime behavior, and artifacts override memory or prior advice.
 
 Long-term outcome: agents can work continuously because the case runner prevents fake completion, not because prompts say "keep going."
+
+## Product-Domain Boundary
+
+[ADR 0004](../../../apps/sim/docs/architecture/adr/0004-control-surfaces-project-canonical-domain-state.md)
+governs the boundary between this engineering operating system and product truth.
+
+- FeatureCase is an engineering governance case, not a Task.
+- The FeatureCase ledger stores claims, evidence, reviews, grades, and non-claims; it does not own Task,
+  Artifact, or Execution state.
+- Mothership run and stream ids are runtime correlation ids, not canonical Execution ids.
+- A ledger transition or grade cannot mutate canonical product state without an accepted domain command.
+- Product presentation links FeatureCase evidence to the owning Task and applicable Artifact Versions,
+  Executions, Decisions, and Activity Events.
 
 ## Oracle And Subagents
 

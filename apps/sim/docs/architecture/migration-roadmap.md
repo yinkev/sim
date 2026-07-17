@@ -18,6 +18,13 @@ No implementation slice is active. The
 identity-only Task mapping, mixed-version trigger, bounded backfill, auth-first repair, compatibility
 proof, and rollback contract are recorded there. Phase 3 has not started.
 
+On 2026-07-16, local `main` was verified at the approved `37f360c7c` baseline and fast-forwarded to the
+completed Phase 2 and navigation-performance tip `30be1c68c`. The Phase 1 checkpoint, Phase 2 branch,
+worktrees, and all stashes remain preserved; nothing was pushed and the personal database was not
+migrated. [ADR 0004](adr/0004-control-surfaces-project-canonical-domain-state.md) now reconciles Center,
+Mothership runtime state, and FeatureCase evidence with canonical Task, Artifact, and Execution
+ownership. This governance decision did not start Phase 3.
+
 [Phase 1A: Main-Web Shell Diet](slices/phase-1-main-web-shell-diet.md) is complete. Its implementation
 history, accepted evidence, rejected alternatives, preserved behavior, and remaining limitations are
 recorded in the [Phase 1 closeout](phase-1-closeout.md). Center UI
@@ -51,7 +58,7 @@ resolved. Phase 2 preserves those accepted shell and runtime boundaries.
 - Phase 1 precedes Task persistence so new Task surfaces do not inherit the current workflow/editor dependency graph.
 - Phase 2 introduces identity and compatibility before moving conversation, artifact, or execution ownership.
 - Workflow is the first Artifact cohort because it exercises draft, version, execution, and Studio boundaries. Other cohorts require their own slice contracts.
-- Center operational machine state is reported by `bun run --silent center:readiness`; this roadmap records architectural blockers, not volatile credential state.
+- Center runtime readiness is verified by its owning implementation tests and current repository commands; this roadmap records architectural blockers, not volatile machine state.
 
 ## Compatibility Mapping
 
@@ -59,9 +66,10 @@ resolved. Phase 2 preserves those accepted shell and runtime boundaries.
 | --- | --- | --- | --- |
 | Mothership chat presented as a task | Task plus linked Conversation | 2 | Preserve `chatId` and current visibility while adding stable `taskId`; do not broaden access. |
 | Workflow | Artifact with Draft and immutable Version | 3 | Preserve existing workflow identity during the compatibility window; executions must stop targeting ambiguous latest state. |
-| Copilot run and stream lifecycle | Execution and Execution Step | 4 | Preserve current correlation identifiers while moving canonical lifecycle ownership. |
-| Center Action Proposal status `executed` | Not yet mapped | Decision required before Phase 4 | Do not equate a local status transition with a durable Execution unless an actual attempt exists and is linked. |
-| Center Profile, Loop, Observation, Outcome, Review Packet | Not yet mapped | Decision required before Phase 5 | Record keep/map/migrate/retire decisions in a slice or ADR before changing persistence. |
+| Copilot run and stream lifecycle | Execution and Execution Step | 4 | Preserve Mothership run and stream ids as correlation identifiers while the canonical Execution owns the user-visible attempt and may contain multiple stream legs. |
+| Center Action Proposal status `executed` | Proposed command or checkpoint projection | 4 and 5 | A local status transition is not a durable Execution unless an actual canonical Execution exists and is linked. |
+| Center Profile, Loop, Observation, Outcome, Review Packet | Projection or mapped canonical object per ADR 0004 | 5 | Keep the local dataset intact; promote, map, or retire each record cohort through explicit compatibility and rollback slices. |
+| Mothership FeatureCase and evidence ledger | Engineering governance evidence | 4 and 5 | FeatureCase is not Task, Artifact, or Execution; link its evidence to canonical objects without making ledger state product truth. |
 
 ## Architecture Blockers
 

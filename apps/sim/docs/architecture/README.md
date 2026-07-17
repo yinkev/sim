@@ -44,11 +44,12 @@ evidence live in the applicable slice specification. Conversation history is nev
 6. [Task as the primary work object](adr/0001-task-primary-work-object.md)
 7. [Workflow Studio compile boundary](adr/0002-workflow-studio-compile-boundary.md)
 8. [Minimal workspace shell](adr/0003-minimal-workspace-shell.md)
-9. [Development performance probe](performance-probe.md)
-10. [Phase 1 closeout](phase-1-closeout.md)
-11. [Pre-Phase 2 upstream v0.7.14 integration checkpoint](upstream-v0.7.14-integration-checkpoint.md)
-12. [Upstream v0.7.14 Home cold-compile investigation](upstream-v0.7.14-home-cold-compile-investigation.md)
-13. [Phase 2 Task compatibility spine](slices/phase-2-task-compatibility-spine.md)
+9. [Control surfaces project canonical domain state](adr/0004-control-surfaces-project-canonical-domain-state.md)
+10. [Development performance probe](performance-probe.md)
+11. [Phase 1 closeout](phase-1-closeout.md)
+12. [Pre-Phase 2 upstream v0.7.14 integration checkpoint](upstream-v0.7.14-integration-checkpoint.md)
+13. [Upstream v0.7.14 Home cold-compile investigation](upstream-v0.7.14-home-cold-compile-investigation.md)
+14. [Phase 2 Task compatibility spine](slices/phase-2-task-compatibility-spine.md)
 
 ## Slice Specification Contract
 

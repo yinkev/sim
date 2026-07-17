@@ -11,6 +11,11 @@ Current status: Phase 0-12 implementation exists; dogfood hardening remains gove
 
 Center is the local-first operating surface for personal execution. It is not the workflow editor, not a generic dashboard, and not a scheduler. It answers what is happening, what changed, what matters, what is blocked, what evidence exists, what should happen next, what decision is needed, and what was learned.
 
+Within the approved product architecture, Center is a proving-ground projection and control surface. Its
+local dataset does not own canonical Task, Artifact, Execution, Identity/Policy, Decision, or Activity
+Event state. [ADR 0004](../architecture/adr/0004-control-surfaces-project-canonical-domain-state.md)
+defines the ownership and future mapping boundary.
+
 ## Source Of Truth
 
 System truth lives here:
@@ -68,7 +73,8 @@ Implemented:
 - Lightweight Center route and local profile spine.
 - Workspace-scoped local storage with browser-local fallback.
 - Producer imports for MS2Scheduler, GitHub, Plane, Learn/Understand, workers, and review packets.
-- Metadata-backed capability gates and local capability connections.
+- Registered capability-id validation plus local capability metadata files; authority,
+  truth-impact, lifecycle, and policy enforcement remains pending.
 - Profile export/delete, baseline prediction, and explicit local-only sync status.
 - Read-only live GitHub and Plane import paths behind environment configuration.
 
@@ -80,6 +86,7 @@ Not complete:
 
 ## Related Documents
 
+- `apps/sim/docs/architecture/adr/0004-control-surfaces-project-canonical-domain-state.md`
 - `apps/sim/docs/LOCAL_DEV_PROFILES.md`
 - `apps/sim/docs/DEV_COMPILE_PERF.md`
 - `apps/sim/config/center/schemas/capability.schema.json`
